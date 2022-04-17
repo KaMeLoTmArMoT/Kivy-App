@@ -46,13 +46,20 @@
             orientation: "vertical"
             size: root.width, root.height
 
-            Label:
-                id: word_label
-                text_size: self.size
-                halign: "center"
-                valigh: "middle"
-                text: "Enter a name."
-                font_size: 32
+            ScrollView:
+                do_scroll_x: False
+                do_scroll_y: True
+
+                Label:
+                    id: word_label
+                    text_size: self.width, None
+                    height: self.texture_size[1]
+                    padding: 10, 10
+                    size_hint_y: None
+                    halign: "center"
+                    valigh: "middle"
+                    text: "Enter a name."
+                    font_size: 32
 
             TextInput:
                 id: word_input
