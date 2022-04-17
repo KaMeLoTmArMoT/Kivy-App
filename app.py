@@ -79,6 +79,7 @@ class LoginScreen(Screen, BaseScreen):
 
         if len(self.key) <= 5:
             self.label_out('Password should be longer than 5 letters.')
+            return
 
         if len(self.passwords) == 0:
             self.submit_new_password(self.key)
