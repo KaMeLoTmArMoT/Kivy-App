@@ -58,6 +58,8 @@ class LoginScreen(Screen, BaseScreen):
     def on_enter(self, *args):
         self.create_db_and_check()
 
+        self.ids.word_input.focus = True
+
     def create_db_and_check(self):
         # Create a password table
         call_db("""
