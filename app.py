@@ -75,10 +75,10 @@ class LoginScreen(Screen, BaseScreen):
 
     def submit(self):
         self.key = self.get_input()
+        self.ids.word_input.text_validate_unfocus = False
 
         if len(self.key) <= 5:
             self.label_out('Password should be longer than 5 letters.')
-            return
 
         if len(self.passwords) == 0:
             self.submit_new_password(self.key)
@@ -125,6 +125,7 @@ class MainScreen(Screen, BaseScreen):
 
     def submit(self):
         text = self.get_input()
+        self.ids.word_input.text_validate_unfocus = False
 
         if len(text) <= 2:
             self.label_out('Text should be longer than 2 letters')

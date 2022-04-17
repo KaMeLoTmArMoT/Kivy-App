@@ -16,6 +16,8 @@
                 id: word_input
                 multiline: False
                 size_hint: (1, .5)
+                on_text_validate:
+                    root.submit()
 
             Button:
                 id: login
@@ -42,6 +44,8 @@
                 id: word_input
                 multiline: False
                 size_hint: (1, .5)
+                on_text_validate:
+                    root.submit()
 
             Button:
                 size_hint: (1, .5)
