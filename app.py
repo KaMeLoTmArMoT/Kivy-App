@@ -24,6 +24,11 @@ def call_db(call):
 
     return records
 
+def get_sha(text):
+    enc = hashlib.sha256()
+    enc.update(text.encode('utf-8'))
+    return enc.hexdigest()
+
 
 class BaseScreen:
     def label_out(self, text: str):
@@ -32,27 +37,56 @@ class BaseScreen:
 
 
 class LoginScreen(Screen, BaseScreen):
-    def on_enter(self, *args):
-        self.check_password()
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.passwords = ''
 
-    def check_password(self):
+    def on_enter(self, *args):
+        self.create_db_and_check()
+
+    def create_db_and_check(self):
         # Create a password table
         call_db("""
         CREATE TABLE IF NOT EXISTS passwords (
-            section text
-            password blob
+            destination text,
+            password text
         ) """)
 
         # Check password
-        passwords = call_db("SELECT * FROM passwords WHERE section='login'")
+        self.passwords = call_db("SELECT * FROM passwords WHERE destination='login'")
 
-        if len(passwords) == 0:
-            self.label_out('Enter new password')
+        if len(self.passwords) == 0:
+            self.label_out('Enter a new password')
             self.ids.login.text = 'Register'
 
-    def submit_new_password(self):
-        # todo password
+    def submit(self):
+        text = self.ids.word_input.text
 
+        if len(text) <= 5:
+            self.label_out('Password should be longer than 5 letters.')
+            return
+
+        if len(self.passwords) == 0:
+            self.submit_new_password(text)
+        else:
+            self.validate_password(text)
+
+    def validate_password(self, inp_pass):
+        real_value = self.passwords[0][1]
+        input_value = get_sha(inp_pass)
+
+        if real_value == input_value:
+            self.next_screen()
+        else:
+            self.label_out('Wrong password. Try again.')
+
+    def submit_new_password(self, inp_pass):
+        enc_pass = get_sha(inp_pass)
+
+        call_db(f"INSERT INTO passwords VALUES ('login', '{enc_pass}')")
+        self.next_screen()
+
+    def next_screen(self):
         self.manager.transition.direction = 'left'
         self.manager.current = 'main'
 
