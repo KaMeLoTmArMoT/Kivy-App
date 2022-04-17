@@ -1,10 +1,20 @@
-from Cryptodome.Cipher import AES
-from kivy.lang import Builder
-from kivymd.app import MDApp
-from kivy.uix.screenmanager import Screen, ScreenManager
 import sqlite3
 import hashlib
 import base64
+
+from Cryptodome.Cipher import AES
+
+from kivy.lang import Builder
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.behaviors.button import ButtonBehavior
+from kivy.uix.screenmanager import Screen, ScreenManager
+
+from kivymd.uix.label import MDLabel
+from kivymd.app import MDApp
+
+
+class MDLabelBtn(ButtonBehavior, MDLabel):
+    pass
 
 
 def call_db(call):
@@ -141,7 +151,7 @@ class MainScreen(Screen, BaseScreen):
         call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
 
         # show message
-        self.label_out(f'{text} Added')
+        self.label_out(f'{text} added')
 
         # clear input box
         self.ids.word_input.text = ''
@@ -149,16 +159,35 @@ class MainScreen(Screen, BaseScreen):
     def show_records(self):
         records = call_db("SELECT * FROM customers")
 
-        words = ''
+        layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+        layout.bind(minimum_height=layout.setter('height'))
+
         for word in records:
             cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
 
             tm = word[0]
             tm = base64.b64decode(tm.encode('utf-8'))
             tm = cipher.decrypt(tm).decode('utf-8')
-            words += f'{tm}\n'
 
-        self.label_out(words)
+            btn = MDLabelBtn(text=tm)
+            btn.bind(on_press=self.select_label_btn)
+            layout.add_widget(btn)
+
+            self.ids[f'{word}'] = btn
+
+        self.ids.scroll.clear_widgets()
+        self.ids.scroll.add_widget(layout)
+        self.label_out('DB instances:')
+
+    def select_label_btn(self, instance):
+        print(f'The button <{instance.text}> is being pressed')
+
+        # reset selection
+        grid = self.ids.scroll.children[0]  # TODO check correct index
+        for btn in grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
 
 
 class MainApp(MDApp):

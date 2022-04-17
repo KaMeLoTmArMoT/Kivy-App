@@ -1,3 +1,12 @@
+<MDLabelBtn>
+    text_size: self.width, None
+    height: self.texture_size[1]
+    padding: 10, 10
+    size_hint_y: None
+    halign: "center"
+    font_size: 32
+
+
 <LoginScreen>
     MDCard:
         size_hint: None, None
@@ -46,20 +55,19 @@
             orientation: "vertical"
             size: root.width, root.height
 
+            MDLabel:
+                id: word_label
+                text: "Enter a new word"
+                font_size: 32
+                halign: 'center'
+                size_hint_y: None
+                height: self.texture_size[1]
+                padding_y: 15
+
             ScrollView:
+                id: scroll
                 do_scroll_x: False
                 do_scroll_y: True
-
-                Label:
-                    id: word_label
-                    text_size: self.width, None
-                    height: self.texture_size[1]
-                    padding: 10, 10
-                    size_hint_y: None
-                    halign: "center"
-                    valigh: "middle"
-                    text: "Enter a name."
-                    font_size: 32
 
             TextInput:
                 id: word_input
