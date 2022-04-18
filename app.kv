@@ -15,6 +15,7 @@
         elevation: 10
         padding: 25
         spacing: 25
+        radius: 10, 10, 10, 10
         orientation: 'vertical'
 
         MDLabel:
@@ -57,6 +58,7 @@
         elevation: 10
         padding: 20
         spacing: 10
+        radius: 20, 20, 20, 20
         orientation: 'vertical'
 
         MDLabel:
@@ -72,10 +74,12 @@
             do_scroll_x: False
             do_scroll_y: True
 
+
             canvas.before:
                 Color:
                     rgba: 1, 1, 1, 0.1
-                Rectangle:
+                RoundedRectangle:
+                    radius: 20, 20, 20, 20
                     pos: self.pos
                     size: self.size
 
