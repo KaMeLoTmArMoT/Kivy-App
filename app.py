@@ -58,6 +58,12 @@ class BaseScreen:
     def get_input(self):
         return self.ids.word_input.text
 
+    def encrypt(self, text):
+        cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
+        encoded_text = cipher.encrypt(text.encode('utf-8'))
+        b_encoded_text = base64.b64encode(encoded_text).decode('utf-8')
+        return b_encoded_text
+
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
@@ -122,6 +128,7 @@ class MainScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.key = None
+        self.selected = None
 
     def on_enter(self, *args):
         self.ids.word_input.focus = True
@@ -145,11 +152,10 @@ class MainScreen(Screen, BaseScreen):
             self.label_out('Text should be longer than 2 letters')
             return
 
-        cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
-        encoded_text = cipher.encrypt(text.encode('utf-8'))
-        b_encoded_text = base64.b64encode(encoded_text).decode('utf-8')
-
+        b_encoded_text = self.encrypt(text)
         call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
+
+        self.show_records()
 
         # show message
         self.label_out(f'{text} added')
@@ -189,6 +195,22 @@ class MainScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        self.selected = instance
+
+    def delete_name(self):
+        if self.selected is None:
+            self.show_records()
+            self.label_out('First select any element')
+            return
+
+        text = self.selected.text
+        b_encoded_text = self.encrypt(text)
+
+        call_db(f"DELETE FROM customers WHERE name='{b_encoded_text}'")
+
+        self.selected = None
+        self.show_records()
+        self.label_out(f'Deleted: {text}')
 
 
 class MainApp(MDApp):
