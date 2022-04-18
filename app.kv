@@ -50,40 +50,53 @@
 
 
 <MainScreen>
-    MDFloatLayout:
-        BoxLayout:
-            orientation: "vertical"
-            size: root.width, root.height
+    MDCard:
+        size_hint: None, None
+        size: 780, 580
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        elevation: 10
+        padding: 25
+        spacing: 25
+        orientation: 'vertical'
 
-            MDLabel:
-                id: word_label
-                text: "Enter a new word"
-                font_size: 32
-                halign: 'center'
-                size_hint_y: None
-                height: self.texture_size[1]
-                padding_y: 15
+        MDLabel:
+            id: word_label
+            text: "Enter a new word"
+            font_size: 32
+            halign: 'center'
+            size_hint_y: None
+            height: self.texture_size[1]
 
-            ScrollView:
-                id: scroll
-                do_scroll_x: False
-                do_scroll_y: True
+        ScrollView:
+            id: scroll
+            do_scroll_x: False
+            do_scroll_y: True
 
-            TextInput:
-                id: word_input
-                multiline: False
-                size_hint: (1, .5)
-                on_text_validate:
-                    root.submit()
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 0.1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
 
-            Button:
-                size_hint: (1, .5)
-                font_size: 32
-                text: "Submit Name"
-                on_press: root.submit()
+        MDTextFieldRound:
+            id: word_input
+            multiline: False
+            hint_text: "enter any word"
+            font_size: 28
+            size_hint_x: 0.93
+            pos_hint: {"center_x": 0.5}
+            on_text_validate:
+                root.submit()
 
-            Button:
-                size_hint: (1, .5)
-                font_size: 32
-                text: "Show Records"
-                on_press: root.show_records()
+        MDRoundFlatButton:
+            size_hint: (1, 0.15)
+            font_size: 28
+            text: "Submit Name"
+            on_press: root.submit()
+
+        MDRoundFlatButton:
+            size_hint: (1, 0.15)
+            font_size: 28
+            text: "Show Records"
+            on_press: root.show_records()

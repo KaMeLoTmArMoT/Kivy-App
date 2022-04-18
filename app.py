@@ -124,6 +124,7 @@ class MainScreen(Screen, BaseScreen):
         self.key = None
 
     def on_enter(self, *args):
+        self.ids.word_input.focus = True
         self.create_db_and_check()
 
         key = self.manager.get_screen('login').key
