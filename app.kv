@@ -55,8 +55,8 @@
         size: 780, 580
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         elevation: 10
-        padding: 25
-        spacing: 25
+        padding: 20
+        spacing: 10
         orientation: 'vertical'
 
         MDLabel:
@@ -84,19 +84,32 @@
             multiline: False
             hint_text: "enter any word"
             font_size: 28
-            size_hint_x: 0.93
+            size_hint_x: 0.8
             pos_hint: {"center_x": 0.5}
             on_text_validate:
                 root.submit()
 
-        MDRoundFlatButton:
-            size_hint: (1, 0.15)
-            font_size: 28
-            text: "Submit Name"
-            on_press: root.submit()
+        MDBoxLayout:
+            size_hint_y: None
+            height: 60
 
-        MDRoundFlatButton:
-            size_hint: (1, 0.15)
-            font_size: 28
-            text: "Show Records"
-            on_press: root.show_records()
+            MDFloatLayout:
+                MDGridLayout:
+                    cols: 3
+                    pos: 100, 30
+                    spacing: 10
+
+                    MDRoundFlatButton:
+                        font_size: 28
+                        text: "Submit Name"
+                        on_press: root.submit()
+
+                    MDRoundFlatButton:
+                        font_size: 28
+                        text: "Show Records"
+                        on_press: root.show_records()
+
+                    MDRoundFlatButton:
+                        font_size: 28
+                        text: "Delete Name"
+                        on_press: root.delete_name(text)
