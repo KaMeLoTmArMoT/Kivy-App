@@ -1,11 +1,7 @@
 import os
-import sqlite3
-import hashlib
 import base64
-
 from Cryptodome.Cipher import AES
 
-from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.screenmanager import Screen, ScreenManager
@@ -15,45 +11,15 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.filechooser import FileChooserListView, FileChooserIconView
 from kivy.uix.image import Image
 
+from kivy.lang import Builder
 from kivymd.uix.label import MDLabel
 from kivymd.app import MDApp
+
+from utils import *
 
 
 class MDLabelBtn(ButtonBehavior, MDLabel):
     pass
-
-
-def call_db(call):
-    # Create db
-    conn = sqlite3.connect('app.db')
-
-    # Create cursor
-    c = conn.cursor()
-
-    # Execute SQL command
-    c.execute(call)
-    records = c.fetchall()
-
-    # Commit changes
-    conn.commit()
-
-    # Close connection
-    conn.close()
-
-    return records
-
-
-def get_sha(text):
-    enc = hashlib.sha256()
-    enc.update(text.encode('utf-8'))
-    return enc.hexdigest()
-
-
-def extend_key(text):
-    if len(text) < 16:
-        while len(text) < 16:
-            text += text
-    return text[:16].encode('utf-8')
 
 
 class BaseScreen:
@@ -69,6 +35,14 @@ class BaseScreen:
         encoded_text = cipher.encrypt(text.encode('utf-8'))
         b_encoded_text = base64.b64encode(encoded_text).decode('utf-8')
         return b_encoded_text
+
+    def goto_images(self):
+        self.manager.transition.direction = 'left'
+        self.manager.current = 'imageview'
+
+    def goto_main(self):
+        self.manager.transition.direction = 'right'
+        self.manager.current = 'main'
 
 
 class LoginScreen(Screen, BaseScreen):

@@ -62,6 +62,26 @@
         radius: 20, 20, 20, 20
         orientation: 'vertical'
 
+        MDBoxLayout:
+            size_hint: 1, None
+            height: 20
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Main Screen"
+                on_press: root.goto_main()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Image Screen"
+                on_press: root.goto_images()
+
         MDLabel:
             id: word_label
             text: "Enter a new word"
@@ -123,6 +143,26 @@
 <ImageViewScreen>
     MDBoxLayout:
         orientation:'vertical'
+
+        MDBoxLayout:
+            size_hint: 1, None
+            height: 20
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Main Screen"
+                on_press: root.goto_main()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Image Screen"
+                on_press: root.goto_images()
 
         ScrollView:
             size_hint_y: .9
