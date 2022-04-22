@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import hashlib
 import base64
@@ -8,6 +9,11 @@ from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.screenmanager import Screen, ScreenManager
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.filechooser import FileChooserListView, FileChooserIconView
+from kivy.uix.image import Image
 
 from kivymd.uix.label import MDLabel
 from kivymd.app import MDApp
@@ -213,11 +219,64 @@ class MainScreen(Screen, BaseScreen):
         self.label_out(f'Deleted: {text}')
 
 
+class ImageViewScreen(Screen, BaseScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.grid = None
+
+    def on_enter(self, *args):
+        self.grid = self.ids.grid
+
+    def file_chooser_popup(self):
+        popup = Popup(
+            title='Filechooser',
+            size_hint=(None, None), size=(400, 400)
+        )
+
+        box = BoxLayout(orientation='vertical')
+        lbl = Label(text='Please select folder', size_hint_y=0.1)
+        # chooser = FileChooserListView()
+        chooser = FileChooserIconView()
+
+        btn = MDLabelBtn(text='Submit', size_hint_y=0.1)
+        btn.bind(
+            on_press=lambda x: self.show_folder_images(
+                chooser.path,
+                chooser.selection,
+                popup,
+            )
+        )
+
+        box.add_widget(lbl)
+        box.add_widget(chooser)
+        box.add_widget(btn)
+
+        popup.content = box
+        popup.open()
+
+    def show_folder_images(self, path, selection, popup):
+        files = os.listdir(path)
+        self.grid.clear_widgets()
+
+        for name in files:
+            if '.jpg' in name or '.png' in name:
+                im_path = os.path.join(path, name)
+                img = Image(
+                    source=im_path,
+                    allow_stretch=True,
+                    keep_ratio=True
+                )
+                self.grid.add_widget(img)
+
+        popup.dismiss()
+
+
 class MainApp(MDApp):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(LoginScreen(name='login'))
         sm.add_widget(MainScreen(name='main'))
+        sm.add_widget(ImageViewScreen(name='imageview'))
         sm.current = 'login'
 
         self.theme_cls.theme_style = "Dark"

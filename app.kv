@@ -119,3 +119,27 @@
                         font_size: 28
                         text: "Delete Name"
                         on_press: root.delete_name()
+
+<ImageViewScreen>
+    MDBoxLayout:
+        orientation:'vertical'
+
+        ScrollView:
+            size_hint_y: .9
+            pos_hint: {'x': 0, 'y': 0}
+            do_scroll_x: False
+            do_scroll_y: True
+
+            GridLayout:
+                id: grid
+                cols: 3
+                size:(root.width, root.height)
+                size_hint: None, None
+                height: self.minimum_height
+                row_default_height: 250
+
+        Button:
+            size_hint: 1, .1
+            text: 'Choose image'
+            background_color: (1, 1, 1, .5)
+            on_press: root.file_chooser_popup()
