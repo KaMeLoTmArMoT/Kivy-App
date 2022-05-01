@@ -1,5 +1,6 @@
 import os
 import base64
+import webbrowser
 from Cryptodome.Cipher import AES
 
 from kivy.uix.gridlayout import GridLayout
@@ -117,6 +118,8 @@ class MainScreen(Screen, BaseScreen):
         key = self.manager.get_screen('login').key
         self.key = extend_key(key)
 
+        self.show_records()
+
     def create_db_and_check(self):
         # Create a table
         call_db("""
@@ -175,6 +178,7 @@ class MainScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        instance.radius = (20, 20, 20, 20)
         self.selected = instance
 
     def delete_name(self):
@@ -191,6 +195,19 @@ class MainScreen(Screen, BaseScreen):
         self.selected = None
         self.show_records()
         self.label_out(f'Deleted: {text}')
+
+    def open_url(self):
+        if self.selected is None:
+            self.label_out("Select link to open")
+            return
+
+        url = self.selected.text
+        if "http" not in url:   # TODO: check for other link types
+            self.label_out("This is not a link probably")
+            return
+
+        chrome_path = 'C:/Program Files/Google/Chrome/Application/chrome.exe %s --incognito'
+        webbrowser.get(chrome_path).open(url)
 
 
 class ImageViewScreen(Screen, BaseScreen):

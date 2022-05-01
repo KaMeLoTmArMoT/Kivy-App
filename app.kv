@@ -95,7 +95,6 @@
             do_scroll_x: False
             do_scroll_y: True
 
-
             canvas.before:
                 Color:
                     rgba: 1, 1, 1, 0.1
@@ -121,8 +120,8 @@
 
             MDFloatLayout:
                 MDGridLayout:
-                    cols: 3
-                    pos: 100, 30
+                    cols: 4
+                    pos: 30, 30
                     spacing: 10
 
                     MDRoundFlatButton:
@@ -139,6 +138,11 @@
                         font_size: 28
                         text: "Delete Name"
                         on_press: root.delete_name()
+
+                    MDRoundFlatButton:
+                        font_size: 28
+                        text: "Open Url"
+                        on_press: root.open_url()
 
 <ImageViewScreen>
     MDBoxLayout:
