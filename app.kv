@@ -52,15 +52,8 @@
 
 
 <MainScreen>
-    MDCard:
-        size_hint: None, None
-        size: 780, 580
-        pos_hint: {"center_x": 0.5, "center_y": 0.5}
-        elevation: 10
-        padding: 20
-        spacing: 10
-        radius: 20, 20, 20, 20
-        orientation: 'vertical'
+    MDBoxLayout:
+        orientation:'vertical'
 
         MDBoxLayout:
             size_hint: 1, None
@@ -72,6 +65,7 @@
                 height: 20
                 font_size: 22
                 text: "Main Screen"
+                background_color: 1.8, 1.8, 1.8, 1
                 on_press: root.goto_main()
 
             Button:
@@ -82,67 +76,77 @@
                 text: "Image Screen"
                 on_press: root.goto_images()
 
-        MDLabel:
-            id: word_label
-            text: "Enter a new word"
-            font_size: 32
-            halign: 'center'
-            size_hint_y: None
-            height: self.texture_size[1]
+        MDCard:
+            size_hint: None, None
+            size: 780, 580
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            elevation: 10
+            padding: 20
+            spacing: 20
+            radius: 20, 20, 20, 20
+            orientation: 'vertical'
 
-        ScrollView:
-            id: scroll
-            do_scroll_x: False
-            do_scroll_y: True
+            MDLabel:
+                id: word_label
+                text: "Enter a new word"
+                font_size: 32
+                halign: 'center'
+                size_hint_y: None
+                height: self.texture_size[1]
 
-            canvas.before:
-                Color:
-                    rgba: 1, 1, 1, 0.1
-                RoundedRectangle:
-                    radius: 20, 20, 20, 20
-                    pos: self.pos
-                    size: self.size
+            ScrollView:
+                id: scroll
+                do_scroll_x: False
+                do_scroll_y: True
 
-        MDTextFieldRound:
-            id: word_input
-            multiline: False
-            hint_text: "enter any word"
-            font_size: 28
-            size_hint_x: 0.8
-            pos_hint: {"center_x": 0.5}
-            normal_color: 0.6, 0.8, 1, 0.4
-            on_text_validate:
-                root.submit()
+                canvas.before:
+                    Color:
+                        rgba: 1, 1, 1, 0.1
+                    RoundedRectangle:
+                        radius: 20, 20, 20, 20
+                        pos: self.pos
+                        size: self.size
 
-        MDBoxLayout:
-            size_hint_y: None
-            height: 60
+            MDTextFieldRound:
+                id: word_input
+                multiline: False
+                hint_text: "enter any word"
+                font_size: 28
+                size_hint_x: 0.8
+                pos_hint: {"center_x": 0.5}
+                normal_color: 0.6, 0.8, 1, 0.4
+                on_text_validate:
+                    root.submit()
 
-            MDFloatLayout:
-                MDGridLayout:
-                    cols: 4
-                    pos: 30, 30
-                    spacing: 10
+            MDBoxLayout:
+                size_hint_y: None
+                height: 40
 
-                    MDRoundFlatButton:
-                        font_size: 28
-                        text: "Submit Name"
-                        on_press: root.submit()
+                MDFloatLayout:
+                    MDGridLayout:
+                        cols: 4
+                        pos: 30, 30
+                        spacing: 10
 
-                    MDRoundFlatButton:
-                        font_size: 28
-                        text: "Show Records"
-                        on_press: root.show_records()
+                        MDRoundFlatButton:
+                            font_size: 28
+                            text: "Submit Name"
+                            on_press: root.submit()
 
-                    MDRoundFlatButton:
-                        font_size: 28
-                        text: "Delete Name"
-                        on_press: root.delete_name()
+                        MDRoundFlatButton:
+                            font_size: 28
+                            text: "Show Records"
+                            on_press: root.show_records()
 
-                    MDRoundFlatButton:
-                        font_size: 28
-                        text: "Open Url"
-                        on_press: root.open_url()
+                        MDRoundFlatButton:
+                            font_size: 28
+                            text: "Delete Name"
+                            on_press: root.delete_name()
+
+                        MDRoundFlatButton:
+                            font_size: 28
+                            text: "Open Url"
+                            on_press: root.open_url()
 
 <ImageViewScreen>
     MDBoxLayout:
@@ -166,6 +170,7 @@
                 height: 20
                 font_size: 22
                 text: "Image Screen"
+                background_color: 1.8, 1.8, 1.8, 1
                 on_press: root.goto_images()
 
         ScrollView:
