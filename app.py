@@ -167,7 +167,10 @@ class MainScreen(Screen, BaseScreen):
 
         self.ids.scroll.clear_widgets()
         self.ids.scroll.add_widget(layout)
-        self.label_out('DB instances:')
+        if len(records) == 0:
+            self.label_out('No records. Add any items.')
+        else:
+            self.label_out('DB instances:')
 
     def select_label_btn(self, instance):
         print(f'The button <{instance.text}> is being pressed')
