@@ -227,6 +227,28 @@ class MainScreen(Screen, BaseScreen):
         self.show_records()
         self.label_out(f'Deleted: {text}')
 
+    def update_name(self):
+        if self.selected is None:
+            self.show_records()
+            self.label_out('First select any element')
+            return
+
+        old_text = self.selected.text
+        new_text = self.get_input()
+
+        if len(new_text) <= 2:
+            self.label_out('New text should be longer than 2 letters')
+            return
+
+        old_encrypted = self.encrypt(old_text)
+        new_encrypted = self.encrypt(new_text)
+
+        call_db(f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'")
+
+        self.ids.word_input.text = ''
+        self.show_records()
+        self.label_out(f'Successfully updated.')
+
     def open_url(self):
         if self.selected is None:
             self.label_out("Select link to open")

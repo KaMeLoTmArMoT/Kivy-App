@@ -124,27 +124,32 @@
 
                 MDFloatLayout:
                     MDGridLayout:
-                        cols: 4
-                        pos: 30, 30
-                        spacing: 10
+                        cols: 5
+                        pos: 25, 30
+                        spacing: 5
 
                         MDRoundFlatButton:
-                            font_size: 28
+                            font_size: 22
                             text: "Submit Name"
                             on_press: root.submit()
 
                         MDRoundFlatButton:
-                            font_size: 28
+                            font_size: 22
                             text: "Show Records"
                             on_press: root.show_records()
 
                         MDRoundFlatButton:
-                            font_size: 28
+                            font_size: 22
                             text: "Delete Name"
                             on_press: root.delete_name()
 
                         MDRoundFlatButton:
-                            font_size: 28
+                            font_size: 22
+                            text: "Update Name"
+                            on_press: root.update_name()
+
+                        MDRoundFlatButton:
+                            font_size: 22
                             text: "Open Url"
                             on_press: root.open_url()
 
