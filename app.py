@@ -271,13 +271,15 @@ class ImageViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.grid = None
+        self.loaded = False
         self.selected_images = []
 
     def on_enter(self, *args):
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()
-        self.show_folder_images('G://Downloads//photo')   # TODO: remove this
+        if not self.loaded:
+            self.show_folder_images('G://Downloads//photo')   # TODO: remove this
 
     def create_db_and_check(self):
         # Create a table
@@ -316,6 +318,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def show_folder_images(self, path, selection=None, popup=None):
         files = os.listdir(path)
+        self.loaded = True
         self.grid.clear_widgets()
         self.unselect_all_images()
         self.selected_counter_update()
