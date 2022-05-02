@@ -187,8 +187,17 @@
                 height: self.minimum_height
                 row_default_height: 250
 
-        Button:
-            size_hint: 1, .1
-            text: 'Choose image'
-            background_color: (1, 1, 1, .5)
-            on_press: root.file_chooser_popup()
+        MDBoxLayout:
+            orientation:'horizontal'
+            size_hint_y: None
+            height: 40
+
+            Button:
+                text: 'Choose image'
+                background_color: (1, 1, 1, .5)
+                on_press: root.file_chooser_popup()
+
+            Button:
+                text: 'Save to DB'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_db()

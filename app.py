@@ -11,8 +11,10 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.filechooser import FileChooserListView, FileChooserIconView
 from kivy.uix.image import Image
-
 from kivy.lang import Builder
+
+from kivymd.uix import SpecificBackgroundColorBehavior
+from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 from kivymd.app import MDApp
 
@@ -20,6 +22,10 @@ from utils import *
 
 
 class MDLabelBtn(ButtonBehavior, MDLabel):
+    pass
+
+
+class ImageMDButton(MDButtonBehavior, Image, SpecificBackgroundColorBehavior):
     pass
 
 
@@ -217,6 +223,7 @@ class ImageViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.grid = None
+        self.selected_images = []
 
     def on_enter(self, *args):
         self.grid = self.ids.grid
@@ -255,14 +262,33 @@ class ImageViewScreen(Screen, BaseScreen):
         for name in files:
             if '.jpg' in name or '.png' in name:
                 im_path = os.path.join(path, name)
-                img = Image(
+                img = ImageMDButton(
                     source=im_path,
                     allow_stretch=True,
                     keep_ratio=True
                 )
+                img.line_color = (1.0, 1.0, 1.0, 0.2)
+                img.bind(on_press=self.image_click)
                 self.grid.add_widget(img)
 
         popup.dismiss()
+
+    def image_click(self, instance):
+        path = instance.source
+
+        instance.line_color = (1.0, 1.0, 1.0, 0.6)
+
+        if instance in self.selected_images:
+            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            self.selected_images.remove(instance)
+        else:
+            instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+            self.selected_images.append(instance)
+
+        print(f'selected: {len(self.selected_images)}, new: {path}')
+
+    def save_img_to_db(self):
+        pass  # TODO
 
 
 class MainApp(MDApp):
