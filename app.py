@@ -346,7 +346,8 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
 
     def save_img_to_db(self):
-        if len(self.selected_images) == 0:
+        num_images = len(self.selected_images)
+        if num_images == 0:
             self.ids.selected_images.text = 'Choose 1+'
             return
 
@@ -358,7 +359,7 @@ class ImageViewScreen(Screen, BaseScreen):
                     [blob_data]
                 )
         self.unselect_all_images()
-        self.ids.selected_images.text = f'Added {len(self.selected_images)}'
+        self.ids.selected_images.text = f'Added {num_images}'
 
     def unselect_all_images(self):
         instances = self.selected_images.copy()
