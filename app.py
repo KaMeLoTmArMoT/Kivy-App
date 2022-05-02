@@ -150,6 +150,7 @@ class MainScreen(Screen, BaseScreen):
     def submit(self):
         text = self.get_input()
         self.ids.word_input.text_validate_unfocus = False
+        self.unselect_label_btn()
 
         if len(text) <= 2:
             self.label_out('Text should be longer than 2 letters')
@@ -187,6 +188,7 @@ class MainScreen(Screen, BaseScreen):
 
         self.ids.scroll.clear_widgets()
         self.ids.scroll.add_widget(layout)
+        self.unselect_label_btn()
         if len(records) == 0:
             self.label_out('No records. Add any items.')
         else:
@@ -203,6 +205,12 @@ class MainScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected = instance
+
+    def unselect_label_btn(self):
+        self.selected = None
+        grid = self.ids.scroll.children[0]
+        for btn in grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def delete_name(self):
         if self.selected is None:
