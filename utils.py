@@ -2,7 +2,7 @@ import hashlib
 import sqlite3
 
 
-def call_db(call):
+def call_db(call, data=None):
     # Create db
     conn = sqlite3.connect('app.db')
 
@@ -10,7 +10,10 @@ def call_db(call):
     c = conn.cursor()
 
     # Execute SQL command
-    c.execute(call)
+    if data is None:
+        c.execute(call)
+    else:
+        c.execute(call, data)
     records = c.fetchall()
 
     # Commit changes
