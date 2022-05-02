@@ -276,6 +276,14 @@ class ImageViewScreen(Screen, BaseScreen):
     def on_enter(self, *args):
         self.grid = self.ids.grid
         self.selected_counter_update()
+        self.create_db_and_check()
+
+    def create_db_and_check(self):
+        # Create a table
+        call_db("""
+        CREATE TABLE IF NOT EXISTS images (
+            image blob
+        ) """)
 
     def file_chooser_popup(self):
         popup = Popup(
@@ -326,20 +334,38 @@ class ImageViewScreen(Screen, BaseScreen):
     def image_click(self, instance):
         path = instance.source
 
-        instance.line_color = (1.0, 1.0, 1.0, 0.6)
-
         if instance in self.selected_images:
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            instance.line_color = (1.0, 1.0, 1.0, 0.2)
             self.selected_images.remove(instance)
         else:
+            instance.line_color = (1.0, 1.0, 1.0, 0.6)
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
             self.selected_images.append(instance)
 
         self.selected_counter_update()
-        print(f'selected: {len(self.selected_images)}, new: {path}')
 
     def save_img_to_db(self):
-        pass  # TODO
+        if len(self.selected_images) == 0:
+            self.ids.selected_images.text = 'Choose 1+'
+            return
+
+        for path in self.selected_images:
+            with open(path.source, 'rb') as f:
+                blob_data = f.read()
+                call_db(
+                    f"INSERT INTO images VALUES (?)",
+                    [blob_data]
+                )
+        self.unselect_all_images()
+        self.ids.selected_images.text = f'Added {len(self.selected_images)}'
+
+    def unselect_all_images(self):
+        instances = self.selected_images.copy()
+        for instance in instances:
+            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            instance.line_color = (1.0, 1.0, 1.0, 0.2)
+            self.selected_images.remove(instance)
 
     def selected_counter_update(self):
         self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
