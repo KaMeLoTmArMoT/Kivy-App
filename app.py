@@ -14,6 +14,7 @@ from kivy.uix.image import Image
 from kivy.lang import Builder
 
 from kivymd.uix import SpecificBackgroundColorBehavior
+from kivymd.uix.behaviors import HoverBehavior
 from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 from kivymd.app import MDApp
@@ -21,8 +22,21 @@ from kivymd.app import MDApp
 from utils import *
 
 
-class MDLabelBtn(ButtonBehavior, MDLabel):
-    pass
+class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.allow_hover = False
+        self.saved_color = None
+
+    def on_enter(self):
+        if self.allow_hover:
+            self.saved_color = self.md_bg_color.copy()
+            self.md_bg_color = (1, 1, 1, 0.1)
+
+    def on_leave(self):
+        if self.allow_hover:
+            self.md_bg_color = self.saved_color
 
 
 class ImageMDButton(MDButtonBehavior, Image, SpecificBackgroundColorBehavior):
@@ -247,6 +261,7 @@ class ImageViewScreen(Screen, BaseScreen):
                 popup,
             )
         )
+        btn.allow_hover = True
 
         box.add_widget(lbl)
         box.add_widget(chooser)
