@@ -241,6 +241,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         self.grid = self.ids.grid
+        self.selected_counter_update()
 
     def file_chooser_popup(self):
         popup = Popup(
@@ -300,10 +301,14 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
             self.selected_images.append(instance)
 
+        self.selected_counter_update()
         print(f'selected: {len(self.selected_images)}, new: {path}')
 
     def save_img_to_db(self):
         pass  # TODO
+
+    def selected_counter_update(self):
+        self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
 
 
 class MainApp(MDApp):
