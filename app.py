@@ -65,6 +65,10 @@ class BaseScreen:
         self.manager.transition.direction = 'right'
         self.manager.current = 'main'
 
+    def goto_db(self):
+        self.manager.transition.direction = 'left'
+        self.manager.current = 'dbview'
+
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
@@ -341,12 +345,27 @@ class ImageViewScreen(Screen, BaseScreen):
         self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
 
 
+class DbViewScreen(Screen, BaseScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_enter(self, *args):
+        pass
+
+    def preview_img(self):
+        pass
+
+    def delete_from_db(self):
+        pass
+
+
 class MainApp(MDApp):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(LoginScreen(name='login'))
         sm.add_widget(MainScreen(name='main'))
         sm.add_widget(ImageViewScreen(name='imageview'))
+        sm.add_widget(DbViewScreen(name='dbview'))
         sm.current = 'login'
 
         self.theme_cls.theme_style = "Dark"
