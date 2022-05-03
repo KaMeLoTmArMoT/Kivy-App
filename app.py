@@ -1,4 +1,5 @@
 import os
+import io
 import base64
 import webbrowser
 from Cryptodome.Cipher import AES
@@ -12,6 +13,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.filechooser import FileChooserListView, FileChooserIconView
 from kivy.uix.image import Image
 from kivy.lang import Builder
+from kivy.core.image import Image as CoreImage
 
 from kivymd.uix import SpecificBackgroundColorBehavior
 from kivymd.uix.behaviors import HoverBehavior
@@ -394,9 +396,72 @@ class ImageViewScreen(Screen, BaseScreen):
 class DbViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.grid = None
+        self.loaded = False
+        self.selected_image = None
 
     def on_enter(self, *args):
-        pass
+        self.grid = self.ids.grid
+        self.create_db_and_check()
+        self.show_db_images()
+        if not self.loaded:     # TODO: probably better to load ecah time
+            self.show_db_images()
+
+    def create_db_and_check(self):
+        # Create a table
+        call_db("""
+        CREATE TABLE IF NOT EXISTS images (
+            image blob
+        ) """)
+
+    def show_db_images(self):
+        self.toggle_load_label('on')
+        db_images = call_db("SELECT * FROM images")
+        self.loaded = True
+        self.grid.clear_widgets()
+        self.unselect_image()
+
+        for b_image in db_images:
+            img = ImageMDButton(
+                allow_stretch=True,
+                keep_ratio=True,
+            )
+
+            data = io.BytesIO(b_image[0])
+            img.texture = CoreImage(data, ext="png").texture
+
+            img.line_color = (1.0, 1.0, 1.0, 0.2)
+            img.bind(on_press=self.image_click)
+            self.grid.add_widget(img)
+        self.toggle_load_label('off')
+
+    def toggle_load_label(self, mode):
+        lbl = self.ids.load_label
+
+        if mode == 'on':
+            lbl.text = "Loading, please wait..."
+            lbl.size_hint_y = 0.2
+        else:
+            lbl.text = ""
+            lbl.size_hint_y = 0
+
+    def image_click(self, instance):
+        path = instance.source
+
+        if instance is self.selected_image:
+            self.unselect_image()
+            return
+
+        self.unselect_image()
+        self.selected_image = instance
+        self.selected_image.line_color = (1.0, 1.0, 1.0, 0.6)
+        self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+
+    def unselect_image(self):
+        if self.selected_image is not None:
+            self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            self.selected_image.line_color = (1.0, 1.0, 1.0, 0.2)
+            self.selected_image = None
 
     def preview_img(self):
         pass
