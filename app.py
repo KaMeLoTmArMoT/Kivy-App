@@ -415,11 +415,17 @@ class DbViewScreen(Screen, BaseScreen):
         ) """)
 
     def show_db_images(self):
-        self.toggle_load_label('on')
         db_images = call_db("SELECT * FROM images")
-        self.loaded = True
         self.grid.clear_widgets()
         self.unselect_image()
+
+        if len(db_images) == 0:
+            self.toggle_load_label('on', text='No images in DB.')
+            self.loaded = False
+            return
+        else:
+            self.toggle_load_label('on')
+            self.loaded = True
 
         for b_image in db_images:
             img = ImageMDButton(
@@ -435,11 +441,11 @@ class DbViewScreen(Screen, BaseScreen):
             self.grid.add_widget(img)
         self.toggle_load_label('off')
 
-    def toggle_load_label(self, mode):
+    def toggle_load_label(self, mode, text="Loading, please wait..."):
         lbl = self.ids.load_label
 
         if mode == 'on':
-            lbl.text = "Loading, please wait..."
+            lbl.text = text
             lbl.size_hint_y = 0.2
         else:
             lbl.text = ""
