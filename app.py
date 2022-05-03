@@ -317,6 +317,7 @@ class ImageViewScreen(Screen, BaseScreen):
         popup.open()
 
     def show_folder_images(self, path, selection=None, popup=None):
+        self.toggle_load_label('on')
         files = os.listdir(path)
         self.loaded = True
         self.grid.clear_widgets()
@@ -337,6 +338,17 @@ class ImageViewScreen(Screen, BaseScreen):
 
         if popup is not None:
             popup.dismiss()
+        self.toggle_load_label('off')
+
+    def toggle_load_label(self, mode):
+        lbl = self.ids.load_label
+
+        if mode == 'on':
+            lbl.text = "Loading, please wait..."
+            lbl.size_hint_y = 0.2
+        else:
+            lbl.text = ""
+            lbl.size_hint_y = 0
 
     def image_click(self, instance):
         path = instance.source
