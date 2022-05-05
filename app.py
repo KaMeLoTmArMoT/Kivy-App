@@ -400,10 +400,12 @@ class DbViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.grid = None
+        self.key = ''
         self.loaded = False
         self.selected_image = None
 
     def on_enter(self, *args):
+        self.key = self.manager.get_screen('main').key
         self.grid = self.ids.grid
         self.create_db_and_check()
         self.show_db_images()
@@ -436,12 +438,24 @@ class DbViewScreen(Screen, BaseScreen):
                 keep_ratio=True,
             )
 
+            success = False
             try:
                 data = io.BytesIO(b_image[0])
-                img_button.texture = CoreImage(data, ext="png").texture
+                texture = CoreImage(data, ext="png").texture
+                success = True
             except Exception as e:
                 print(e)
 
+            if not success:     # try to decrypt
+                try:
+                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
+                    data = io.BytesIO(cipher.decrypt(b_image[0]))
+                    texture = CoreImage(data, ext="png").texture
+                    success = True
+                except Exception as e:
+                    print(e)
+
+            if not success:     # show cross instead of image
                 img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
                 # img = np.zeros((600, 800, 3), dtype=np.float32)
                 h, w, *_ = img.shape
@@ -453,8 +467,7 @@ class DbViewScreen(Screen, BaseScreen):
                 texture = Texture.create(size=(w, h))
                 texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
 
-                img_button.texture = texture
-
+            img_button.texture = texture
             img_button.line_color = (1.0, 1.0, 1.0, 0.2)
             img_button.bind(on_press=self.image_click)
             self.grid.add_widget(img_button)
