@@ -227,21 +227,30 @@
             height: 40
 
             Button:
+                size_hint_x: 0.3
                 text: 'Choose image'
                 background_color: (1, 1, 1, .5)
                 on_press: root.file_chooser_popup()
 
+            Button:
+                size_hint_x: 0.3
+                text: 'Save to DB (simple)'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_db(enc=False)
+
+            Button:
+                size_hint_x: 0.3
+                text: 'Save to DB (protect)'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_db(enc=True)
+
             MDLabel:
+                size_hint_x: 0.3
                 id: selected_images
                 text: "Selected: 0"
                 font_size: 28
                 halign: 'center'
                 size_hint_x: 0.5
-
-            Button:
-                text: 'Save to DB'
-                background_color: (1, 1, 1, .5)
-                on_press: root.save_img_to_db()
 
 <DbViewScreen>
     MDBoxLayout:

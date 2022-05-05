@@ -276,10 +276,12 @@ class ImageViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.grid = None
+        self.key = ''
         self.loaded = False
         self.selected_images = []
 
     def on_enter(self, *args):
+        self.key = self.manager.get_screen('main').key
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()
@@ -369,7 +371,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.selected_counter_update()
 
-    def save_img_to_db(self):
+    def save_img_to_db(self, enc):
         num_images = len(self.selected_images)
         if num_images == 0:
             self.ids.selected_images.text = 'Choose 1+'
@@ -378,6 +380,11 @@ class ImageViewScreen(Screen, BaseScreen):
         for path in self.selected_images:
             with open(path.source, 'rb') as f:
                 blob_data = f.read()
+
+                if enc:
+                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
+                    blob_data = cipher.encrypt(blob_data)
+
                 call_db(
                     f"INSERT INTO images VALUES (?)",
                     [blob_data]
