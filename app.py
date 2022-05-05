@@ -403,6 +403,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.key = ''
         self.loaded = False
         self.selected_image = None
+        self.prev_line_color = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen('main').key
@@ -443,6 +444,7 @@ class DbViewScreen(Screen, BaseScreen):
                 data = io.BytesIO(b_image[0])
                 texture = CoreImage(data, ext="png").texture
                 success = True
+                img_button.line_color = (1.0, 0.6, 0.0, 0.5)
             except Exception as e:
                 print(e)
 
@@ -452,6 +454,7 @@ class DbViewScreen(Screen, BaseScreen):
                     data = io.BytesIO(cipher.decrypt(b_image[0]))
                     texture = CoreImage(data, ext="png").texture
                     success = True
+                    img_button.line_color = (0.0, 1.0, 0.0, 0.5)
                 except Exception as e:
                     print(e)
 
@@ -466,9 +469,9 @@ class DbViewScreen(Screen, BaseScreen):
 
                 texture = Texture.create(size=(w, h))
                 texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
+                img_button.line_color = (1.0, 0.0, 0.0, 0.5)
 
             img_button.texture = texture
-            img_button.line_color = (1.0, 1.0, 1.0, 0.2)
             img_button.bind(on_press=self.image_click)
             self.grid.add_widget(img_button)
         self.toggle_load_label('off')
@@ -492,13 +495,14 @@ class DbViewScreen(Screen, BaseScreen):
 
         self.unselect_image()
         self.selected_image = instance
+        self.prev_line_color = self.selected_image.line_color
         self.selected_image.line_color = (1.0, 1.0, 1.0, 0.6)
         self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
 
     def unselect_image(self):
         if self.selected_image is not None:
+            self.selected_image.line_color = self.prev_line_color
             self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            self.selected_image.line_color = (1.0, 1.0, 1.0, 0.2)
             self.selected_image = None
 
     def preview_img(self):
