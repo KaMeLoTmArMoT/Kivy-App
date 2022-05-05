@@ -1,7 +1,9 @@
 import os
 import io
+import cv2
 import base64
 import webbrowser
+import numpy as np
 from Cryptodome.Cipher import AES
 
 from kivy.uix.gridlayout import GridLayout
@@ -14,6 +16,7 @@ from kivy.uix.filechooser import FileChooserListView, FileChooserIconView
 from kivy.uix.image import Image
 from kivy.lang import Builder
 from kivy.core.image import Image as CoreImage
+from kivy.graphics.texture import Texture
 
 from kivymd.uix import SpecificBackgroundColorBehavior
 from kivymd.uix.behaviors import HoverBehavior
@@ -428,17 +431,33 @@ class DbViewScreen(Screen, BaseScreen):
             self.loaded = True
 
         for b_image in db_images:
-            img = ImageMDButton(
+            img_button = ImageMDButton(
                 allow_stretch=True,
                 keep_ratio=True,
             )
 
-            data = io.BytesIO(b_image[0])
-            img.texture = CoreImage(data, ext="png").texture
+            try:
+                data = io.BytesIO(b_image[0])
+                img_button.texture = CoreImage(data, ext="png").texture
+            except Exception as e:
+                print(e)
 
-            img.line_color = (1.0, 1.0, 1.0, 0.2)
-            img.bind(on_press=self.image_click)
-            self.grid.add_widget(img)
+                img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
+                # img = np.zeros((600, 800, 3), dtype=np.float32)
+                h, w, *_ = img.shape
+                red = (255, 0, 0)
+                img = cv2.line(img, (0, 0), (w, h), red, thickness=6)
+                img = cv2.line(img, (w, 0), (0, h), red, thickness=6)
+                buff = bytes(img.flatten())
+
+                texture = Texture.create(size=(w, h))
+                texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
+
+                img_button.texture = texture
+
+            img_button.line_color = (1.0, 1.0, 1.0, 0.2)
+            img_button.bind(on_press=self.image_click)
+            self.grid.add_widget(img_button)
         self.toggle_load_label('off')
 
     def toggle_load_label(self, mode, text="Loading, please wait..."):
