@@ -513,7 +513,24 @@ class DbViewScreen(Screen, BaseScreen):
             self.selected_image = None
 
     def preview_img(self):
-        pass
+        if not self.selected_image:
+            return
+
+        print(self.selected_image)
+
+        popup = Popup(
+            title='Preview',
+            size_hint=(None, None), size=(700, 500)
+        )
+
+        img = ImageMDButton()
+        img.texture = self.selected_image.texture
+        img.bind(
+            on_press=lambda x: popup.dismiss()
+        )
+
+        popup.content = img
+        popup.open()
 
     def delete_from_db(self):
         pass
