@@ -292,6 +292,7 @@ class ImageViewScreen(Screen, BaseScreen):
         # Create a table
         call_db("""
         CREATE TABLE IF NOT EXISTS images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             image blob
         ) """)
 
@@ -386,7 +387,7 @@ class ImageViewScreen(Screen, BaseScreen):
                     blob_data = cipher.encrypt(blob_data)
 
                 call_db(
-                    f"INSERT INTO images VALUES (?)",
+                    f"INSERT INTO images (image) VALUES (?)",
                     [blob_data]
                 )
         self.unselect_all_images()
@@ -424,6 +425,7 @@ class DbViewScreen(Screen, BaseScreen):
         # Create a table
         call_db("""
         CREATE TABLE IF NOT EXISTS images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             image blob
         ) """)
 
@@ -440,7 +442,7 @@ class DbViewScreen(Screen, BaseScreen):
             self.toggle_load_label('on')
             self.loaded = True
 
-        for b_image in db_images:
+        for pk, b_image in db_images:
             img_button = ImageMDButton(
                 allow_stretch=True,
                 keep_ratio=True,
@@ -448,7 +450,7 @@ class DbViewScreen(Screen, BaseScreen):
 
             success = False
             try:
-                data = io.BytesIO(b_image[0])
+                data = io.BytesIO(b_image)
                 texture = CoreImage(data, ext="png").texture
                 success = True
                 img_button.line_color = (1.0, 0.6, 0.0, 0.5)
@@ -458,7 +460,7 @@ class DbViewScreen(Screen, BaseScreen):
             if not success:     # try to decrypt
                 try:
                     cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
-                    data = io.BytesIO(cipher.decrypt(b_image[0]))
+                    data = io.BytesIO(cipher.decrypt(b_image))
                     texture = CoreImage(data, ext="png").texture
                     success = True
                     img_button.line_color = (0.0, 1.0, 0.0, 0.5)
@@ -515,8 +517,6 @@ class DbViewScreen(Screen, BaseScreen):
     def preview_img(self):
         if not self.selected_image:
             return
-
-        print(self.selected_image)
 
         popup = Popup(
             title='Preview',
