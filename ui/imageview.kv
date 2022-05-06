@@ -1,0 +1,95 @@
+<ImageViewScreen>
+    MDBoxLayout:
+        orientation:'vertical'
+
+        MDBoxLayout:
+            size_hint: 1, None
+            height: 20
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Main Screen"
+                background_color: 1.8, 1.8, 1.8, 1
+                on_press: root.goto_main()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Image Screen"
+                on_press: root.goto_images()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "DB Screen"
+                background_color: 1.8, 1.8, 1.8, 1
+                on_press: root.goto_db()
+
+        MDBoxLayout:
+            orientation: 'vertical'
+
+            MDLabel:
+                id: load_label
+                halign: 'center'
+                font_size: 36
+                text: "Loading, please wait..."
+                size_hint_y: .2
+
+            ScrollView:
+                size_hint_y: .9
+                pos_hint: {'x': 0, 'y': 0}
+                do_scroll_x: False
+                do_scroll_y: True
+                scroll_wheel_distance: 60
+
+                GridLayout:
+                    id: grid
+                    cols: 3
+                    size:(root.width, root.height)
+                    size_hint: None, None
+                    height: self.minimum_height
+                    row_default_height: 250
+
+        MDBoxLayout:
+            orientation:'horizontal'
+            size_hint_y: None
+            height: 40
+
+            Button:
+                size_hint_x: 0.3
+                text: 'Choose image'
+                background_color: (1, 1, 1, .5)
+                on_press: root.file_chooser_popup()
+
+            Button:
+                size_hint_x: 0.3
+                text: 'Save to DB (simple)'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_db(enc=False)
+
+            Button:
+                size_hint_x: 0.3
+                text: 'Save to DB (protect)'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_db(enc=True)
+
+            Button:
+                size_hint_x: 0.25
+                text: 'Unselect All'
+                background_color: (1, 1, 1, .5)
+                on_press: root.unselect_all_images()
+
+            MDLabel:
+                size_hint_x: 0.3
+                id: selected_images
+                text: "Selected: 0"
+                font_size: 28
+                halign: 'center'
+                size_hint_x: 0.5

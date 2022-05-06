@@ -566,5 +566,9 @@ class MainApp(MDApp):
 
 
 if __name__ == '__main__':
-    Builder.load_file('app.kv')
+    Builder.load_file('ui/app.kv')
+    Builder.load_file('ui/login.kv')
+    Builder.load_file('ui/main.kv')
+    Builder.load_file('ui/imageview.kv')
+    Builder.load_file('ui/dbview.kv')
     MainApp().run()

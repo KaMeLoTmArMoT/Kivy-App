@@ -1,0 +1,102 @@
+<DbViewScreen>
+    MDBoxLayout:
+        orientation:'vertical'
+
+        MDBoxLayout:
+            size_hint: 1, None
+            height: 20
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Main Screen"
+                background_color: 1.8, 1.8, 1.8, 1
+                on_press: root.goto_main()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "Image Screen"
+                background_color: 1.8, 1.8, 1.8, 1
+                on_press: root.goto_images()
+
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "DB Screen"
+                on_press: root.goto_db()
+
+        MDBoxLayout:
+            orientation: 'vertical'
+
+            MDLabel:
+                id: load_label
+                halign: 'center'
+                font_size: 36
+                text: "Loading, please wait..."
+                size_hint_y: .2
+
+            ScrollView:
+                size_hint_y: .9
+                pos_hint: {'x': 0, 'y': 0}
+                do_scroll_x: False
+                do_scroll_y: True
+                scroll_wheel_distance: 60
+
+                GridLayout:
+                    cols: 1
+                    size:(root.width, root.height)
+                    size_hint: None, None
+                    height: self.minimum_height
+                    row_min_height: 250
+
+                    MDLabel:
+                        halign: 'center'
+                        font_size: 36
+                        text: "_____ Simple images _____"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    GridLayout:
+                        id: grid_1
+                        cols: 3
+                        size:(root.width, root.height)
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 250
+
+                    MDLabel:
+                        halign: 'center'
+                        font_size: 36
+                        text: "_____ Secure images _____"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    GridLayout:
+                        id: grid_2
+                        cols: 3
+                        size:(root.width, root.height)
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 250
+
+        MDBoxLayout:
+            orientation:'horizontal'
+            size_hint_y: None
+            height: 40
+
+            Button:
+                text: 'Preview'
+                background_color: (1, 1, 1, .5)
+                on_press: root.preview_img()
+
+            Button:
+                text: 'Delete'
+                background_color: (1, 1, 1, .5)
+                on_press: root.delete_from_db()
