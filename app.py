@@ -407,7 +407,8 @@ class ImageViewScreen(Screen, BaseScreen):
 class DbViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.grid = None
+        self.grid_1 = None
+        self.grid_2 = None
         self.key = ''
         self.loaded = False
         self.selected_image = None
@@ -415,7 +416,8 @@ class DbViewScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen('main').key
-        self.grid = self.ids.grid
+        self.grid_1 = self.ids.grid_1
+        self.grid_2 = self.ids.grid_2
         self.create_db_and_check()
         self.show_db_images()
         if not self.loaded:     # TODO: probably better to load ecah time
@@ -431,7 +433,8 @@ class DbViewScreen(Screen, BaseScreen):
 
     def show_db_images(self):
         db_images = call_db("SELECT * FROM images")
-        self.grid.clear_widgets()
+        self.grid_1.clear_widgets()
+        self.grid_2.clear_widgets()
         self.unselect_image()
 
         if len(db_images) == 0:
@@ -454,6 +457,7 @@ class DbViewScreen(Screen, BaseScreen):
                 texture = CoreImage(data, ext="png").texture
                 success = True
                 img_button.line_color = (1.0, 0.6, 0.0, 0.5)
+                self.grid_1.add_widget(img_button)
             except Exception as e:
                 print(e)
 
@@ -464,6 +468,7 @@ class DbViewScreen(Screen, BaseScreen):
                     texture = CoreImage(data, ext="png").texture
                     success = True
                     img_button.line_color = (0.0, 1.0, 0.0, 0.5)
+                    self.grid_2.add_widget(img_button)
                 except Exception as e:
                     print(e)
 
@@ -479,11 +484,11 @@ class DbViewScreen(Screen, BaseScreen):
                 texture = Texture.create(size=(w, h))
                 texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
                 img_button.line_color = (1.0, 0.0, 0.0, 0.5)
+                self.grid_1.add_widget(img_button)
 
             img_button.source = str(pk)
             img_button.texture = texture
             img_button.bind(on_press=self.image_click)
-            self.grid.add_widget(img_button)
         self.toggle_load_label('off')
 
     def toggle_load_label(self, mode, text="Loading, please wait..."):
