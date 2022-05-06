@@ -244,6 +244,12 @@
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_db(enc=True)
 
+            Button:
+                size_hint_x: 0.25
+                text: 'Unselect All'
+                background_color: (1, 1, 1, .5)
+                on_press: root.unselect_all_images()
+
             MDLabel:
                 size_hint_x: 0.3
                 id: selected_images

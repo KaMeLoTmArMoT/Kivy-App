@@ -399,6 +399,7 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
             instance.line_color = (1.0, 1.0, 1.0, 0.2)
             self.selected_images.remove(instance)
+        self.selected_counter_update()
 
     def selected_counter_update(self):
         self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
