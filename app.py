@@ -480,6 +480,7 @@ class DbViewScreen(Screen, BaseScreen):
                 texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
                 img_button.line_color = (1.0, 0.0, 0.0, 0.5)
 
+            img_button.source = str(pk)
             img_button.texture = texture
             img_button.bind(on_press=self.image_click)
             self.grid.add_widget(img_button)
@@ -533,7 +534,14 @@ class DbViewScreen(Screen, BaseScreen):
         popup.open()
 
     def delete_from_db(self):
-        pass
+        if not self.selected_image:
+            return
+
+        key = int(self.selected_image.source)
+        call_db(f"DELETE FROM images WHERE id={key}")
+
+        self.unselect_image()
+        self.show_db_images()
 
 
 class MainApp(MDApp):
