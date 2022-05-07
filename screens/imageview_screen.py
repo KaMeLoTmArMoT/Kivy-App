@@ -6,6 +6,8 @@ from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from utils import call_db
@@ -77,11 +79,23 @@ class ImageViewScreen(Screen, BaseScreen):
                 img = ImageMDButton(
                     source=im_path,
                     allow_stretch=True,
-                    keep_ratio=True
+                    keep_ratio=True,
+                    pos_hint={'center_x': .5, 'center_y': .5},
                 )
+
+                checkbox = MDCheckbox(
+                    size_hint=(None, None),
+                    size=("48dp", "48dp"),
+                    pos_hint={'center_x': 0.96, 'center_y': 0.96},
+                )
+
+                fl = MDFloatLayout()
+                fl.add_widget(img)
+                fl.add_widget(checkbox)
+
                 img.line_color = (1.0, 1.0, 1.0, 0.2)
                 img.bind(on_press=self.image_click)
-                self.grid.add_widget(img)
+                self.grid.add_widget(fl)
 
         if popup is not None:
             popup.dismiss()
@@ -104,10 +118,14 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
             instance.line_color = (1.0, 1.0, 1.0, 0.2)
             self.selected_images.remove(instance)
+
+            instance.parent.children[0].active = False
         else:
             instance.line_color = (1.0, 1.0, 1.0, 0.6)
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
             self.selected_images.append(instance)
+
+            instance.parent.children[0].active = True
 
         self.selected_counter_update()
 
