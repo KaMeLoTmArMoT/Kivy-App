@@ -7,6 +7,8 @@ from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
 from utils import call_db
@@ -57,15 +59,17 @@ class DbViewScreen(Screen, BaseScreen):
             img_button = ImageMDButton(
                 allow_stretch=True,
                 keep_ratio=True,
+                pos_hint={'center_x': .5, 'center_y': .5},
             )
 
             success = False
+            grid, texture = None, None
             try:
                 data = io.BytesIO(b_image)
                 texture = CoreImage(data, ext="png").texture
                 success = True
                 img_button.line_color = (1.0, 0.6, 0.0, 0.5)
-                self.grid_1.add_widget(img_button)
+                grid = self.grid_1
             except Exception as e:
                 print(e)
 
@@ -76,7 +80,7 @@ class DbViewScreen(Screen, BaseScreen):
                     texture = CoreImage(data, ext="png").texture
                     success = True
                     img_button.line_color = (0.0, 1.0, 0.0, 0.5)
-                    self.grid_2.add_widget(img_button)
+                    grid = self.grid_2
                 except Exception as e:
                     print(e)
 
@@ -92,11 +96,24 @@ class DbViewScreen(Screen, BaseScreen):
                 texture = Texture.create(size=(w, h))
                 texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
                 img_button.line_color = (1.0, 0.0, 0.0, 0.5)
-                self.grid_1.add_widget(img_button)
+                grid = self.grid_1
 
             img_button.source = str(pk)
             img_button.texture = texture
             img_button.bind(on_press=self.image_click)
+
+            checkbox = MDCheckbox(
+                size_hint=(None, None),
+                size=("48dp", "48dp"),
+                pos_hint={'center_x': 0.96, 'center_y': 0.96},
+            )
+
+            fl = MDFloatLayout()
+            fl.add_widget(img_button)
+            fl.add_widget(checkbox)
+
+            grid.add_widget(fl)
+
         self.toggle_load_label('off')
 
     def toggle_load_label(self, mode, text="Loading, please wait..."):
@@ -121,11 +138,13 @@ class DbViewScreen(Screen, BaseScreen):
         self.prev_line_color = self.selected_image.line_color
         self.selected_image.line_color = (1.0, 1.0, 1.0, 0.6)
         self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        self.selected_image.parent.children[0].active = True
 
     def unselect_image(self):
         if self.selected_image is not None:
             self.selected_image.line_color = self.prev_line_color
             self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            self.selected_image.parent.children[0].active = False   # disable checkbox
             self.selected_image = None
 
     def preview_img(self):
