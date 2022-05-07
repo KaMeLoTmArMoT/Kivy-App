@@ -56,12 +56,18 @@
                     height: self.minimum_height
                     row_min_height: 250
 
+                    MDSeparator:
+                        height: "5dp"
+                        color: 1, 0.6, 0, 0.6
                     MDLabel:
                         halign: 'center'
                         font_size: 36
-                        text: "_____ Simple images _____"
+                        text: "Simple images"
                         size_hint_y: None
                         height: self.texture_size[1]
+                    MDSeparator:
+                        height: "5dp"
+                        color: 1, 0.6, 0, 0.6
 
                     GridLayout:
                         id: grid_1
@@ -71,12 +77,18 @@
                         height: self.minimum_height
                         row_default_height: 250
 
+                    MDSeparator:
+                        height: "5dp"
+                        color: 0, 1, 0, 0.6
                     MDLabel:
                         halign: 'center'
                         font_size: 36
-                        text: "_____ Secure images _____"
+                        text: "Secure images"
                         size_hint_y: None
                         height: self.texture_size[1]
+                    MDSeparator:
+                        height: "5dp"
+                        color: 0, 1, 0, 0.6
 
                     GridLayout:
                         id: grid_2
