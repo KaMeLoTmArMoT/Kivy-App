@@ -21,8 +21,9 @@ class DbViewScreen(Screen, BaseScreen):
         self.grid_2 = None
         self.key = ''
         self.loaded = False
-        self.selected_image = None
+        self.selected_images = []
         self.prev_line_color = None
+        self.checkbox_first = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen('main').key
@@ -45,7 +46,7 @@ class DbViewScreen(Screen, BaseScreen):
         db_images = call_db("SELECT * FROM images")
         self.grid_1.clear_widgets()
         self.grid_2.clear_widgets()
-        self.unselect_image()
+        self.unselect_all_images()
 
         if len(db_images) == 0:
             self.toggle_load_label('on', text='No images in DB.')
@@ -107,6 +108,7 @@ class DbViewScreen(Screen, BaseScreen):
                 size=("48dp", "48dp"),
                 pos_hint={'center_x': 0.96, 'center_y': 0.96},
             )
+            checkbox.bind(on_press=self.checkbox_click)
 
             fl = MDFloatLayout()
             fl.add_widget(img_button)
@@ -126,29 +128,46 @@ class DbViewScreen(Screen, BaseScreen):
             lbl.text = ""
             lbl.size_hint_y = 0
 
+    def checkbox_click(self, instance):
+        print(instance)
+        self.checkbox_first = True
+
     def image_click(self, instance):
         path = instance.source
 
-        if instance is self.selected_image:
-            self.unselect_image()
+        if instance in self.selected_images:
+            self.unselect_image(instance)
             return
 
-        self.unselect_image()
-        self.selected_image = instance
-        self.prev_line_color = self.selected_image.line_color
-        self.selected_image.line_color = (1.0, 1.0, 1.0, 0.6)
-        self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
-        self.selected_image.parent.children[0].active = True
+        if not self.checkbox_first:
+            self.unselect_all_images()  # remove all
+        else:
+            self.checkbox_first = False
 
-    def unselect_image(self):
-        if self.selected_image is not None:
-            self.selected_image.line_color = self.prev_line_color
-            self.selected_image.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            self.selected_image.parent.children[0].active = False   # disable checkbox
-            self.selected_image = None
+        self.select_image(instance)     # choose new
+
+    def select_image(self, instance):
+        self.selected_images.append(instance)
+
+        self.prev_line_color = instance.line_color
+        instance.line_color = (1.0, 1.0, 1.0, 0.6)
+        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        instance.parent.children[0].active = True
+
+    def unselect_image(self, instance):
+        if len(self.selected_images) > 0:
+            instance.line_color = self.prev_line_color
+            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+            instance.parent.children[0].active = False   # disable checkbox
+            self.selected_images.remove(instance)
+
+    def unselect_all_images(self):
+        images = self.selected_images.copy()
+        for image in images:
+            self.unselect_image(image)
 
     def preview_img(self):
-        if not self.selected_image:
+        if len(self.selected_images) != 1:
             return
 
         popup = Popup(
@@ -157,7 +176,7 @@ class DbViewScreen(Screen, BaseScreen):
         )
 
         img = ImageMDButton()
-        img.texture = self.selected_image.texture
+        img.texture = self.selected_images[0].texture
         img.bind(
             on_press=lambda x: popup.dismiss()
         )
@@ -166,11 +185,12 @@ class DbViewScreen(Screen, BaseScreen):
         popup.open()
 
     def delete_from_db(self):
-        if not self.selected_image:
+        if len(self.selected_images) < 1:
             return
 
-        key = int(self.selected_image.source)
-        call_db(f"DELETE FROM images WHERE id={key}")
+        for image in self.selected_images:
+            key = int(image.source)
+            call_db(f"DELETE FROM images WHERE id={key}")
 
-        self.unselect_image()
+        self.unselect_all_images()
         self.show_db_images()
