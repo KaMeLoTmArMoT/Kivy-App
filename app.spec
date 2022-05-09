@@ -8,9 +8,9 @@ block_cipher = None
 
 a = Analysis(
     ['app.py'],
-    pathex=[],
+    pathex=['G:\\Programming\\kivy_apps'],
     binaries=[],
-    datas=[],
+    datas=[('G:\\Programming\\kivy_apps\\ui', 'ui')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -42,9 +42,11 @@ exe = EXE(
 )
 coll = COLLECT(
     exe,
+    Tree('G:\\Programming\\kivy_apps\\'),
     a.binaries,
     a.zipfiles,
     a.datas,
+    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
     strip=False,
     upx=True,
     upx_exclude=[],
