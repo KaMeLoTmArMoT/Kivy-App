@@ -1,10 +1,16 @@
 import hashlib
 import sqlite3
+import sys
+import os
 
 
 def call_db(call, data=None):
     # Create db
-    conn = sqlite3.connect('app.db')
+    if hasattr(sys, '_MEIPASS'):
+        path = os.path.join(sys._MEIPASS + 'app.db')
+        conn = sqlite3.connect(path)
+    else:
+        conn = sqlite3.connect('app.db')
 
     # Create cursor
     c = conn.cursor()
