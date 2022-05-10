@@ -1,5 +1,9 @@
+import os
+import sys
+
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager
+from kivy.resources import resource_add_path
 from kivymd.app import MDApp
 
 from screens.dbview_csreen import DbViewScreen
@@ -24,6 +28,9 @@ class MainApp(MDApp):
 
 
 if __name__ == '__main__':
+    if hasattr(sys, '_MEIPASS'):
+        resource_add_path(os.path.join(sys._MEIPASS))
+
     Builder.load_file('ui/app.kv')
     Builder.load_file('ui/login.kv')
     Builder.load_file('ui/main.kv')
