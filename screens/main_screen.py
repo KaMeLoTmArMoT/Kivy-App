@@ -80,6 +80,10 @@ class MainScreen(Screen, BaseScreen):
 
     def select_label_btn(self, instance):
         print(f'The button <{instance.text}> is being pressed')
+        if self.selected:
+            if instance.uid == self.selected.uid:
+                self.unselect_label_btn()
+                return
 
         # reset selection
         grid = self.ids.scroll.children[0]  # TODO check correct index
