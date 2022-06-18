@@ -7,7 +7,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['app.py'],
+    ['G:\\Programming\\kivy_apps\\app.py'],
     pathex=['G:\\Programming\\kivy_apps'],
     binaries=[],
     datas=[('G:\\Programming\\kivy_apps\\ui', 'ui')],

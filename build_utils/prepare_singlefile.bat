@@ -1,0 +1,1 @@
+pyinstaller --onefile --name app_singlefile ../app.py
