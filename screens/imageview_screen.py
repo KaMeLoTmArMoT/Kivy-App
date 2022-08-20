@@ -2,13 +2,15 @@ import os
 import shutil
 
 from Cryptodome.Cipher import AES
+from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
-from kivy.clock import Clock
 from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
@@ -23,6 +25,9 @@ class ImageViewScreen(Screen, BaseScreen):
         self.key = ''
         self.loaded = False
         self.selected_images = []
+        self.images_to_load = []
+        self.progress_bar: ProgressBar = self.ids.progress_bar
+        self.load_event = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen('main').key
@@ -88,43 +93,67 @@ class ImageViewScreen(Screen, BaseScreen):
         for name in files:
             if '.jpg' in name or '.png' in name:
                 im_path = os.path.join(path, name)
-                img = ImageMDButton(
-                    source=im_path,
-                    allow_stretch=True,
-                    keep_ratio=True,
-                    pos_hint={'center_x': .5, 'center_y': .5},
-                )
+                self.images_to_load.append(im_path)
 
-                checkbox = MDCheckbox(
-                    size_hint=(None, None),
-                    size=("48dp", "48dp"),
-                    pos_hint={'center_x': 0.96, 'center_y': 0.96},
-                )
-
-                fl = MDFloatLayout()
-                fl.add_widget(img)
-                fl.add_widget(checkbox)
-
-                img.line_color = (1.0, 1.0, 1.0, 0.2)
-                img.bind(on_press=self.image_click)
-                self.grid.add_widget(fl)
+        self.progress_bar.value = 1
+        self.progress_bar.max = len(self.images_to_load)
+        self.load_event = Clock.schedule_interval(
+            lambda tm: self.async_image_load(), .001
+        )
 
         if popup is not None:
             popup.dismiss()
-        self.toggle_load_label('off')
+
+    def async_image_load(self):
+        if len(self.images_to_load) == 0:
+            Clock.unschedule(self.load_event)
+            self.toggle_load_label('success')
+            return
+
+        self.progress_bar.value += 1
+        im_path = self.images_to_load.pop(0)
+        img = ImageMDButton(
+            source=im_path,
+            allow_stretch=True,
+            keep_ratio=True,
+            pos_hint={'center_x': .5, 'center_y': .5},
+        )
+
+        checkbox = MDCheckbox(
+            size_hint=(None, None),
+            size=("48dp", "48dp"),
+            pos_hint={'center_x': 0.96, 'center_y': 0.96},
+        )
+
+        fl = MDFloatLayout()
+        fl.add_widget(img)
+        fl.add_widget(checkbox)
+
+        img.line_color = (1.0, 1.0, 1.0, 0.2)
+        img.bind(on_press=self.image_click)
+        self.grid.add_widget(fl)
 
     def toggle_load_label(self, mode):
-        lbl = self.ids.load_label
+        lbl: MDLabel = self.ids.load_label
+
+        def lbl_prop(text="", lbl_hint_y=0.2, color=(1, 1, 1, 1), pbar_hint_y=0.1):
+            lbl.text = text
+            lbl.size_hint_y = lbl_hint_y
+            lbl.color = color
+            self.progress_bar.size_hint_y = pbar_hint_y
 
         if mode == 'on':
-            lbl.text = "Loading, please wait..."
-            lbl.size_hint_y = 0.2
+            lbl_prop("Loading, please wait...")
+
         elif mode == 'no_dir':
-            lbl.text = "No images, please select folder."
-            lbl.size_hint_y = 0.2
-        else:
-            lbl.text = ""
-            lbl.size_hint_y = 0
+            lbl_prop("No images, please select folder.", pbar_hint_y=0)
+
+        elif mode == 'success':
+            lbl_prop("Success!", color=(0, 1, 0, 1))
+            Clock.schedule_once(lambda tm: self.toggle_load_label('off'), 1)
+
+        elif mode == 'off':
+            lbl_prop(lbl_hint_y=0, pbar_hint_y=0)
 
     def image_click(self, instance):
         path = instance.source
