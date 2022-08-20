@@ -20,6 +20,7 @@ from screens.additional import ML_FOLDER, BaseScreen, ImageMDButton, MDLabelBtn
 from utils import call_db
 
 MAX_IMAGES_PER_PAGE = 100
+ML_TRAIN_FOLDER = ML_FOLDER + "train\\"
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -56,10 +57,14 @@ class MLViewScreen(Screen, BaseScreen):
     def load_classes(self):
         self.ids.grid.clear_widgets()
 
-        for file in os.listdir(ML_FOLDER):
-            path = os.path.join(ML_FOLDER, file)
+        btn = MDLabelBtn(text="all")
+        btn.bind(on_press=self.select_label_btn)
+        self.ids.grid.add_widget(btn)
+
+        for file in os.listdir(ML_TRAIN_FOLDER):
+            path = os.path.join(ML_TRAIN_FOLDER, file)
             if os.path.isdir(path):
-                btn = MDLabelBtn(text=file)
+                btn = MDLabelBtn(text="train\\" + file)
                 btn.bind(on_press=self.select_label_btn)
                 self.ids.grid.add_widget(btn)
 
@@ -97,7 +102,7 @@ class MLViewScreen(Screen, BaseScreen):
             print("no input")
             return
 
-        path = os.path.join(ML_FOLDER, name)
+        path = os.path.join(ML_TRAIN_FOLDER, name)
         if os.path.exists(path):
             print("we have such class!")
             return
@@ -298,7 +303,7 @@ class MLViewScreen(Screen, BaseScreen):
         img_height, img_width = 224, 224
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
-            ML_FOLDER,
+            ML_TRAIN_FOLDER,
             image_size=(img_height, img_width),
             batch_size=8,
         )
