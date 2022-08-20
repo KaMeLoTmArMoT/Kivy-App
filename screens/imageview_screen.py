@@ -90,6 +90,8 @@ class ImageViewScreen(Screen, BaseScreen):
             self.toggle_load_label('no_dir')
             return
 
+        self.ids.choose_image.disabled = True  # disable load button
+
         for name in files:
             if '.jpg' in name or '.png' in name:
                 im_path = os.path.join(path, name)
@@ -108,6 +110,7 @@ class ImageViewScreen(Screen, BaseScreen):
         if len(self.images_to_load) == 0:
             Clock.unschedule(self.load_event)
             self.toggle_load_label('success')
+            self.ids.choose_image.disabled = False
             return
 
         self.progress_bar.value += 1
