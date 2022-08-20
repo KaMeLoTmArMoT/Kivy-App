@@ -183,6 +183,7 @@ class ImageViewScreen(Screen, BaseScreen):
         for instance in instances:
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
             instance.line_color = (1.0, 1.0, 1.0, 0.2)
+            instance.parent.children[0].active = False
             self.selected_images.remove(instance)
         self.selected_counter_update()
 
