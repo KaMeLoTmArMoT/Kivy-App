@@ -104,11 +104,12 @@
                     on_press: root.transfer_images()
 
                 Button:
+                    id: train
                     text: 'Train'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
-                    on_press: root.train_model()
+                    on_press: root.trigger_training()
 
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'

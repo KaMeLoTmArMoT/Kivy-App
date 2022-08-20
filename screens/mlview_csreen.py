@@ -1,5 +1,6 @@
 import os
 import shutil
+import threading
 import time
 
 import keras
@@ -28,6 +29,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.cur_dir = "all"
         self.touch_time = time.time()
+        self.train_active = False
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -101,6 +103,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         if self.selected_dir.text == "all":
             print("can`t delete main folder")
+            return
 
         path = ML_FOLDER + self.selected_dir.text
         shutil.rmtree(path)
@@ -235,6 +238,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.unselect_all_images()
         self.show_folder_images(in_dir)
 
+    def trigger_training(self):
+        threading.Thread(target=self.train_model).start()
+        self.train_active = True
+        self.ids.train.disabled = True
+
     def train_model(self):
         img_height, img_width = 224, 224
 
@@ -268,6 +276,8 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
-        history = model.fit(normalized_ds, epochs=10)
+        model.fit(normalized_ds, epochs=5)
 
         print(model.evaluate(normalized_ds))
+        self.train_active = False
+        self.ids.train.disabled = False
