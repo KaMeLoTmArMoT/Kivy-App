@@ -19,28 +19,30 @@ class DbViewScreen(Screen, BaseScreen):
         super().__init__(**kwargs)
         self.grid_1 = None
         self.grid_2 = None
-        self.key = ''
+        self.key = ""
         self.loaded = False
         self.selected_images = []
         self.prev_line_color = None
         self.checkbox_first = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen('main').key
+        self.key = self.manager.get_screen("main").key
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
         self.create_db_and_check()
         self.show_db_images()
-        if not self.loaded:     # TODO: probably better to load ecah time
+        if not self.loaded:  # TODO: probably better to load ecah time
             self.show_db_images()
 
     def create_db_and_check(self):
         # Create a table
-        call_db("""
+        call_db(
+            """
         CREATE TABLE IF NOT EXISTS images (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             image blob
-        ) """)
+        ) """
+        )
 
     def show_db_images(self):
         db_images = call_db("SELECT * FROM images")
@@ -49,11 +51,11 @@ class DbViewScreen(Screen, BaseScreen):
         self.unselect_all_images()
 
         if len(db_images) == 0:
-            self.toggle_load_label('on', text='No images in DB.')
+            self.toggle_load_label("on", text="No images in DB.")
             self.loaded = False
             return
         else:
-            self.toggle_load_label('on')
+            self.toggle_load_label("on")
             self.loaded = True
 
         simple, secure = 0, 0
@@ -61,7 +63,7 @@ class DbViewScreen(Screen, BaseScreen):
             img_button = ImageMDButton(
                 allow_stretch=True,
                 keep_ratio=True,
-                pos_hint={'center_x': .5, 'center_y': .5},
+                pos_hint={"center_x": 0.5, "center_y": 0.5},
             )
 
             success = False
@@ -74,11 +76,11 @@ class DbViewScreen(Screen, BaseScreen):
                 grid = self.grid_1
                 simple += 1
             except Exception as e:
-                print(f'fail to load {e}')
+                print(f"fail to load {e}")
 
-            if not success:     # try to decrypt
+            if not success:  # try to decrypt
                 try:
-                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
+                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
                     data = io.BytesIO(cipher.decrypt(b_image))
                     texture = CoreImage(data, ext="png").texture
                     success = True
@@ -86,9 +88,9 @@ class DbViewScreen(Screen, BaseScreen):
                     grid = self.grid_2
                     secure += 1
                 except Exception as e:
-                    print(f'fail to decrypt {e}')
+                    print(f"fail to decrypt {e}")
 
-            if not success:     # show cross instead of image
+            if not success:  # show cross instead of image
                 img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
                 # img = np.zeros((600, 800, 3), dtype=np.float32)
                 h, w, *_ = img.shape
@@ -98,7 +100,7 @@ class DbViewScreen(Screen, BaseScreen):
                 buff = bytes(img.flatten())
 
                 texture = Texture.create(size=(w, h))
-                texture.blit_buffer(buff, bufferfmt='ubyte', colorfmt='bgr')
+                texture.blit_buffer(buff, bufferfmt="ubyte", colorfmt="bgr")
                 img_button.line_color = (1.0, 0.0, 0.0, 0.5)
                 grid = self.grid_1
 
@@ -109,7 +111,7 @@ class DbViewScreen(Screen, BaseScreen):
             checkbox = MDCheckbox(
                 size_hint=(None, None),
                 size=("48dp", "48dp"),
-                pos_hint={'center_x': 0.96, 'center_y': 0.96},
+                pos_hint={"center_x": 0.96, "center_y": 0.96},
             )
             checkbox.bind(on_press=self.checkbox_click)
 
@@ -120,7 +122,7 @@ class DbViewScreen(Screen, BaseScreen):
             grid.add_widget(fl)
 
         self.update_label_info(simple, secure)
-        self.toggle_load_label('off')
+        self.toggle_load_label("off")
 
     def update_label_info(self, simple, secure):
         self.ids.simple.text = f"Simple images [{simple}]"
@@ -129,7 +131,7 @@ class DbViewScreen(Screen, BaseScreen):
     def toggle_load_label(self, mode, text="Loading, please wait..."):
         lbl = self.ids.load_label
 
-        if mode == 'on':
+        if mode == "on":
             lbl.text = text
             lbl.size_hint_y = 0.2
         else:
@@ -152,7 +154,7 @@ class DbViewScreen(Screen, BaseScreen):
         else:
             self.checkbox_first = False
 
-        self.select_image(instance)     # choose new
+        self.select_image(instance)  # choose new
 
     def select_image(self, instance):
         self.selected_images.append(instance)
@@ -166,7 +168,7 @@ class DbViewScreen(Screen, BaseScreen):
         if len(self.selected_images) > 0:
             instance.line_color = self.prev_line_color
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.parent.children[0].active = False   # disable checkbox
+            instance.parent.children[0].active = False  # disable checkbox
             self.selected_images.remove(instance)
 
     def unselect_all_images(self):
@@ -178,16 +180,11 @@ class DbViewScreen(Screen, BaseScreen):
         if len(self.selected_images) != 1:
             return
 
-        popup = Popup(
-            title='Preview',
-            size_hint=(None, None), size=(700, 500)
-        )
+        popup = Popup(title="Preview", size_hint=(None, None), size=(700, 500))
 
         img = ImageMDButton()
         img.texture = self.selected_images[0].texture
-        img.bind(
-            on_press=lambda x: popup.dismiss()
-        )
+        img.bind(on_press=lambda x: popup.dismiss())
 
         popup.content = img
         popup.open()

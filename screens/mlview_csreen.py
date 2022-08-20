@@ -18,25 +18,27 @@ from utils import call_db
 class MLViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.key = ''
+        self.key = ""
         self.selected = None
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen('main').key
+        self.key = self.manager.get_screen("main").key
         self.create_db_and_check()
         self.load_classes()
-        self.show_folder_images(path=ML_FOLDER + 'all')
+        self.show_folder_images(path=ML_FOLDER + "all")
 
     def create_db_and_check(self):
         # Create a table
-        call_db("""
+        call_db(
+            """
         CREATE TABLE IF NOT EXISTS images (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             image blob
-        ) """)
+        ) """
+        )
 
     def load_classes(self):
         self.ids.grid.clear_widgets()
@@ -49,7 +51,7 @@ class MLViewScreen(Screen, BaseScreen):
                 self.ids.grid.add_widget(btn)
 
     def select_label_btn(self, instance):
-        print(f'The button <{instance.text}> is being pressed')
+        print(f"The button <{instance.text}> is being pressed")
         if self.selected:
             if instance.uid == self.selected.uid:
                 self.unselect_label_btn()
@@ -71,24 +73,24 @@ class MLViewScreen(Screen, BaseScreen):
     def add_class(self):
         name = self.ids.class_input.text
         if name == "":
-            print('no input')
+            print("no input")
             return
 
         path = os.path.join(ML_FOLDER, name)
         if os.path.exists(path):
-            print('we have such class!')
+            print("we have such class!")
             return
 
         os.makedirs(path)
         self.load_classes()
-        self.ids.class_input.text = ''
+        self.ids.class_input.text = ""
 
     def delete_class(self):
         if self.selected is None:
             return
 
-        if self.selected.text == 'all':
-            print('can`t delete main folder')
+        if self.selected.text == "all":
+            print("can`t delete main folder")
 
         path = ML_FOLDER + self.selected.text
         shutil.rmtree(path)
@@ -100,7 +102,7 @@ class MLViewScreen(Screen, BaseScreen):
         if self.selected is None and path is None:
             return
 
-        self.toggle_load_label('on')
+        self.toggle_load_label("on")
         if path is None:
             path = ML_FOLDER + self.selected.text
 
@@ -113,26 +115,26 @@ class MLViewScreen(Screen, BaseScreen):
         self.unselect_all_images()
 
         if files is None:
-            self.toggle_load_label('no_dir')
+            self.toggle_load_label("no_dir")
             return
 
         self.ids.open.disabled = True  # disable load button
 
         for name in files:
-            if '.jpg' in name or '.png' in name:
+            if ".jpg" in name or ".png" in name:
                 im_path = os.path.join(path, name)
                 self.images_to_load.append(im_path)
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
         self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), .001
+            lambda tm: self.async_image_load(), 0.001
         )
 
     def async_image_load(self):
         if len(self.images_to_load) == 0:
             Clock.unschedule(self.load_event)
-            self.toggle_load_label('success')
+            self.toggle_load_label("success")
             self.ids.open.disabled = False
             return
 
@@ -142,13 +144,13 @@ class MLViewScreen(Screen, BaseScreen):
             source=im_path,
             allow_stretch=True,
             keep_ratio=True,
-            pos_hint={'center_x': .5, 'center_y': .5},
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
 
         checkbox = MDCheckbox(
             size_hint=(None, None),
             size=("48dp", "48dp"),
-            pos_hint={'center_x': 0.96, 'center_y': 0.96},
+            pos_hint={"center_x": 0.96, "center_y": 0.96},
         )
 
         fl = MDFloatLayout()
@@ -168,17 +170,17 @@ class MLViewScreen(Screen, BaseScreen):
             lbl.color = color
             self.progress_bar.size_hint_y = pbar_hint_y
 
-        if mode == 'on':
+        if mode == "on":
             lbl_prop("Loading, please wait...")
 
-        elif mode == 'no_dir':
+        elif mode == "no_dir":
             lbl_prop("No images, please select folder.", pbar_hint_y=0)
 
-        elif mode == 'success':
+        elif mode == "success":
             lbl_prop("Success!", color=(0, 1, 0, 1))
-            Clock.schedule_once(lambda tm: self.toggle_load_label('off'), 1)
+            Clock.schedule_once(lambda tm: self.toggle_load_label("off"), 1)
 
-        elif mode == 'off':
+        elif mode == "off":
             lbl_prop(lbl_hint_y=0, pbar_hint_y=0)
 
     def unselect_all_images(self):

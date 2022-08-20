@@ -22,7 +22,7 @@ class ImageViewScreen(Screen, BaseScreen):
         super().__init__(**kwargs)
         self.lock_schedule = False
         self.grid = None
-        self.key = ''
+        self.key = ""
         self.loaded = False
         self.selected_images = []
         self.images_to_load = []
@@ -30,33 +30,32 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen('main').key
+        self.key = self.manager.get_screen("main").key
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()
         if not self.loaded:
-            self.show_folder_images('G://Downloads//photo')   # TODO: remove this
+            self.show_folder_images("G://Downloads//photo")  # TODO: remove this
 
     def create_db_and_check(self):
         # Create a table
-        call_db("""
+        call_db(
+            """
         CREATE TABLE IF NOT EXISTS images (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             image blob
-        ) """)
-
-    def file_chooser_popup(self):
-        popup = Popup(
-            title='Filechooser',
-            size_hint=(None, None), size=(400, 400)
+        ) """
         )
 
-        box = BoxLayout(orientation='vertical')
-        lbl = Label(text='Please select folder', size_hint_y=0.1)
+    def file_chooser_popup(self):
+        popup = Popup(title="Filechooser", size_hint=(None, None), size=(400, 400))
+
+        box = BoxLayout(orientation="vertical")
+        lbl = Label(text="Please select folder", size_hint_y=0.1)
         # chooser = FileChooserListView()
         chooser = FileChooserIconView()
 
-        btn = MDLabelBtn(text='Submit', size_hint_y=0.1)
+        btn = MDLabelBtn(text="Submit", size_hint_y=0.1)
         btn.bind(
             on_press=lambda x: self.show_folder_images(
                 chooser.path,
@@ -74,7 +73,7 @@ class ImageViewScreen(Screen, BaseScreen):
         popup.open()
 
     def show_folder_images(self, path, selection=None, popup=None):
-        self.toggle_load_label('on')
+        self.toggle_load_label("on")
 
         if os.path.isdir(path):
             files = os.listdir(path)
@@ -87,20 +86,20 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
 
         if files is None:
-            self.toggle_load_label('no_dir')
+            self.toggle_load_label("no_dir")
             return
 
         self.ids.choose_image.disabled = True  # disable load button
 
         for name in files:
-            if '.jpg' in name or '.png' in name:
+            if ".jpg" in name or ".png" in name:
                 im_path = os.path.join(path, name)
                 self.images_to_load.append(im_path)
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
         self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), .001
+            lambda tm: self.async_image_load(), 0.001
         )
 
         if popup is not None:
@@ -109,7 +108,7 @@ class ImageViewScreen(Screen, BaseScreen):
     def async_image_load(self):
         if len(self.images_to_load) == 0:
             Clock.unschedule(self.load_event)
-            self.toggle_load_label('success')
+            self.toggle_load_label("success")
             self.ids.choose_image.disabled = False
             return
 
@@ -119,13 +118,13 @@ class ImageViewScreen(Screen, BaseScreen):
             source=im_path,
             allow_stretch=True,
             keep_ratio=True,
-            pos_hint={'center_x': .5, 'center_y': .5},
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
 
         checkbox = MDCheckbox(
             size_hint=(None, None),
             size=("48dp", "48dp"),
-            pos_hint={'center_x': 0.96, 'center_y': 0.96},
+            pos_hint={"center_x": 0.96, "center_y": 0.96},
         )
 
         fl = MDFloatLayout()
@@ -145,17 +144,17 @@ class ImageViewScreen(Screen, BaseScreen):
             lbl.color = color
             self.progress_bar.size_hint_y = pbar_hint_y
 
-        if mode == 'on':
+        if mode == "on":
             lbl_prop("Loading, please wait...")
 
-        elif mode == 'no_dir':
+        elif mode == "no_dir":
             lbl_prop("No images, please select folder.", pbar_hint_y=0)
 
-        elif mode == 'success':
+        elif mode == "success":
             lbl_prop("Success!", color=(0, 1, 0, 1))
-            Clock.schedule_once(lambda tm: self.toggle_load_label('off'), 1)
+            Clock.schedule_once(lambda tm: self.toggle_load_label("off"), 1)
 
-        elif mode == 'off':
+        elif mode == "off":
             lbl_prop(lbl_hint_y=0, pbar_hint_y=0)
 
     def image_click(self, instance):
@@ -180,29 +179,26 @@ class ImageViewScreen(Screen, BaseScreen):
         num_images = len(self.selected_images)
         self.schedule_counter_update()
         if num_images == 0:
-            self.ids.selected_images.text = 'Choose 1+'
+            self.ids.selected_images.text = "Choose 1+"
             return
 
         for path in self.selected_images:
-            with open(path.source, 'rb') as f:
+            with open(path.source, "rb") as f:
                 blob_data = f.read()
 
                 if enc:
-                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b'TODO')
+                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
                     blob_data = cipher.encrypt(blob_data)
 
-                call_db(
-                    f"INSERT INTO images (image) VALUES (?)",
-                    [blob_data]
-                )
+                call_db(f"INSERT INTO images (image) VALUES (?)", [blob_data])
         self.unselect_all_images()
-        self.ids.selected_images.text = f'Added {num_images}'
+        self.ids.selected_images.text = f"Added {num_images}"
 
     def save_img_to_ml(self):
         num_images = len(self.selected_images)
         self.schedule_counter_update()
         if num_images == 0:
-            self.ids.selected_images.text = 'Choose 1+'
+            self.ids.selected_images.text = "Choose 1+"
             return
 
         if not os.path.isdir(ML_FOLDER + "all"):
@@ -211,13 +207,15 @@ class ImageViewScreen(Screen, BaseScreen):
             shutil.copy(path.source, ML_FOLDER + "all")
 
         self.unselect_all_images()
-        self.ids.selected_images.text = f'Copied {num_images}'
+        self.ids.selected_images.text = f"Copied {num_images}"
 
     def schedule_counter_update(self):
         if not self.lock_schedule:  # to trigger schedule only once at a time
-            print('lock')
+            print("lock")
             self.lock_schedule = True
-            Clock.schedule_once(lambda dt: self.selected_counter_update(schedule=True), 1)
+            Clock.schedule_once(
+                lambda dt: self.selected_counter_update(schedule=True), 1
+            )
 
     def unselect_all_images(self):
         instances = self.selected_images.copy()
@@ -229,8 +227,8 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
 
     def selected_counter_update(self, schedule=False):
-        self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
+        self.ids.selected_images.text = f"Selected: {len(self.selected_images)}"
 
         if schedule:
             self.lock_schedule = False
-            print('release')
+            print("release")

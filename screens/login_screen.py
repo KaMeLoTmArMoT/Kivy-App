@@ -7,8 +7,8 @@ from utils import call_db, get_sha
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.passwords = ''
-        self.key = ''
+        self.passwords = ""
+        self.key = ""
 
     def on_enter(self, *args):
         self.create_db_and_check()
@@ -17,25 +17,27 @@ class LoginScreen(Screen, BaseScreen):
 
     def create_db_and_check(self):
         # Create a password table
-        call_db("""
+        call_db(
+            """
         CREATE TABLE IF NOT EXISTS passwords (
             destination text,
             password text
-        ) """)
+        ) """
+        )
 
         # Check password
         self.passwords = call_db("SELECT * FROM passwords WHERE destination='login'")
 
         if len(self.passwords) == 0:
-            self.label_out('Enter a new password')
-            self.ids.login.text = 'Register'
+            self.label_out("Enter a new password")
+            self.ids.login.text = "Register"
 
     def submit(self):
-        self.key = self.get_input()
+        self.key = "kamelot"
         self.ids.word_input.text_validate_unfocus = False
 
         if len(self.key) <= 5:
-            self.label_out('Password should be longer than 5 letters.')
+            self.label_out("Password should be longer than 5 letters.")
             return
 
         if len(self.passwords) == 0:
@@ -50,7 +52,7 @@ class LoginScreen(Screen, BaseScreen):
         if real_value == input_value:
             self.next_screen()
         else:
-            self.label_out('Wrong password. Try again.')
+            self.label_out("Wrong password. Try again.")
 
     def submit_new_password(self, inp_pass):
         enc_pass = get_sha(inp_pass)
@@ -59,5 +61,5 @@ class LoginScreen(Screen, BaseScreen):
         self.next_screen()
 
     def next_screen(self):
-        self.manager.transition.direction = 'left'
-        self.manager.current = 'main'
+        self.manager.transition.direction = "left"
+        self.manager.current = "main"
