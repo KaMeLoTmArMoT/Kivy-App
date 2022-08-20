@@ -19,10 +19,11 @@ class MLViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.key = ""
-        self.selected = None
+        self.selected_dir = None
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
+        self.cur_dir = "all"
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -52,8 +53,8 @@ class MLViewScreen(Screen, BaseScreen):
 
     def select_label_btn(self, instance):
         print(f"The button <{instance.text}> is being pressed")
-        if self.selected:
-            if instance.uid == self.selected.uid:
+        if self.selected_dir:
+            if instance.uid == self.selected_dir.uid:
                 self.unselect_label_btn()
                 return
 
@@ -63,10 +64,10 @@ class MLViewScreen(Screen, BaseScreen):
 
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
-        self.selected = instance
+        self.selected_dir = instance
 
     def unselect_label_btn(self):
-        self.selected = None
+        self.selected_dir = None
         for btn in self.ids.grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
@@ -86,25 +87,25 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.class_input.text = ""
 
     def delete_class(self):
-        if self.selected is None:
+        if self.selected_dir is None:
             return
 
-        if self.selected.text == "all":
+        if self.selected_dir.text == "all":
             print("can`t delete main folder")
 
-        path = ML_FOLDER + self.selected.text
+        path = ML_FOLDER + self.selected_dir.text
         shutil.rmtree(path)
 
         self.unselect_label_btn()
         self.load_classes()
 
     def show_folder_images(self, path=None):
-        if self.selected is None and path is None:
+        if self.selected_dir is None and path is None:
             return
 
         self.toggle_load_label("on")
         if path is None:
-            path = ML_FOLDER + self.selected.text
+            path = ML_FOLDER + self.selected_dir.text
 
         if os.path.isdir(path):
             files = os.listdir(path)
@@ -119,6 +120,7 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.ids.open.disabled = True  # disable load button
+        self.cur_dir = path
 
         for name in files:
             if ".jpg" in name or ".png" in name:
@@ -206,3 +208,20 @@ class MLViewScreen(Screen, BaseScreen):
             self.selected_images.append(instance)
 
             instance.parent.children[0].active = True
+
+    def transfer_images(self):
+        if self.selected_images is None or self.selected_dir is None:
+            return
+
+        in_dir = self.cur_dir
+        out_dir = ML_FOLDER + self.selected_dir.text
+
+        if in_dir == out_dir:
+            return
+
+        for image in self.selected_images:
+            out_img = image.source.replace(in_dir, out_dir)
+            shutil.move(image.source, out_img)
+
+        self.unselect_all_images()
+        self.show_folder_images(in_dir)
