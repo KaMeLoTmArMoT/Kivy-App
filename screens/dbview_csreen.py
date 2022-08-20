@@ -56,6 +56,7 @@ class DbViewScreen(Screen, BaseScreen):
             self.toggle_load_label('on')
             self.loaded = True
 
+        simple, secure = 0, 0
         for pk, b_image in db_images:
             img_button = ImageMDButton(
                 allow_stretch=True,
@@ -71,8 +72,9 @@ class DbViewScreen(Screen, BaseScreen):
                 success = True
                 img_button.line_color = (1.0, 0.6, 0.0, 0.5)
                 grid = self.grid_1
+                simple += 1
             except Exception as e:
-                print(e)
+                print(f'fail to load {e}')
 
             if not success:     # try to decrypt
                 try:
@@ -82,8 +84,9 @@ class DbViewScreen(Screen, BaseScreen):
                     success = True
                     img_button.line_color = (0.0, 1.0, 0.0, 0.5)
                     grid = self.grid_2
+                    secure += 1
                 except Exception as e:
-                    print(e)
+                    print(f'fail to decrypt {e}')
 
             if not success:     # show cross instead of image
                 img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
@@ -116,7 +119,12 @@ class DbViewScreen(Screen, BaseScreen):
 
             grid.add_widget(fl)
 
+        self.update_label_info(simple, secure)
         self.toggle_load_label('off')
+
+    def update_label_info(self, simple, secure):
+        self.ids.simple.text = f"Simple images [{simple}]"
+        self.ids.secure.text = f"Secure images [{secure}]"
 
     def toggle_load_label(self, mode, text="Loading, please wait..."):
         lbl = self.ids.load_label
