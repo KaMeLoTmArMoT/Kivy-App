@@ -72,10 +72,14 @@ class MLViewScreen(Screen, BaseScreen):
 
         os.makedirs(path)
         self.load_classes()
+        self.ids.class_input.text = ''
 
     def delete_class(self):
         if self.selected is None:
             return
+
+        if self.selected.text == 'all':
+            print('can`t delete main folder')
 
         path = ML_FOLDER + self.selected.text
         shutil.rmtree(path)
@@ -83,5 +87,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.unselect_label_btn()
         self.load_classes()
 
-    def confirm(self):
-        pass
+    def open(self):
+        if self.selected is None:
+            return
+
+

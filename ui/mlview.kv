@@ -42,57 +42,58 @@
                 on_press: root.goto_ml()
 
         MDBoxLayout:
-            orientation: 'vertical'
+            orientation: 'horizontal'
 
-            TextInput:
-                id: class_input
-                size_hint_y: 0.1
+            MDBoxLayout:    # left sidebar
+                orientation: 'vertical'
                 size_hint_x: 0.2
-                height: 30
-                multiline: False
-                hint_text: "enter class name"
-                font_size: 16
-                on_text_validate:
-                    pass
 
-            Button:
-                text: 'Add class'
-                size_hint_y: 0.1
-                size_hint_x: 0.2
-                height: 30
-                background_color: (1, 1, 1, .5)
-                on_press: root.add_class()
+                TextInput:
+                    id: class_input
+                    size_hint_y: 0.1
+                    height: 30
+                    multiline: False
+                    hint_text: "enter class name"
+                    font_size: 16
+                    on_text_validate:
+                        pass
 
-            ScrollView:
-                size_hint_y: 0.6
-                size_hint_x: .2
-                do_scroll_x: False
-                do_scroll_y: True
-                height: 100
-                scroll_wheel_distance: 60
+                Button:
+                    text: 'Add class'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.add_class()
 
-                GridLayout:
-                    id: grid
-                    cols: 1
-                    size: self.parent.size
-                    pos: self.parent.pos
-                    size_hint: None, None
-                    height: self.minimum_height
-                    row_default_height: 20
+                ScrollView:
+                    size_hint_y: 0.6
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    height: 100
+                    scroll_wheel_distance: 60
 
-            Button:
-                text: 'Delete class'
-                size_hint_y: 0.1
-                size_hint_x: 0.2
-                height: 30
-                background_color: (1, 1, 1, .5)
-                on_press: root.delete_class()
+                    GridLayout:
+                        id: grid
+                        cols: 1
+                        size: self.parent.size
+                        pos: self.parent.pos
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 20
 
-            Button:
-                text: 'Confirm'
-                size_hint_y: 0.1
-                size_hint_x: 0.2
-                height: 30
-                background_color: (1, 1, 1, .5)
-                on_press: pass
+                Button:
+                    text: 'Delete class'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.delete_class()
 
+                Button:
+                    text: 'Open'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.open()
+
+            MDBoxLayout:    # image preview window
+                orientation: 'vertical'
