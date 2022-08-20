@@ -15,6 +15,7 @@ from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from utils import call_db
+from screens.additional import ML_FOLDER
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -205,11 +206,10 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = 'Choose 1+'
             return
 
-        ml_folder = "D:\\Kivy\\all\\"
-        if not os.path.isdir(ml_folder):
-            os.makedirs(ml_folder)
+        if not os.path.isdir(ML_FOLDER + "all"):
+            os.makedirs(ML_FOLDER + "all")
         for path in self.selected_images:
-            shutil.copy(path.source, ml_folder)
+            shutil.copy(path.source, ML_FOLDER + "all")
 
         self.unselect_all_images()
         self.ids.selected_images.text = f'Copied {num_images}'
