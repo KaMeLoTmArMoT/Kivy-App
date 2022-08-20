@@ -1,14 +1,13 @@
 import os
 import shutil
 
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.screenmanager import Screen
-from screens.additional import BaseScreen
-from utils import call_db
-from screens.additional import ML_FOLDER
 from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from screens.additional import BaseScreen, MDLabelBtn
+from kivy.uix.screenmanager import Screen
+
+from screens.additional import ML_FOLDER, BaseScreen, MDLabelBtn
+from utils import call_db
 
 
 class MLViewScreen(Screen, BaseScreen):

@@ -1,7 +1,7 @@
 import hashlib
+import os
 import sqlite3
 import sys
-import os
 
 
 def call_db(call, data=None):

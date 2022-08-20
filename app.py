@@ -2,8 +2,8 @@ import os
 import sys
 
 from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager
 from kivy.resources import resource_add_path
+from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
 
 from screens.dbview_csreen import DbViewScreen
