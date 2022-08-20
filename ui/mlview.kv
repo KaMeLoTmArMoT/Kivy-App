@@ -89,11 +89,43 @@
                     on_press: root.delete_class()
 
                 Button:
+                    id: open
                     text: 'Open'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
-                    on_press: root.open()
+                    on_press: root.show_folder_images()
 
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'
+                id: preview
+
+                MDLabel:
+                    id: load_label
+                    halign: 'center'
+                    font_size: 36
+                    text: "Loading, please wait..."
+                    size_hint_y: 0
+
+                ProgressBar:
+                    id: progress_bar
+                    value: 0
+                    min: 0
+                    max: 100
+                    pos_hint: {'x': .1}
+                    size_hint: .8, 0
+
+                ScrollView:
+                    size_hint_y: .9
+                    pos_hint: {'x': 0, 'y': 0}
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    scroll_wheel_distance: 60
+
+                    GridLayout:
+                        id: image_grid
+                        cols: 4
+                        size:(preview.width, preview.height)
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 200
