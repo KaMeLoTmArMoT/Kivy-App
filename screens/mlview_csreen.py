@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 from kivy.clock import Clock
 from kivy.uix.button import Button
@@ -24,6 +25,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.cur_dir = "all"
+        self.touch_time = time.time()
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -55,7 +57,11 @@ class MLViewScreen(Screen, BaseScreen):
         print(f"The button <{instance.text}> is being pressed")
         if self.selected_dir:
             if instance.uid == self.selected_dir.uid:
+                # custom double touch event
                 self.unselect_label_btn()
+
+                if time.time() - self.touch_time < 0.2:
+                    self.show_folder_images(ML_FOLDER + instance.text)
                 return
 
         # reset selection
@@ -65,6 +71,7 @@ class MLViewScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected_dir = instance
+        self.touch_time = time.time()
 
     def unselect_label_btn(self):
         self.selected_dir = None
