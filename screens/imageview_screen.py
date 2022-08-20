@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from Cryptodome.Cipher import AES
 from kivy.uix.boxlayout import BoxLayout
@@ -161,6 +162,21 @@ class ImageViewScreen(Screen, BaseScreen):
                 )
         self.unselect_all_images()
         self.ids.selected_images.text = f'Added {num_images}'
+
+    def save_img_to_ml(self):
+        num_images = len(self.selected_images)
+        if num_images == 0:
+            self.ids.selected_images.text = 'Choose 1+'
+            return
+
+        ml_folder = "D:\\Kivy\\all\\"
+        if not os.path.isdir(ml_folder):
+            os.makedirs(ml_folder)
+        for path in self.selected_images:
+            shutil.copy(path.source, ml_folder)
+
+        self.unselect_all_images()
+        self.ids.selected_images.text = f'Copied {num_images}'
 
     def unselect_all_images(self):
         instances = self.selected_images.copy()

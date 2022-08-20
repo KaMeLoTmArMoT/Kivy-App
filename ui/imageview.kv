@@ -70,15 +70,21 @@
 
             Button:
                 size_hint_x: 0.3
-                text: 'Save to DB (simple)'
+                text: 'To DB (simple)'
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_db(enc=False)
 
             Button:
                 size_hint_x: 0.3
-                text: 'Save to DB (protect)'
+                text: 'To DB (protect)'
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_db(enc=True)
+
+            Button:
+                size_hint_x: 0.3
+                text: 'To ML'
+                background_color: (1, 1, 1, .5)
+                on_press: root.save_img_to_ml()
 
             Button:
                 size_hint_x: 0.25
