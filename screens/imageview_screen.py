@@ -67,11 +67,20 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def show_folder_images(self, path, selection=None, popup=None):
         self.toggle_load_label('on')
-        files = os.listdir(path)
+
+        if os.path.isdir(path):
+            files = os.listdir(path)
+        else:
+            files = None
+
         self.loaded = True
         self.grid.clear_widgets()
         self.unselect_all_images()
         self.selected_counter_update()
+
+        if files is None:
+            self.toggle_load_label('no_dir')
+            return
 
         for name in files:
             if '.jpg' in name or '.png' in name:
@@ -106,6 +115,9 @@ class ImageViewScreen(Screen, BaseScreen):
 
         if mode == 'on':
             lbl.text = "Loading, please wait..."
+            lbl.size_hint_y = 0.2
+        elif mode == 'no_dir':
+            lbl.text = "No images, please select folder."
             lbl.size_hint_y = 0.2
         else:
             lbl.text = ""
