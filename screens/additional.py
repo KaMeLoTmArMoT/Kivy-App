@@ -44,14 +44,27 @@ class BaseScreen:
         b_encoded_text = base64.b64encode(encoded_text).decode('utf-8')
         return b_encoded_text
 
+    def select_direction(self, screen_name):
+        translations = {'main': 0, 'imageview': 1, 'dbview': 2, 'mlview': 3}
+
+        old = translations[self.manager.current]
+        new = translations[screen_name]
+
+        if old < new:
+            self.manager.transition.direction = 'left'
+        else:
+            self.manager.transition.direction = 'right'
+
+        self.manager.current = screen_name
+
     def goto_images(self):
-        self.manager.transition.direction = 'left'
-        self.manager.current = 'imageview'
+        self.select_direction('imageview')
 
     def goto_main(self):
-        self.manager.transition.direction = 'right'
-        self.manager.current = 'main'
+        self.select_direction('main')
 
     def goto_db(self):
-        self.manager.transition.direction = 'left'
-        self.manager.current = 'dbview'
+        self.select_direction('dbview')
+
+    def goto_ml(self):
+        self.select_direction('mlview')

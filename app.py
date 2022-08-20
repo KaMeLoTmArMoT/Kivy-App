@@ -10,6 +10,7 @@ from screens.dbview_csreen import DbViewScreen
 from screens.imageview_screen import ImageViewScreen
 from screens.login_screen import LoginScreen
 from screens.main_screen import MainScreen
+from screens.mlview_csreen import MLViewScreen
 
 
 class MainApp(MDApp):
@@ -19,6 +20,7 @@ class MainApp(MDApp):
         sm.add_widget(MainScreen(name='main'))
         sm.add_widget(ImageViewScreen(name='imageview'))
         sm.add_widget(DbViewScreen(name='dbview'))
+        sm.add_widget(MLViewScreen(name='mlview'))
         sm.current = 'login'
 
         self.theme_cls.theme_style = "Dark"
@@ -36,4 +38,5 @@ if __name__ == '__main__':
     Builder.load_file('ui/main.kv')
     Builder.load_file('ui/imageview.kv')
     Builder.load_file('ui/dbview.kv')
+    Builder.load_file('ui/mlview.kv')
     MainApp().run()

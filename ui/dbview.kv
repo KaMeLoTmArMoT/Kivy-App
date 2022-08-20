@@ -32,6 +32,15 @@
                 text: "DB Screen"
                 on_press: root.goto_db()
 
+            Button:
+                size_hint_y: None
+                pos_hint: {"center_x": 0.5}
+                height: 20
+                font_size: 22
+                text: "ML Screen"
+                background_color: 1.8, 1.8, 1.8, 1
+                on_press: root.goto_ml()
+
         MDBoxLayout:
             orientation: 'vertical'
 
