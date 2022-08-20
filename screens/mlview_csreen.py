@@ -2,6 +2,8 @@ import os
 import shutil
 import time
 
+import keras
+import tensorflow as tf
 from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -232,3 +234,40 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.unselect_all_images()
         self.show_folder_images(in_dir)
+
+    def train_model(self):
+        img_height, img_width = 224, 224
+
+        train_ds = tf.keras.utils.image_dataset_from_directory(
+            ML_FOLDER,
+            image_size=(img_height, img_width),
+            batch_size=8,
+        )
+
+        class_names = train_ds.class_names
+        num_classes = len(class_names)
+
+        normalization_layer = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
+        normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+
+        IMG_SHAPE = (img_height, img_width) + (3,)
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
+        )
+        base_model.trainable = False
+
+        inputs = keras.Input(shape=(IMG_SHAPE))
+        x = base_model(inputs, training=False)
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        outputs = keras.layers.Dense(num_classes)(x)
+        model = keras.Model(inputs, outputs)
+
+        model.compile(
+            optimizer="adam",
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            metrics=["accuracy"],
+        )
+
+        history = model.fit(normalized_ds, epochs=10)
+
+        print(model.evaluate(normalized_ds))

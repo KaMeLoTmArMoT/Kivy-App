@@ -103,6 +103,13 @@
                     background_color: (1, 1, 1, .5)
                     on_press: root.transfer_images()
 
+                Button:
+                    text: 'Train'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.train_model()
+
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'
                 id: preview
