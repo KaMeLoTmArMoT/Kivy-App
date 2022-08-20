@@ -7,6 +7,7 @@ from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
+from kivy.clock import Clock
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
@@ -17,6 +18,7 @@ from utils import call_db
 class ImageViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.lock_schedule = False
         self.grid = None
         self.key = ''
         self.loaded = False
@@ -144,6 +146,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def save_img_to_db(self, enc):
         num_images = len(self.selected_images)
+        self.schedule_counter_update()
         if num_images == 0:
             self.ids.selected_images.text = 'Choose 1+'
             return
@@ -165,6 +168,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def save_img_to_ml(self):
         num_images = len(self.selected_images)
+        self.schedule_counter_update()
         if num_images == 0:
             self.ids.selected_images.text = 'Choose 1+'
             return
@@ -178,6 +182,12 @@ class ImageViewScreen(Screen, BaseScreen):
         self.unselect_all_images()
         self.ids.selected_images.text = f'Copied {num_images}'
 
+    def schedule_counter_update(self):
+        if not self.lock_schedule:  # to trigger schedule only once at a time
+            print('lock')
+            self.lock_schedule = True
+            Clock.schedule_once(lambda dt: self.selected_counter_update(schedule=True), 1)
+
     def unselect_all_images(self):
         instances = self.selected_images.copy()
         for instance in instances:
@@ -187,5 +197,9 @@ class ImageViewScreen(Screen, BaseScreen):
             self.selected_images.remove(instance)
         self.selected_counter_update()
 
-    def selected_counter_update(self):
+    def selected_counter_update(self, schedule=False):
         self.ids.selected_images.text = f'Selected: {len(self.selected_images)}'
+
+        if schedule:
+            self.lock_schedule = False
+            print('release')
