@@ -94,7 +94,7 @@
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
-                    on_press: root.show_folder_images()
+                    on_press: root.show_folder_images(new=True)
 
                 Button:
                     text: 'Transfer'
@@ -149,6 +149,7 @@
         size: root.width, root.height
 
         Button:
+            id: prev_page
             text: '<<<'
             size_hint: None, None
             size: 40, 30
@@ -164,6 +165,7 @@
             size_hint_y: 0
 
         Button:
+            id: next_page
             text: '>>>'
             size_hint: None, None
             size: 40, 30

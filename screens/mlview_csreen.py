@@ -71,7 +71,10 @@ class MLViewScreen(Screen, BaseScreen):
                 self.unselect_label_btn()
 
                 if time.time() - self.touch_time < 0.2:
-                    self.show_folder_images(ML_FOLDER + instance.text)
+                    if self.ids.open.disabled:
+                        return
+
+                    self.show_folder_images(ML_FOLDER + instance.text, new=True)
                 return
 
         # reset selection
@@ -117,7 +120,17 @@ class MLViewScreen(Screen, BaseScreen):
         self.unselect_label_btn()
         self.load_classes()
 
-    def show_folder_images(self, path=None):
+    def disable_switch_buttons(self):
+        self.ids.open.disabled = True
+        self.ids.prev_page.disabled = True
+        self.ids.next_page.disabled = True
+
+    def enable_switch_buttons(self):
+        self.ids.open.disabled = False
+        self.ids.prev_page.disabled = False
+        self.ids.next_page.disabled = False
+
+    def show_folder_images(self, path=None, new=False):
         if self.selected_dir is None and path is None:
             return
 
@@ -137,7 +150,11 @@ class MLViewScreen(Screen, BaseScreen):
             self.toggle_load_label("no_dir")
             return
 
-        self.ids.open.disabled = True  # disable load button
+        if new:
+            self.page = 1
+            print("reset page")
+
+        self.disable_switch_buttons()  # disable load button
         self.cur_dir = path
 
         for name in files:
@@ -167,7 +184,7 @@ class MLViewScreen(Screen, BaseScreen):
         if len(self.images_to_load) == 0:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
-            self.ids.open.disabled = False
+            self.enable_switch_buttons()
             return
 
         self.progress_bar.value += 1
@@ -262,10 +279,20 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.train.disabled = True
 
     def prev_page(self):
-        pass
+        if self.page > 1:
+            if self.load_event:
+                Clock.unschedule(self.load_event)
+
+            self.page -= 1
+            self.show_folder_images(self.cur_dir)
 
     def next_page(self):
-        pass
+        if self.page < self.total_pages:
+            if self.load_event:
+                Clock.unschedule(self.load_event)
+
+            self.page += 1
+            self.show_folder_images(self.cur_dir)
 
     def train_model(self):
         img_height, img_width = 224, 224
