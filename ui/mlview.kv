@@ -144,3 +144,29 @@
                         size_hint: None, None
                         height: self.minimum_height
                         row_default_height: 200
+
+    FloatLayout:
+        size: root.width, root.height
+
+        Button:
+            text: '<<<'
+            size_hint: None, None
+            size: 40, 30
+            pos_hint: {'x': 0.44, 'y': 0.01}    # - 65
+            background_color: (1, 1, 1, .5)
+            on_press: root.prev_page()
+
+        MDLabel:
+            id: page_label
+            pos_hint: {'x': 0.505, 'y': 0.04}
+            font_size: 36
+            text: "01"
+            size_hint_y: 0
+
+        Button:
+            text: '>>>'
+            size_hint: None, None
+            size: 40, 30
+            pos_hint: {'x': 0.56, 'y': 0.01}    # + 55
+            background_color: (1, 1, 1, .5)
+            on_press: root.next_page()

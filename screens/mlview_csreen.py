@@ -2,6 +2,7 @@ import os
 import shutil
 import threading
 import time
+from math import ceil
 
 import keras
 import tensorflow as tf
@@ -18,6 +19,8 @@ from kivymd.uix.selectioncontrol import MDCheckbox
 from screens.additional import ML_FOLDER, BaseScreen, ImageMDButton, MDLabelBtn
 from utils import call_db
 
+MAX_IMAGES_PER_PAGE = 100
+
 
 class MLViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
@@ -30,6 +33,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.cur_dir = "all"
         self.touch_time = time.time()
         self.train_active = False
+        self.load_event = None
+        self.page = 1
+        self.total_pages = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -139,11 +145,23 @@ class MLViewScreen(Screen, BaseScreen):
                 im_path = os.path.join(path, name)
                 self.images_to_load.append(im_path)
 
+        n_images = len(self.images_to_load)
+        self.total_pages = ceil(n_images / MAX_IMAGES_PER_PAGE)
+
+        self.update_page_counter()
+        if n_images > MAX_IMAGES_PER_PAGE:
+            self.images_to_load = self.images_to_load[
+                self.page * MAX_IMAGES_PER_PAGE : (self.page + 1) * MAX_IMAGES_PER_PAGE
+            ]
+
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
         self.load_event = Clock.schedule_interval(
             lambda tm: self.async_image_load(), 0.001
         )
+
+    def update_page_counter(self):  # TODO: reset page when open new folder
+        self.ids.page_label.text = f"{self.page}/{self.total_pages}"
 
     def async_image_load(self):
         if len(self.images_to_load) == 0:
@@ -242,6 +260,12 @@ class MLViewScreen(Screen, BaseScreen):
         threading.Thread(target=self.train_model).start()
         self.train_active = True
         self.ids.train.disabled = True
+
+    def prev_page(self):
+        pass
+
+    def next_page(self):
+        pass
 
     def train_model(self):
         img_height, img_width = 224, 224
