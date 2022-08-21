@@ -37,6 +37,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_event = None
         self.page = 1
         self.total_pages = None
+        self.model = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -337,3 +338,15 @@ class MLViewScreen(Screen, BaseScreen):
         print(model.evaluate(normalized_ds))
         self.train_active = False
         self.ids.train.disabled = False
+
+    def load_model(self):
+        pass
+
+    def unload_model(self):
+        pass
+
+    def save_model(self):
+        pass
+
+    def evaluate_model(self):
+        pass
