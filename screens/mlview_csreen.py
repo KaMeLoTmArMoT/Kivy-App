@@ -56,18 +56,18 @@ class MLViewScreen(Screen, BaseScreen):
         )
 
     def load_classes(self):
-        self.ids.grid.clear_widgets()
+        self.ids.class_grid.clear_widgets()
 
         btn = MDLabelBtn(text="all")
         btn.bind(on_press=self.select_label_btn)
-        self.ids.grid.add_widget(btn)
+        self.ids.class_grid.add_widget(btn)
 
         for file in os.listdir(ML_TRAIN_FOLDER):
             path = os.path.join(ML_TRAIN_FOLDER, file)
             if os.path.isdir(path):
                 btn = MDLabelBtn(text="train\\" + file)
                 btn.bind(on_press=self.select_label_btn)
-                self.ids.grid.add_widget(btn)
+                self.ids.class_grid.add_widget(btn)
 
     def select_label_btn(self, instance):
         print(f"The button <{instance.text}> is being pressed")
@@ -84,7 +84,7 @@ class MLViewScreen(Screen, BaseScreen):
                 return
 
         # reset selection
-        for btn in self.ids.grid.children:
+        for btn in self.ids.class_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
@@ -94,7 +94,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def unselect_label_btn(self):
         self.selected_dir = None
-        for btn in self.ids.grid.children:
+        for btn in self.ids.class_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def add_class(self):
@@ -349,4 +349,13 @@ class MLViewScreen(Screen, BaseScreen):
         pass
 
     def evaluate_model(self):
+        pass
+
+    def create_model(self):
+        pass
+
+    def delete_model(self):
+        pass
+
+    def model_predict(self):
         pass

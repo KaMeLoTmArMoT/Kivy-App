@@ -73,7 +73,7 @@
                     scroll_wheel_distance: 60
 
                     GridLayout:
-                        id: grid
+                        id: class_grid
                         cols: 1
                         size: self.parent.size
                         pos: self.parent.pos
@@ -144,6 +144,86 @@
                         size_hint: None, None
                         height: self.minimum_height
                         row_default_height: 200
+
+            MDBoxLayout:    # right sidebar
+                orientation: 'vertical'
+                size_hint_x: 0.2
+
+                TextInput:
+                    id: model_input
+                    size_hint_y: 0.1
+                    height: 30
+                    multiline: False
+                    hint_text: "enter model name"
+                    font_size: 16
+                    on_text_validate:
+                        pass
+
+                Button:
+                    text: 'Create model'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.create_model()
+
+                ScrollView:
+                    size_hint_y: 0.6
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    height: 100
+                    scroll_wheel_distance: 60
+
+                    GridLayout:
+                        id: model_grid
+                        cols: 1
+                        size: self.parent.size
+                        pos: self.parent.pos
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 20
+
+                Button:
+                    text: 'Delete model'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.delete_model()
+
+                Button:
+                    id: open
+                    text: 'Load'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.load_model()
+
+                Button:
+                    text: 'Unload'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.unload_model()
+
+                Button:
+                    text: 'Evaluate'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.evaluate_model()
+
+                Button:
+                    text: 'Save'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.save_model()
+
+                Button:
+                    text: 'Predict'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.model_predict()
 
     FloatLayout:
         size: root.width, root.height
