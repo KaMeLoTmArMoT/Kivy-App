@@ -379,33 +379,34 @@ class MLViewScreen(Screen, BaseScreen):
             title_align="center",
             title_size=20,
             size_hint=(None, None),
-            size=(400, 400),
+            size=(500, 400),
         )
 
         lbl2_1 = Label(text="Current:", font_size=18)
-        lbl2_2 = Label(text="MobileNet_v2", font_size=18)
+        lbl2_2 = Label(text="MobileNetV2", font_size=18)
 
         box_inner = BoxLayout(orientation="horizontal", size_hint_y=0.2)
         box_inner.add_widget(lbl2_1)
         box_inner.add_widget(lbl2_2)
 
         model_types = [
-            "MobileNet",
-            "MobileNetV2",
-            "DenseNet121",
-            "NASNetMobile",
-            "EfficientNetB0",
-            "EfficientNetB1",
-            "EfficientNetV2B0",
-            "EfficientNetV2B1",
+            ["MobileNet", 4.3, 70.4],
+            ["MobileNetV2", 3.5, 71.3],
+            ["DenseNet121", 8.1, 75.0],
+            ["NASNetMobile", 5.3, 74.4],
+            ["EfficientNetB0", 5.3, 77.1],
+            ["EfficientNetB1", 7.9, 79.1],
+            ["EfficientNetV2B0", 7.2, 78.7],
+            ["EfficientNetV2B1", 8.2, 79.8],
         ]
 
         grid = GridLayout(cols=2)
-        for model in model_types:
-            btn = Button(text=model)
+        for name, size, acc in model_types:
+            text = f"{name:<18} | {size}M | {acc}%"
+            btn = Button(text=text)
             grid.add_widget(btn)
 
-        btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.1)
+        btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.15)
         btn_submit.allow_hover = True
 
         box = BoxLayout(orientation="vertical")
