@@ -5,6 +5,7 @@ import time
 from math import ceil
 
 import keras
+import numpy as np
 import tensorflow as tf
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
@@ -321,6 +322,9 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(self.cur_dir)
 
     def train_model(self):
+        if self.model is None:  # TODO: create new model if no loaded
+            return
+
         img_height, img_width = 224, 224
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -329,33 +333,20 @@ class MLViewScreen(Screen, BaseScreen):
             batch_size=8,
         )
 
-        class_names = train_ds.class_names
-        num_classes = len(class_names)
+        # class_names = train_ds.class_names
+        # num_classes = len(class_names)
 
-        normalization_layer = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
-        normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+        normalized_ds = train_ds.map(lambda x, y: (self.model_preprocess(x), y))
 
-        IMG_SHAPE = (img_height, img_width) + (3,)
-        base_model = tf.keras.applications.MobileNetV2(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-        base_model.trainable = False
-
-        inputs = keras.Input(shape=(IMG_SHAPE))
-        x = base_model(inputs, training=False)
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        outputs = keras.layers.Dense(num_classes)(x)
-        model = keras.Model(inputs, outputs)
-
-        model.compile(
+        self.model.compile(
             optimizer="adam",
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=["accuracy"],
         )
 
-        model.fit(normalized_ds, epochs=5)
+        self.model.fit(normalized_ds, epochs=5)
 
-        print(model.evaluate(normalized_ds))
+        print(self.model.evaluate(normalized_ds))
         self.train_active = False
         self.ids.train.disabled = False
 
@@ -501,7 +492,17 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
-        pass
+        if self.selected_images is None or self.model is None:
+            return
+
+        for selected in self.selected_images:
+            path = selected.source
+            image = tf.keras.preprocessing.image.load_img(path, target_size=IMG_SHAPE)
+            image = self.model_preprocess(image)
+            image = np.expand_dims(image, axis=0)
+            pred = self.model.predict(image)
+            pred = np.argmax(pred, axis=1)
+            print(pred)
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
