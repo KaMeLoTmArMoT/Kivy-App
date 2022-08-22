@@ -405,14 +405,40 @@ class MLViewScreen(Screen, BaseScreen):
         pass
 
     def load_model(self):
-        pass
+        self.unload_model()
+
+        if self.selected_model is None:
+            return
+
+        self.model_name = self.selected_model.text
+        self.model = keras.models.load_model(ML_FOLDER + "models\\" + self.model_name)
+        self.model_type = self.model_name.split("_")[-2]
+        self.model_preprocess = self.get_model_preprocess(self.model_type)
+
+        print(type(self.model))
+        print("load complete")
+        self.model.summary()
 
     def unload_model(self):
-        pass
+        if self.model is None:
+            return
+
+        self.model_name = None
+        self.model = None
+        self.base_model = None
+        self.model_preprocess = None
+
+        keras.backend.clear_session()
+
+        self.unselect_model_btn()
+        print("unload complete")
 
     def save_model(self):
-        name = f"{self.model_name}_{self.model_type}_{self.num_classes}"
-        self.model.save(ML_FOLDER + "models\\" + name)
+        if self.model is None:
+            return
+
+        # TODO: if change ach and save - have wrong name, test it.
+        self.model.save(ML_FOLDER + "models\\" + self.model_name)
         print("save complete")
 
     def evaluate_model(self):
@@ -429,7 +455,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         print("creating", self.model_name, self.model_type)
 
-        self.base_model, self.model_preprocess = self.get_model_arch(self.model_type)
+        self.base_model = self.get_base_model(self.model_type)
+        self.model_preprocess = self.get_model_preprocess(self.model_type)
         self.base_model.trainable = False
 
         inputs = keras.Input(shape=IMG_SHAPE)
@@ -438,23 +465,39 @@ class MLViewScreen(Screen, BaseScreen):
         outputs = keras.layers.Dense(self.num_classes)(x)
         self.model = keras.Model(inputs, outputs)
         print("create complete")
+        print(self.model.summary())
 
         self.save_model()
         self.load_model_names()
 
-    def get_model_arch(self, model_type):
+    @staticmethod
+    def get_base_model(model_type):
         if model_type == "MobileNetV2":
             model = tf.keras.applications.MobileNetV2(
                 input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
             )
+
+            return model
+
+        # TODO: add other models
+
+    @staticmethod
+    def get_model_preprocess(model_type):
+        if model_type == "MobileNetV2":
             preprocess = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
 
-            return model, preprocess
+            return preprocess
 
         # TODO: add other models
 
     def delete_model(self):
-        pass
+        if self.selected_model is None:
+            return
+
+        path = ML_FOLDER + "models\\" + self.selected_model.text
+        shutil.rmtree(path)
+        self.unselect_model_btn()
+        self.load_model_names()
 
     def model_predict(self):
         pass
