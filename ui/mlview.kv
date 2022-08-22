@@ -201,7 +201,6 @@
                     on_press: root.delete_model()
 
                 Button:
-                    id: open
                     text: 'Load'
                     size_hint_y: 0.1
                     height: 30
@@ -239,27 +238,30 @@
     FloatLayout:
         size: root.width, root.height
 
-        Button:
-            id: prev_page
-            text: '<<<'
-            size_hint: None, None
-            size: 40, 30
-            pos_hint: {'x': 0.44, 'y': 0.01}    # - 65
-            background_color: (1, 1, 1, .5)
-            on_press: root.prev_page()
+        MDBoxLayout:
+            id: page_selector
+            orientation: 'horizontal'
+            size_hint: 0.3, 0.05
+            pos: (root.width - self.width) / 2, 0
 
-        MDLabel:
-            id: page_label
-            pos_hint: {'x': 0.505, 'y': 0.04}
-            font_size: 36
-            text: "01"
-            size_hint_y: 0
+            Button:
+                id: prev_page
+                text: '<<<'
+                size_hint_x: .3
+                background_color: (1, 1, 1, .5)
+                on_press: root.prev_page()
 
-        Button:
-            id: next_page
-            text: '>>>'
-            size_hint: None, None
-            size: 40, 30
-            pos_hint: {'x': 0.63, 'y': 0.01}    # + 55
-            background_color: (1, 1, 1, .5)
-            on_press: root.next_page()
+            MDLabel:
+                id: page_label
+                text: "1"
+                font_size: 36
+                size_hint_x: .4
+                pos_hint_x: .3
+                halign: 'center'
+
+            Button:
+                id: next_page
+                text: '>>>'
+                size_hint_x: .3
+                background_color: (1, 1, 1, .5)
+                on_press: root.next_page()

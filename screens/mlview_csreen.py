@@ -147,6 +147,14 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.prev_page.disabled = False
         self.ids.next_page.disabled = False
 
+    def toggle_switch_buttons(self):
+        if self.total_pages == 0:
+            self.ids.page_selector.disabled = True
+            self.ids.page_selector.opacity = 0
+        else:
+            self.ids.page_selector.disabled = False
+            self.ids.page_selector.opacity = 1
+
     def show_folder_images(self, path=None, new=False):
         if self.selected_dir is None and path is None:
             return
@@ -181,6 +189,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         n_images = len(self.images_to_load)
         self.total_pages = ceil(n_images / MAX_IMAGES_PER_PAGE)
+        self.toggle_switch_buttons()
 
         self.update_page_counter()
         if n_images > MAX_IMAGES_PER_PAGE:
