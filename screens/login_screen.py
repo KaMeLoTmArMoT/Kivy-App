@@ -33,7 +33,7 @@ class LoginScreen(Screen, BaseScreen):
             self.ids.login.text = "Register"
 
     def submit(self):
-        self.key = "kamelot"
+        self.key = self.key = self.get_input()
         self.ids.word_input.text_validate_unfocus = False
 
         if len(self.key) <= 5:

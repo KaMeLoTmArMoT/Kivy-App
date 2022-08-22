@@ -1,8 +1,10 @@
+import datetime
 import os
 import shutil
-import threading
 import time
+import webbrowser
 from math import ceil
+from threading import Thread
 
 import keras
 import numpy as np
@@ -49,6 +51,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_name = None
         self.model_type = "MobileNetV2"
         self.num_classes = 0
+        self.tensorboard_thread: Thread = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -301,7 +304,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.show_folder_images(in_dir)
 
     def trigger_training(self):
-        threading.Thread(target=self.train_model).start()
+        Thread(target=self.train_model).start()
         self.train_active = True
         self.ids.train.disabled = True
 
@@ -348,7 +351,16 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
-        self.model.fit(normalized_ds, epochs=5)
+        log_dir = (
+            ML_FOLDER
+            + "tensorboard\\"
+            + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        )
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=log_dir, histogram_freq=1
+        )
+
+        self.model.fit(normalized_ds, epochs=5, callbacks=[tensorboard_callback])
 
         self.evaluate_model(normalized_ds)
         self.train_active = False
@@ -541,3 +553,16 @@ class MLViewScreen(Screen, BaseScreen):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+    def launch_tensorboard(self):
+        def run_tensorboard():
+            cmd = "tensorboard --logdir D:\\Kivy\\tensorboard\\"
+            os.system(cmd)
+
+        if self.tensorboard_thread is None or not self.tensorboard_thread.is_alive():
+            self.tensorboard_thread = Thread(target=run_tensorboard)
+            self.tensorboard_thread.start()
+            print("tb started")
+
+        chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
+        webbrowser.get(chrome_path).open("http://localhost:6006/")
