@@ -20,8 +20,15 @@ from kivy.uix.screenmanager import Screen
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
+from tensorboard import program
 
-from screens.additional import ML_FOLDER, BaseScreen, ImageMDButton, MDLabelBtn
+from screens.additional import (
+    ML_FOLDER,
+    BaseScreen,
+    ImageMDButton,
+    MDLabelBtn,
+    chrome_path,
+)
 from utils import call_db
 
 MAX_IMAGES_PER_PAGE = 100
@@ -51,7 +58,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_name = None
         self.model_type = "MobileNetV2"
         self.num_classes = 0
-        self.tensorboard_thread: Thread = None
+        self.tensorboard = None
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
@@ -555,14 +562,12 @@ class MLViewScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def launch_tensorboard(self):
-        def run_tensorboard():
-            cmd = "tensorboard --logdir D:\\Kivy\\tensorboard\\"
-            os.system(cmd)
+        if self.tensorboard is None:
+            self.tensorboard = program.TensorBoard()
+            self.tensorboard.configure(
+                argv=[None, "--logdir", "D:\\Kivy\\tensorboard\\"]
+            )
+            url = self.tensorboard.launch()
+            print(f"{url=}")
 
-        if self.tensorboard_thread is None or not self.tensorboard_thread.is_alive():
-            self.tensorboard_thread = Thread(target=run_tensorboard)
-            self.tensorboard_thread.start()
-            print("tb started")
-
-        chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
         webbrowser.get(chrome_path).open("http://localhost:6006/")

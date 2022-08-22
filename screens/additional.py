@@ -9,6 +9,7 @@ from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 
 ML_FOLDER = "D:\\Kivy\\"
+chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
 
 
 class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):

@@ -5,7 +5,7 @@ from Cryptodome.Cipher import AES
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
-from screens.additional import BaseScreen, MDLabelBtn
+from screens.additional import BaseScreen, MDLabelBtn, chrome_path
 from utils import call_db, extend_key
 
 
@@ -151,7 +151,4 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("This is not a link probably")
             return
 
-        chrome_path = (
-            "C:/Program Files/Google/Chrome/Application/chrome.exe %s --incognito"
-        )
-        webbrowser.get(chrome_path).open(url)
+        webbrowser.get(chrome_path + " --incognito").open(url)
