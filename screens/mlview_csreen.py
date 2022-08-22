@@ -321,10 +321,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.page += 1
             self.show_folder_images(self.cur_dir)
 
-    def train_model(self):
-        if self.model is None:  # TODO: create new model if no loaded
-            return
-
+    def prepare_dataset(self):
         img_height, img_width = 224, 224
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -337,6 +334,13 @@ class MLViewScreen(Screen, BaseScreen):
         # num_classes = len(class_names)
 
         normalized_ds = train_ds.map(lambda x, y: (self.model_preprocess(x), y))
+        return normalized_ds
+
+    def train_model(self):
+        if self.model is None:  # TODO: create new model if no loaded
+            return
+
+        normalized_ds = self.prepare_dataset()
 
         self.model.compile(
             optimizer="adam",
@@ -346,7 +350,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model.fit(normalized_ds, epochs=5)
 
-        print(self.model.evaluate(normalized_ds))
+        self.evaluate_model(normalized_ds)
         self.train_active = False
         self.ids.train.disabled = False
 
@@ -393,8 +397,6 @@ class MLViewScreen(Screen, BaseScreen):
         popup.content = box
         popup.open()
 
-        pass
-
     def load_model(self):
         self.unload_model()
 
@@ -432,8 +434,12 @@ class MLViewScreen(Screen, BaseScreen):
         self.model.save(ML_FOLDER + "models\\" + self.model_name)
         print("save complete")
 
-    def evaluate_model(self):
-        pass
+    def evaluate_model(self, data=None):
+        if data is None:
+            data = self.prepare_dataset()
+
+        res = self.model.evaluate(data)
+        print(f"Eval loss: {res[0]}, acc: {res[1]}")
 
     def create_model(self, name):
         if name == "":
