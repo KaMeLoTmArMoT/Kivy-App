@@ -444,16 +444,17 @@ class MLViewScreen(Screen, BaseScreen):
     def evaluate_model(self):
         pass
 
-    def create_model(self):
-        self.model_name = self.ids.model_input.text
-        if self.model_name == "":
+    def create_model(self, name):
+        if name == "":
             return
+
+        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
 
         self.num_classes = len(self.ids.class_grid.children) - 1
         if self.num_classes == 0:
             return
 
-        print("creating", self.model_name, self.model_type)
+        print("creating", self.model_name)
 
         self.base_model = self.get_base_model(self.model_type)
         self.model_preprocess = self.get_model_preprocess(self.model_type)
