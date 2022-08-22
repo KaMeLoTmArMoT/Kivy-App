@@ -23,6 +23,7 @@ from utils import call_db
 
 MAX_IMAGES_PER_PAGE = 100
 ML_TRAIN_FOLDER = ML_FOLDER + "train\\"
+IMG_SHAPE = (224, 224, 3)
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -39,12 +40,20 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_event = None
         self.page = 1
         self.total_pages = None
+
+        self.selected_model = None
         self.model = None
+        self.base_model = None
+        self.model_preprocess = None
+        self.model_name = None
+        self.model_type = "MobileNetV2"
+        self.num_classes = 0
 
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
         self.create_db_and_check()
         self.load_classes()
+        self.load_model_names()
         self.show_folder_images(path=ML_FOLDER + "all")
 
     def create_db_and_check(self):
@@ -393,16 +402,82 @@ class MLViewScreen(Screen, BaseScreen):
         pass
 
     def save_model(self):
-        pass
+        name = f"{self.model_name}_{self.model_type}_{self.num_classes}"
+        self.model.save(ML_FOLDER + "models\\" + name)
+        print("save complete")
 
     def evaluate_model(self):
         pass
 
     def create_model(self):
-        pass
+        self.model_name = self.ids.model_input.text
+        if self.model_name == "":
+            return
+
+        self.num_classes = len(self.ids.class_grid.children) - 1
+        if self.num_classes == 0:
+            return
+
+        print("creating", self.model_name, self.model_type)
+
+        self.base_model, self.model_preprocess = self.get_model_arch(self.model_type)
+        self.base_model.trainable = False
+
+        inputs = keras.Input(shape=IMG_SHAPE)
+        x = self.base_model(inputs, training=False)
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        outputs = keras.layers.Dense(self.num_classes)(x)
+        self.model = keras.Model(inputs, outputs)
+        print("create complete")
+
+        self.save_model()
+        self.load_model_names()
+
+    def get_model_arch(self, model_type):
+        if model_type == "MobileNetV2":
+            model = tf.keras.applications.MobileNetV2(
+                input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
+            )
+            preprocess = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
+
+            return model, preprocess
+
+        # TODO: add other models
 
     def delete_model(self):
         pass
 
     def model_predict(self):
         pass
+
+    def load_model_names(self):
+        self.ids.model_grid.clear_widgets()
+
+        parse_path = ML_FOLDER + "models"
+        for file in os.listdir(parse_path):
+            path = os.path.join(parse_path, file)
+            if os.path.isdir(path):
+                btn = MDLabelBtn(text=file)
+                btn.bind(on_press=self.select_model_btn)
+                self.ids.model_grid.add_widget(btn)
+
+    def select_model_btn(self, instance):
+        print(f"The button <{instance.text}> is being pressed")
+        if self.selected_model:
+            if instance.uid == self.selected_model.uid:
+                # custom double touch event
+                self.unselect_model_btn()
+                return
+
+        # reset selection
+        for btn in self.ids.model_grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        instance.radius = (20, 20, 20, 20)
+        self.selected_model = instance
+
+    def unselect_model_btn(self):
+        self.selected_model = None
+        for btn in self.ids.model_grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
