@@ -7,9 +7,11 @@ from math import ceil
 import keras
 import tensorflow as tf
 from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivymd.uix.floatlayout import MDFloatLayout
@@ -338,6 +340,51 @@ class MLViewScreen(Screen, BaseScreen):
         print(model.evaluate(normalized_ds))
         self.train_active = False
         self.ids.train.disabled = False
+
+    def select_model_type(self):
+        popup = Popup(
+            title="Please select model type:",
+            title_align="center",
+            title_size=20,
+            size_hint=(None, None),
+            size=(400, 400),
+        )
+
+        lbl2_1 = Label(text="Current:", font_size=18)
+        lbl2_2 = Label(text="MobileNet_v2", font_size=18)
+
+        box_inner = BoxLayout(orientation="horizontal", size_hint_y=0.2)
+        box_inner.add_widget(lbl2_1)
+        box_inner.add_widget(lbl2_2)
+
+        model_types = [
+            "MobileNet",
+            "MobileNetV2",
+            "DenseNet121",
+            "NASNetMobile",
+            "EfficientNetB0",
+            "EfficientNetB1",
+            "EfficientNetV2B0",
+            "EfficientNetV2B1",
+        ]
+
+        grid = GridLayout(cols=2)
+        for model in model_types:
+            btn = Button(text=model)
+            grid.add_widget(btn)
+
+        btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.1)
+        btn_submit.allow_hover = True
+
+        box = BoxLayout(orientation="vertical")
+        box.add_widget(box_inner)
+        box.add_widget(grid)
+        box.add_widget(btn_submit)
+
+        popup.content = box
+        popup.open()
+
+        pass
 
     def load_model(self):
         pass

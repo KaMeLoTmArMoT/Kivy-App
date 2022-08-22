@@ -149,6 +149,17 @@
                 orientation: 'vertical'
                 size_hint_x: 0.2
 
+                MDLabelBtn:
+                    id: model_label
+                    font_size: 16
+                    text: "MobileNet_v2"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.select_model_type()
+
                 TextInput:
                     id: model_input
                     size_hint_y: 0.1
