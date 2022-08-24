@@ -6,6 +6,7 @@ import webbrowser
 from math import ceil
 from threading import Thread
 
+import cv2
 import keras
 import numpy as np
 import tensorflow as tf
@@ -572,3 +573,30 @@ class MLViewScreen(Screen, BaseScreen):
             print(f"{url=}")
 
         webbrowser.get(chrome_path).open("http://localhost:6006/")
+
+    def rotate(self, side):
+        if len(self.selected_images) == 0:
+            return
+
+        if side == "left":
+            rot = cv2.ROTATE_90_COUNTERCLOCKWISE
+        else:
+            rot = cv2.ROTATE_90_CLOCKWISE
+
+        for image in self.selected_images:
+            path: str = image.source
+
+            img = cv2.imread(path)
+            img = cv2.rotate(img, rot)
+            os.remove(path)
+
+            old_name = path.split("\\")[-1].split(".")[0]
+            if old_name.endswith("_rt"):
+                name = old_name[:-3]
+            else:
+                name = old_name + "_rt"
+            new_name_path = path.replace(old_name, name)
+
+            cv2.imwrite(new_name_path, img)
+
+        self.show_folder_images(self.cur_dir)

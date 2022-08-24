@@ -29,8 +29,23 @@ class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
             self.md_bg_color = self.saved_color
 
 
-class ImageMDButton(MDButtonBehavior, Image, SpecificBackgroundColorBehavior):
-    pass
+class ImageMDButton(
+    MDButtonBehavior, Image, SpecificBackgroundColorBehavior, HoverBehavior
+):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.allow_hover = False
+        self.saved_color = None
+
+    def on_enter(self):
+        if self.allow_hover:
+            self.saved_color = self.md_bg_color.copy()
+            self.md_bg_color = (1, 1, 1, 0.1)
+
+    def on_leave(self):
+        if self.allow_hover:
+            self.md_bg_color = self.saved_color
 
 
 class BaseScreen:

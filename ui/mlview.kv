@@ -111,6 +111,30 @@
                     background_color: (1, 1, 1, .5)
                     on_press: root.trigger_training()
 
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.1
+
+                    ImageMDButton:
+                        height: 30
+                        on_press: root.rotate("left")
+
+                        source: 'G:\\Programming\\kivy_apps\\icons\\rotate_left.png'
+                        allow_stretch: True
+                        keep_ratio: True
+                        allow_hover: True
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                    ImageMDButton:
+                        height: 30
+                        on_press: root.rotate("right")
+
+                        source: 'G:\\Programming\\kivy_apps\\icons\\rotate_right.png'
+                        allow_stretch: True
+                        keep_ratio: True
+                        allow_hover: True
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'
                 id: preview
