@@ -1,4 +1,5 @@
 import datetime
+import io
 import os
 import shutil
 import time
@@ -11,6 +12,7 @@ import keras
 import numpy as np
 import tensorflow as tf
 from kivy.clock import Clock
+from kivy.core.image import Image as CoreImage
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -599,4 +601,12 @@ class MLViewScreen(Screen, BaseScreen):
 
             cv2.imwrite(new_name_path, img)
 
-        self.show_folder_images(self.cur_dir)
+            with open(new_name_path, "rb") as f:
+                blob_data = f.read()
+                data = io.BytesIO(blob_data)
+                texture = CoreImage(data, ext="png").texture
+
+                image.texture = texture
+                image.source = new_name_path
+
+        self.unselect_all_images()
