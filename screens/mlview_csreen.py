@@ -234,6 +234,7 @@ class MLViewScreen(Screen, BaseScreen):
             allow_stretch=True,
             keep_ratio=True,
             pos_hint={"center_x": 0.5, "center_y": 0.5},
+            nocache=True,
         )
 
         checkbox = MDCheckbox(
@@ -591,22 +592,13 @@ class MLViewScreen(Screen, BaseScreen):
             img = cv2.imread(path)
             img = cv2.rotate(img, rot)
             os.remove(path)
+            cv2.imwrite(path, img)
 
-            old_name = path.split("\\")[-1].split(".")[0]
-            if old_name.endswith("_rt"):
-                name = old_name[:-3]
-            else:
-                name = old_name + "_rt"
-            new_name_path = path.replace(old_name, name)
-
-            cv2.imwrite(new_name_path, img)
-
-            with open(new_name_path, "rb") as f:
+            with open(path, "rb") as f:
                 blob_data = f.read()
                 data = io.BytesIO(blob_data)
                 texture = CoreImage(data, ext="png").texture
 
                 image.texture = texture
-                image.source = new_name_path
 
         self.unselect_all_images()
