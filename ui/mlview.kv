@@ -319,7 +319,7 @@
         MDBoxLayout:
             id: error_popup
             orientation: 'horizontal'
-            size_hint: 0.4, 0.1
+            size_hint: 0.6, 0.1
             pos: (root.width - self.width) / 2, preview.height - self.height - 10
 
             canvas.before:
@@ -333,9 +333,8 @@
             MDLabel:
                 id: error_popup_text
                 text: ""
-                font_size: 36
-                size_hint_x: .4
-                pos_hint_x: .3
+                font_size: 34
+
                 halign: 'center'
                 theme_text_color: "Custom"
                 text_color: 0, 0, 0, 1
