@@ -66,6 +66,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.num_classes = 0
         self.tensorboard = None
 
+        self.data = None
+        self.eval_event = None
+        self.acc = None
+        self.loss = None
+
     def on_enter(self, *args):
         self.key = self.manager.get_screen("main").key
         self.create_db_and_check()
@@ -492,8 +497,27 @@ class MLViewScreen(Screen, BaseScreen):
         if data is None:
             data = self.prepare_dataset()
 
-        res = self.model.evaluate(data)
-        print(f"Eval loss: {res[0]}, acc: {res[1]}")
+        self.data = list(data)
+        self.eval_event = Clock.schedule_interval(
+            lambda tm: self.async_eval_cycle(), 0.0001
+        )
+
+    def async_eval_cycle(self):
+        if len(self.data) % 100 == 0:
+            print(len(self.data))
+
+        if len(self.data) == 0:
+            Clock.unschedule(self.eval_event)
+            print(f"Eval loss: {self.loss}, acc: {self.acc}")
+            return
+
+        batch = self.data.pop()
+        a = self.model.evaluate(batch[0], batch[1], verbose=0)
+
+        if self.loss is None and self.acc is None:
+            self.loss, self.acc = a
+        else:
+            self.loss, self.acc = (self.loss + a[0]) / 2, (self.acc + a[1]) / 2
 
     def create_model(self, name):
         if name == "":
