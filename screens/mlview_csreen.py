@@ -128,12 +128,12 @@ class MLViewScreen(Screen, BaseScreen):
     def add_class(self):
         name = self.ids.class_input.text
         if name == "":
-            print("no input")
+            self.error_popup_clock("Enter name!")
             return
 
         path = os.path.join(ML_TRAIN_FOLDER, name)
         if os.path.exists(path):
-            print("we have such class!")
+            self.error_popup_clock("Class exists!")
             return
 
         os.makedirs(path)
@@ -156,10 +156,11 @@ class MLViewScreen(Screen, BaseScreen):
 
     def delete_class(self):
         if self.selected_dir is None:
+            self.error_popup_clock("Select class dir!")
             return
 
         if self.selected_dir.text == "all":
-            print("can`t delete main folder")
+            self.error_popup_clock("Can`t delete main dir!")
             return
 
         path = ML_FOLDER + self.selected_dir.text
@@ -188,6 +189,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def show_folder_images(self, path=None, new=False):
         if self.selected_dir is None and path is None:
+            self.error_popup_clock("Select dir!")
             return
 
         self.toggle_load_label("on")
@@ -315,13 +317,15 @@ class MLViewScreen(Screen, BaseScreen):
             instance.parent.children[0].active = True
 
     def transfer_images(self):
-        if self.selected_images is None or self.selected_dir is None:
+        if len(self.selected_images) == 0 or self.selected_dir is None:
+            self.error_popup_clock("Select images and dir!")
             return
 
         in_dir = self.cur_dir
         out_dir = ML_FOLDER + self.selected_dir.text
 
         if in_dir == out_dir:
+            self.error_popup_clock("Can`t paste to same dir!")
             return
 
         for image in self.selected_images:
@@ -329,6 +333,7 @@ class MLViewScreen(Screen, BaseScreen):
             shutil.move(image.source, out_img)
 
         self.unselect_all_images()
+        self.unselect_label_btn()
         self.show_folder_images(in_dir)
 
     def trigger_training(self):
@@ -442,6 +447,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.unload_model()
 
         if self.selected_model is None:
+            self.error_popup_clock("Select model!")
             return
 
         self.model_name = self.selected_model.text
@@ -531,6 +537,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def delete_model(self):
         if self.selected_model is None:
+            self.error_popup_clock("Select model!")
             return
 
         path = ML_FOLDER + "models\\" + self.selected_model.text
@@ -539,7 +546,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
+        # TODO: check if model is loaded
         if self.selected_images is None or self.model is None:
+            self.error_popup_clock("Select model and images!")
             return
 
         for selected in self.selected_images:
@@ -596,6 +605,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def rotate(self, side):
         if len(self.selected_images) == 0:
+            self.error_popup_clock("Select image(s)!")
             return
 
         if side == "left":
