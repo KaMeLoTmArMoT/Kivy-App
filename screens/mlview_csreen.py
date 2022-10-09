@@ -497,7 +497,7 @@ class MLViewScreen(Screen, BaseScreen):
             data = self.prepare_dataset()
 
         self.data = list(data)
-        self.toggle_error_popup("on", "Start train...")
+        self.toggle_error_popup("on", "Start eval...")
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
@@ -550,6 +550,12 @@ class MLViewScreen(Screen, BaseScreen):
         self.model = keras.Model(inputs, outputs)
         print("create complete")
         print(self.model.summary())
+
+        self.model.compile(
+            optimizer="adam",
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            metrics=["accuracy"],
+        )
 
         self.save_model()
         self.load_model_names()
