@@ -13,6 +13,7 @@ import numpy as np
 import tensorflow as tf
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
+from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -40,6 +41,8 @@ IMG_SHAPE = (224, 224, 3)
 
 
 class MLViewScreen(Screen, BaseScreen):
+    rgba = ListProperty([1, 1, 0, 0])  # error message popup color
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.key = ""
@@ -136,6 +139,20 @@ class MLViewScreen(Screen, BaseScreen):
         os.makedirs(path)
         self.load_classes()
         self.ids.class_input.text = ""
+
+    def error_popup_clock(self, text="Error", show_time=1):
+        self.toggle_error_popup("on")
+        Clock.schedule_once(lambda tm: self.toggle_error_popup("off", text), show_time)
+
+    def toggle_error_popup(self, mode, text="Error"):
+        if mode == "on":
+            self.ids.error_popup_text.text = text
+            self.ids.error_popup.size_hint_y = 0.1
+            self.rgba = [1, 1, 0, 1]
+        else:  # off
+            self.ids.error_popup_text.text = ""
+            self.ids.error_popup.size_hint_y = 0.0
+            self.rgba = [1, 1, 0, 0]
 
     def delete_class(self):
         if self.selected_dir is None:

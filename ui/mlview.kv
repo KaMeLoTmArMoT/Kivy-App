@@ -312,3 +312,30 @@
                 size_hint_x: .3
                 background_color: (1, 1, 1, .5)
                 on_press: root.next_page()
+
+    FloatLayout:    # error message popup
+        size: preview.width, preview.height
+
+        MDBoxLayout:
+            id: error_popup
+            orientation: 'horizontal'
+            size_hint: 0.4, 0.1
+            pos: (root.width - self.width) / 2, preview.height - self.height - 10
+
+            canvas.before:
+                Color:
+                    rgba: root.rgba
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: 10, 10, 10, 10
+
+            MDLabel:
+                id: error_popup_text
+                text: ""
+                font_size: 36
+                size_hint_x: .4
+                pos_hint_x: .3
+                halign: 'center'
+                theme_text_color: "Custom"
+                text_color: 0, 0, 0, 1
