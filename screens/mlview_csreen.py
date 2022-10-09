@@ -482,6 +482,13 @@ class MLViewScreen(Screen, BaseScreen):
         print("save complete")
 
     def evaluate_model(self, data=None):
+        if self.model is None:
+            if self.selected_model is None:
+                self.error_popup_clock("Select/Load model first!")
+                return
+            else:
+                self.load_model()
+
         if data is None:
             data = self.prepare_dataset()
 
