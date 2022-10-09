@@ -460,7 +460,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_type = self.model_name.split("_")[-2]
         self.model_preprocess = self.get_model_preprocess(self.model_type)
 
-        print(type(self.model))
         print("load complete")
         self.model.summary()
 
@@ -498,26 +497,35 @@ class MLViewScreen(Screen, BaseScreen):
             data = self.prepare_dataset()
 
         self.data = list(data)
+        self.toggle_error_popup("on", "Start train...")
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
 
     def async_eval_cycle(self):
-        if len(self.data) % 100 == 0:
+        iters = len(self.data)
+        if iters % 100 == 0:
             print(len(self.data))
+            self.toggle_error_popup(
+                "on",
+                f"iters: {iters} "
+                f"loss: {round(self.loss, 3)} "
+                f"acc: {round(self.acc, 3)}",
+            )
 
-        if len(self.data) == 0:
+        if iters == 0:
             Clock.unschedule(self.eval_event)
+            self.toggle_error_popup("off")
             print(f"Eval loss: {self.loss}, acc: {self.acc}")
             return
 
         batch = self.data.pop()
-        a = self.model.evaluate(batch[0], batch[1], verbose=0)
+        loss, acc = self.model.evaluate(batch[0], batch[1], verbose=0)
 
         if self.loss is None and self.acc is None:
-            self.loss, self.acc = a
+            self.loss, self.acc = loss, acc
         else:
-            self.loss, self.acc = (self.loss + a[0]) / 2, (self.acc + a[1]) / 2
+            self.loss, self.acc = (self.loss + loss) / 2, (self.acc + acc) / 2
 
     def create_model(self, name):
         if name == "":
