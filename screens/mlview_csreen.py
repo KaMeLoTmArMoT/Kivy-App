@@ -572,7 +572,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
 
         self.num_classes = len(self.ids.class_grid.children) - 1
-        if self.num_classes == 0:
+        if self.num_classes < 2:
+            self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
 
         print("creating", self.model_name)
