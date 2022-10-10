@@ -342,9 +342,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.show_folder_images(in_dir)
 
     def trigger_training(self):
-        Thread(target=self.train_model).start()
         self.train_active = True
         self.ids.train.disabled = True
+        Thread(target=self.train_model).start()
 
     def prev_page(self):
         if self.page > 1:
@@ -378,8 +378,15 @@ class MLViewScreen(Screen, BaseScreen):
         return normalized_ds
 
     def train_model(self):
-        if self.model is None:  # TODO: create new model if no loaded
-            return
+        if self.model is None:
+            if self.selected_model:
+                self.load_model()
+            else:
+                self.error_popup_clock("Select or load model!")
+                self.train_active = False
+                self.ids.train.disabled = False
+                return
+        self.error_popup_clock("Open tensorboard to get status.", 5)
 
         normalized_ds = self.prepare_dataset()
 
