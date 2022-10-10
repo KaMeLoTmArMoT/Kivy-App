@@ -5,7 +5,8 @@ from Cryptodome.Cipher import AES
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
-from screens.additional import BaseScreen, MDLabelBtn, chrome_path
+from screens.additional import BaseScreen, MDLabelBtn
+from screens.configs import chrome_path
 from utils import call_db, extend_key
 
 

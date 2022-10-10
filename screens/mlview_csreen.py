@@ -26,18 +26,16 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from tensorboard import program
 
-from screens.additional import (
+from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from screens.configs import (
+    IMG_SHAPE,
+    MAX_IMAGES_PER_PAGE,
     ML_FOLDER,
-    BaseScreen,
-    ImageMDButton,
-    MDLabelBtn,
+    ML_TRAIN_FOLDER,
     chrome_path,
 )
+from screens.ml import get_base_model, get_model_preprocess
 from utils import call_db
-
-MAX_IMAGES_PER_PAGE = 100
-ML_TRAIN_FOLDER = ML_FOLDER + "train\\"
-IMG_SHAPE = (224, 224, 3)
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -496,7 +494,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_name = self.selected_model.text
         self.model = keras.models.load_model(ML_FOLDER + "models\\" + self.model_name)
         self.model_type = self.model_name.split("_")[-2]
-        self.model_preprocess = self.get_model_preprocess(self.model_type)
+        self.model_preprocess = get_model_preprocess(self.model_type)
 
         print("load complete")
         self.model.summary()
@@ -578,8 +576,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         print("creating", self.model_name)
 
-        self.base_model = self.get_base_model(self.model_type)
-        self.model_preprocess = self.get_model_preprocess(self.model_type)
+        self.base_model = get_base_model(self.model_type)
+        self.model_preprocess = get_model_preprocess(self.model_type)
         self.base_model.trainable = False
 
         inputs = keras.Input(shape=IMG_SHAPE)
@@ -598,26 +596,6 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.save_model()
         self.load_model_names()
-
-    @staticmethod
-    def get_base_model(model_type):
-        if model_type == "MobileNetV2":
-            model = tf.keras.applications.MobileNetV2(
-                input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-            )
-
-            return model
-
-        # TODO: add other models
-
-    @staticmethod
-    def get_model_preprocess(model_type):
-        if model_type == "MobileNetV2":
-            preprocess = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
-
-            return preprocess
-
-        # TODO: add other models
 
     def delete_model(self):
         if self.selected_model is None:

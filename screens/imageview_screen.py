@@ -13,7 +13,8 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
-from screens.additional import ML_FOLDER, BaseScreen, ImageMDButton, MDLabelBtn
+from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from screens.configs import ML_FOLDER
 from utils import call_db
 
 
