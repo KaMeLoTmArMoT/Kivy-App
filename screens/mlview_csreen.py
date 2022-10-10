@@ -63,6 +63,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_preprocess = None
         self.model_name = None
         self.model_type = "MobileNetV2"
+        self.tmp_model_type = None
         self.num_classes = 0
         self.tensorboard = None
 
@@ -421,7 +422,7 @@ class MLViewScreen(Screen, BaseScreen):
         )
 
         lbl2_1 = Label(text="Current:", font_size=18)
-        lbl2_2 = Label(text="MobileNetV2", font_size=18)
+        lbl2_2 = Label(text=self.model_type, font_size=18)
 
         box_inner = BoxLayout(orientation="horizontal", size_hint_y=0.2)
         box_inner.add_widget(lbl2_1)
@@ -442,18 +443,48 @@ class MLViewScreen(Screen, BaseScreen):
         for name, size, acc in model_types:
             text = f"{name:<18} | {size}M | {acc}%"
             btn = Button(text=text)
+            btn.bind(on_press=self.select_model_type_btn)
             grid.add_widget(btn)
+            grid.ids[name] = btn
 
         btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.15)
         btn_submit.allow_hover = True
+        btn_submit.bind(on_press=self.submit_model_type_btn)
+        btn_submit.bind(on_release=popup.dismiss)
 
         box = BoxLayout(orientation="vertical")
+
         box.add_widget(box_inner)
         box.add_widget(grid)
         box.add_widget(btn_submit)
+        box.ids["box_inner"] = box_inner
+        box.ids["grid"] = grid
+        box.ids["btn_submit"] = btn_submit
 
         popup.content = box
+        popup.bind(on_dismiss=self.dismiss_model_select_popup)
         popup.open()
+
+    def dismiss_model_select_popup(self, instance):
+        self.tmp_model_type = None
+
+    def select_model_type_btn(self, instance):
+        grid = instance.parent
+
+        for btn_name in grid.ids:
+            grid.ids[btn_name].background_color = (1.0, 1.0, 1.0, 1.0)
+
+        instance.background_color = (1.0, 1.0, 1.0, 0.5)
+        self.tmp_model_type = instance.text.split(" ")[0]
+
+    def submit_model_type_btn(self, instance):
+        if not self.tmp_model_type:
+            self.error_popup_clock("Type not selected!")
+            return
+
+        self.model_type = self.tmp_model_type
+        self.ids.model_label.text = self.model_type
+        self.unload_model()
 
     def load_model(self):
         self.unload_model()
