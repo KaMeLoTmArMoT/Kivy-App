@@ -60,12 +60,13 @@ def get_model_preprocess(model_type):
     return preprocess
 
 
-def create_config_file(model_name, model_type, num_classes):
+def create_config_file(model_name, model_type, num_classes, classes):
     config = configparser.ConfigParser()
     config["Model"] = {
         "model_name": model_name,
         "model_type": model_type,
         "num_classes": num_classes,
+        "classes": "-".join(classes),
         "width": IMG_SHAPE[0],
         "height": IMG_SHAPE[1],
         "channels": IMG_SHAPE[2],
@@ -82,9 +83,10 @@ def read_config_file(model_name):
 
     model_type = model_section["model_type"]
     num_classes = int(model_section["num_classes"])
+    classes = model_section["classes"].split("-")
     width = int(model_section["width"])
     height = int(model_section["height"])
     channels = int(model_section["channels"])
     img_shape = (width, height, channels)
 
-    return model_type, num_classes, img_shape
+    return model_type, num_classes, img_shape, classes

@@ -70,6 +70,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_type = "MobileNetV2"
         self.tmp_model_type = None
         self.num_classes = 0
+        self.classes = None
         self.tensorboard = None
 
         self.data = None
@@ -502,7 +503,9 @@ class MLViewScreen(Screen, BaseScreen):
 
         config_path = ML_CONFIGS_FOLDER + self.model_name + ".conf"
         if os.path.exists(config_path):
-            model_type, num_classes, img_shape = read_config_file(self.model_name)
+            model_type, num_classes, img_shape, classes = read_config_file(
+                self.model_name
+            )
             print(model_type, num_classes, img_shape)
             # TODO: use config, not just load
 
@@ -611,13 +614,14 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
-        # TODO: save class names
-        # classes = [
-        #     btn.text.split("\\")[-1]
-        #     for btn in self.ids.class_grid.children
-        #     if btn.text != "all"
-        # ]
-        create_config_file(self.model_name, self.model_type, self.num_classes)
+        self.classes = [
+            btn.text.split("\\")[-1]
+            for btn in self.ids.class_grid.children
+            if btn.text != "all"
+        ]
+        create_config_file(
+            self.model_name, self.model_type, self.num_classes, self.classes
+        )
         self.save_model()
         self.load_model_names()
 
