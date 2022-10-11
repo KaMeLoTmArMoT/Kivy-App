@@ -208,7 +208,7 @@
                     hint_text: "enter model name"
                     font_size: 16
                     on_text_validate:
-                        pass
+                        root.create_model(self.text)
 
                 Button:
                     text: 'Create model'

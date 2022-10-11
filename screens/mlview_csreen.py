@@ -68,6 +68,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_preprocess = None
         self.model_name = None
         self.model_type = "MobileNetV2"
+        self.model_type_popup = None
         self.tmp_model_type = None
         self.num_classes = 0
         self.classes = None
@@ -455,7 +456,6 @@ class MLViewScreen(Screen, BaseScreen):
         btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.15)
         btn_submit.allow_hover = True
         btn_submit.bind(on_press=self.submit_model_type_btn)
-        btn_submit.bind(on_release=popup.dismiss)
 
         box = BoxLayout(orientation="vertical")
 
@@ -468,6 +468,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         popup.content = box
         popup.bind(on_dismiss=self.dismiss_model_select_popup)
+        self.model_type_popup = popup
         popup.open()
 
     def dismiss_model_select_popup(self, instance):
@@ -476,11 +477,16 @@ class MLViewScreen(Screen, BaseScreen):
     def select_model_type_btn(self, instance):
         grid = instance.parent
 
+        if self.tmp_model_type == instance.text.split(" ")[0]:
+            if time.time() - self.touch_time < 0.2:
+                self.submit_model_type_btn("instance")  # may cause error
+
         for btn_name in grid.ids:
             grid.ids[btn_name].background_color = (1.0, 1.0, 1.0, 1.0)
 
         instance.background_color = (1.0, 1.0, 1.0, 0.5)
         self.tmp_model_type = instance.text.split(" ")[0]
+        self.touch_time = time.time()
 
     def submit_model_type_btn(self, instance):
         if not self.tmp_model_type:
@@ -489,6 +495,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model_type = self.tmp_model_type
         self.ids.model_label.text = self.model_type
+        self.model_type_popup.dismiss()
         self.unload_model()
 
     def load_model(self):
@@ -636,6 +643,9 @@ class MLViewScreen(Screen, BaseScreen):
 
         path = ML_FOLDER + "models\\" + self.selected_model.text
         shutil.rmtree(path)
+        config_path = ML_CONFIGS_FOLDER + self.selected_model.text + ".conf"
+        os.remove(config_path)
+
         self.unselect_model_btn()
         self.load_model_names()
 
