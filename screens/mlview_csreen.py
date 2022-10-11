@@ -35,7 +35,7 @@ from screens.configs import (
     TENSORBOARD_PATH,
     chrome_path,
 )
-from screens.ml import get_base_model, get_model_preprocess
+from screens.ml import create_config_file, get_base_model, get_model_preprocess
 from utils import call_db
 
 
@@ -597,6 +597,7 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
+        create_config_file(self.model_name, self.model_type, self.num_classes)
         self.save_model()
         self.load_model_names()
 

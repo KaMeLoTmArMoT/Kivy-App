@@ -1,7 +1,10 @@
+import configparser
+import os
+
 import keras
 import tensorflow as tf
 
-from screens.configs import IMG_SHAPE
+from screens.configs import IMG_SHAPE, ML_CONFIGS_FOLDER
 
 
 def get_base_model(model_type):
@@ -55,3 +58,22 @@ def get_model_preprocess(model_type):
         preprocess = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
 
     return preprocess
+
+
+def create_config_file(model_name, model_type, num_classes):
+    config = configparser.ConfigParser()
+    config["Model"] = {
+        "model_name": model_name,
+        "model_type": model_type,
+        "num_classes": num_classes,
+        "width": IMG_SHAPE[0],
+        "height": IMG_SHAPE[1],
+        "channels": IMG_SHAPE[2],
+    }
+    os.makedirs(ML_CONFIGS_FOLDER, exist_ok=True)
+    with open(ML_CONFIGS_FOLDER + model_name + ".conf", "w") as configfile:
+        config.write(configfile)
+
+
+def read_config_file():
+    pass
