@@ -32,6 +32,7 @@ from screens.configs import (
     MAX_IMAGES_PER_PAGE,
     ML_FOLDER,
     ML_TRAIN_FOLDER,
+    TENSORBOARD_PATH,
     chrome_path,
 )
 from screens.ml import get_base_model, get_model_preprocess
@@ -341,8 +342,16 @@ class MLViewScreen(Screen, BaseScreen):
         self.show_folder_images(in_dir)
 
     def trigger_training(self):
+        if self.model is None:
+            if self.selected_model:
+                self.load_model()
+            else:
+                self.error_popup_clock("Select or load model!")
+                return
+
         self.train_active = True
         self.ids.train.disabled = True
+        self.error_popup_clock("Open tensorboard to get status.", 5)
         Thread(target=self.train_model).start()
 
     def prev_page(self):
@@ -377,16 +386,6 @@ class MLViewScreen(Screen, BaseScreen):
         return normalized_ds
 
     def train_model(self):
-        if self.model is None:
-            if self.selected_model:
-                self.load_model()
-            else:
-                self.error_popup_clock("Select or load model!")
-                self.train_active = False
-                self.ids.train.disabled = False
-                return
-        self.error_popup_clock("Open tensorboard to get status.", 5)
-
         normalized_ds = self.prepare_dataset()
 
         self.model.compile(
@@ -407,7 +406,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model.fit(normalized_ds, epochs=5, callbacks=[tensorboard_callback])
 
-        self.evaluate_model(normalized_ds)
+        # self.evaluate_model(normalized_ds)
         self.train_active = False
         self.ids.train.disabled = False
 
@@ -496,6 +495,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model = keras.models.load_model(ML_FOLDER + "models\\" + self.model_name)
         self.model_type = self.model_name.split("_")[-2]
         self.model_preprocess = get_model_preprocess(self.model_type)
+        self.ids.model_label.text = self.model_type
 
         print("load complete")
         self.model.summary()
@@ -605,6 +605,10 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Select model!")
             return
 
+        if self.selected_model.text == self.model_name:
+            self.error_popup_clock("Can`t delete while loaded!")
+            return
+
         path = ML_FOLDER + "models\\" + self.selected_model.text
         shutil.rmtree(path)
         self.unselect_model_btn()
@@ -658,11 +662,13 @@ class MLViewScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def launch_tensorboard(self):
+        if len(os.listdir(TENSORBOARD_PATH)) == 0:
+            self.error_popup_clock("No data to show TB!")
+            return
+        # TODO: check freeze issue here.
         if self.tensorboard is None:
             self.tensorboard = program.TensorBoard()
-            self.tensorboard.configure(
-                argv=[None, "--logdir", "D:\\Kivy\\tensorboard\\"]
-            )
+            self.tensorboard.configure(argv=[None, "--logdir", TENSORBOARD_PATH])
             url = self.tensorboard.launch()
             print(f"{url=}")
 
