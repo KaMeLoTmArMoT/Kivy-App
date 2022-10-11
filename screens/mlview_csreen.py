@@ -398,7 +398,8 @@ class MLViewScreen(Screen, BaseScreen):
         log_dir = (
             ML_FOLDER
             + "tensorboard\\"
-            + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            + datetime.datetime.now().strftime("%Y_%m_%d-%H_%M")
+            + f"_{self.model_name}"
         )
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=log_dir, histogram_freq=1
@@ -565,11 +566,13 @@ class MLViewScreen(Screen, BaseScreen):
 
     def create_model(self, name):
         if name == "":
+            self.error_popup_clock("No model name.")
             return
-
-        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
+        self.unload_model()
 
         self.num_classes = len(self.ids.class_grid.children) - 1
+        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
+
         if self.num_classes < 2:
             self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
