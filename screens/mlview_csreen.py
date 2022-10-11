@@ -30,12 +30,18 @@ from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.configs import (
     IMG_SHAPE,
     MAX_IMAGES_PER_PAGE,
+    ML_CONFIGS_FOLDER,
     ML_FOLDER,
     ML_TRAIN_FOLDER,
     TENSORBOARD_PATH,
     chrome_path,
 )
-from screens.ml import create_config_file, get_base_model, get_model_preprocess
+from screens.ml import (
+    create_config_file,
+    get_base_model,
+    get_model_preprocess,
+    read_config_file,
+)
 from utils import call_db
 
 
@@ -493,8 +499,16 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model_name = self.selected_model.text
         self.model = keras.models.load_model(ML_FOLDER + "models\\" + self.model_name)
+
+        config_path = ML_CONFIGS_FOLDER + self.model_name + ".conf"
+        if os.path.exists(config_path):
+            model_type, num_classes, img_shape = read_config_file(self.model_name)
+            print(model_type, num_classes, img_shape)
+            # TODO: use config, not just load
+
         self.model_type = self.model_name.split("_")[-2]
         self.model_preprocess = get_model_preprocess(self.model_type)
+
         self.ids.model_label.text = self.model_type
 
         print("load complete")
@@ -597,6 +611,12 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
+        # TODO: save class names
+        # classes = [
+        #     btn.text.split("\\")[-1]
+        #     for btn in self.ids.class_grid.children
+        #     if btn.text != "all"
+        # ]
         create_config_file(self.model_name, self.model_type, self.num_classes)
         self.save_model()
         self.load_model_names()

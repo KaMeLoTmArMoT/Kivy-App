@@ -75,5 +75,16 @@ def create_config_file(model_name, model_type, num_classes):
         config.write(configfile)
 
 
-def read_config_file():
-    pass
+def read_config_file(model_name):
+    config = configparser.ConfigParser()
+    config.read(ML_CONFIGS_FOLDER + model_name + ".conf")
+    model_section = config["Model"]
+
+    model_type = model_section["model_type"]
+    num_classes = int(model_section["num_classes"])
+    width = int(model_section["width"])
+    height = int(model_section["height"])
+    channels = int(model_section["channels"])
+    img_shape = (width, height, channels)
+
+    return model_type, num_classes, img_shape
