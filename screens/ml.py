@@ -66,7 +66,7 @@ def create_config_file(model_name, model_type, num_classes, classes):
         "model_name": model_name,
         "model_type": model_type,
         "num_classes": num_classes,
-        "classes": "-".join(classes),
+        "classes": "-".join(sorted(classes)),
         "width": IMG_SHAPE[0],
         "height": IMG_SHAPE[1],
         "channels": IMG_SHAPE[2],

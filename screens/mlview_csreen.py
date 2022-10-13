@@ -417,6 +417,7 @@ class MLViewScreen(Screen, BaseScreen):
         # self.evaluate_model(normalized_ds)
         self.train_active = False
         self.ids.train.disabled = False
+        self.save_model()
 
     def select_model_type(self):
         popup = Popup(
@@ -513,6 +514,7 @@ class MLViewScreen(Screen, BaseScreen):
             model_type, num_classes, img_shape, classes = read_config_file(
                 self.model_name
             )
+            self.classes = classes
             print(model_type, num_classes, img_shape)
             # TODO: use config, not just load
 
@@ -621,11 +623,13 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
-        self.classes = [
-            btn.text.split("\\")[-1]
-            for btn in self.ids.class_grid.children
-            if btn.text != "all"
-        ]
+        self.classes = sorted(
+            [
+                btn.text.split("\\")[-1]
+                for btn in self.ids.class_grid.children
+                if btn.text != "all"
+            ]
+        )
         create_config_file(
             self.model_name, self.model_type, self.num_classes, self.classes
         )
@@ -661,8 +665,9 @@ class MLViewScreen(Screen, BaseScreen):
             image = self.model_preprocess(image)
             image = np.expand_dims(image, axis=0)
             pred = self.model.predict(image)
-            pred = np.argmax(pred, axis=1)
-            print(pred)
+            pred = np.argmax(pred, axis=1)[0]
+            print(self.classes[pred], pred, end=", ")
+        print()
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
