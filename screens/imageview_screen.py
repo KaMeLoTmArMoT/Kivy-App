@@ -97,10 +97,12 @@ class ImageViewScreen(Screen, BaseScreen):
             popup.dismiss()
 
     def async_image_load(self):
-        if len(self.images_to_load) == 0:
+        if len(self.images_to_load) == 0 or self.exit_screen:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
             self.ids.choose_image.disabled = False
+            self.exit_screen = False
+            print("terminate loading")
             return
 
         self.progress_bar.value += 1
