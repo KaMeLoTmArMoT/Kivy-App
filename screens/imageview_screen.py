@@ -31,7 +31,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("main").key
+        self.key = self.manager.get_screen("login").key
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()

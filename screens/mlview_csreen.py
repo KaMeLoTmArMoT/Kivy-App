@@ -81,7 +81,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.loss = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("main").key
+        self.key = self.manager.get_screen("login").key
         self.create_db_and_check()
         self.load_classes()
         self.load_model_names()

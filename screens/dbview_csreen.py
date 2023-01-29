@@ -26,7 +26,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.checkbox_first = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("main").key
+        self.key = self.manager.get_screen("login").key
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
         self.create_db_and_check()
