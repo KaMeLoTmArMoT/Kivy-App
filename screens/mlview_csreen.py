@@ -50,6 +50,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        BaseScreen.__init__(self)
         self.key = ""
         self.selected_dir = None
         self.selected_images = []
@@ -253,10 +254,12 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.page_label.text = f"{self.page}/{self.total_pages}"
 
     def async_image_load(self):
-        if len(self.images_to_load) == 0:
+        if len(self.images_to_load) == 0 or self.exit_screen:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
             self.enable_switch_buttons()
+            self.exit_screen = False
+            print("terminate loading")
             return
 
         self.progress_bar.value += 1

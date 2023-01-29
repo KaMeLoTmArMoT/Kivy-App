@@ -46,6 +46,9 @@ class ImageMDButton(
 
 
 class BaseScreen:
+    def __init__(self):
+        self.exit_screen = False
+
     def label_out(self, text: str):
         """Put string message to the label"""
         self.ids.word_label.text = text
@@ -60,6 +63,7 @@ class BaseScreen:
         return b_encoded_text
 
     def select_direction(self, screen_name):
+        self.exit_screen = True
         translations = {"main": 0, "imageview": 1, "dbview": 2, "mlview": 3}
 
         old = translations[self.manager.current]
