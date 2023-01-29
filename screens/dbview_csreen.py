@@ -34,16 +34,6 @@ class DbViewScreen(Screen, BaseScreen):
         if not self.loaded:  # TODO: probably better to load ecah time
             self.show_db_images()
 
-    def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            image blob
-        ) """
-        )
-
     def show_db_images(self):
         db_images = call_db("SELECT * FROM images")
         self.grid_1.clear_widgets()

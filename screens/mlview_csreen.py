@@ -87,16 +87,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
         self.show_folder_images(path=ML_FOLDER + "all")
 
-    def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            image blob
-        ) """
-        )
-
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
 

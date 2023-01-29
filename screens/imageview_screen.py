@@ -38,16 +38,6 @@ class ImageViewScreen(Screen, BaseScreen):
         if not self.loaded:
             self.show_folder_images("G://Downloads//photo")  # TODO: remove this
 
-    def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            image blob
-        ) """
-        )
-
     def file_chooser_popup(self):
         popup = Popup(title="Filechooser", size_hint=(None, None), size=(400, 400))
 
