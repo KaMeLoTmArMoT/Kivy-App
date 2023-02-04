@@ -33,6 +33,10 @@ if __name__ == "__main__":
     if hasattr(sys, "_MEIPASS"):
         resource_add_path(os.path.join(sys._MEIPASS))
 
+    path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(path)
+    resource_add_path(os.path.join(dir_path, "icons"))
+
     Builder.load_file("ui/app.kv")
     Builder.load_file("ui/login.kv")
     Builder.load_file("ui/main.kv")
