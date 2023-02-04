@@ -9,6 +9,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
+from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
@@ -39,12 +40,38 @@ class ImageViewScreen(Screen, BaseScreen):
             self.show_folder_images("G://Downloads//photo")  # TODO: remove this
 
     def file_chooser_popup(self):
+        def select_directory(file_chooser: FileChooserListView, path):
+            path = path if len(path) > 0 else "/"
+            if os.path.isdir(path):
+                file_chooser.path = path
+            else:
+                path_label.text = file_chooser.path
+
         popup = Popup(title="Filechooser", size_hint=(None, None), size=(400, 400))
 
         box = BoxLayout(orientation="vertical")
         lbl = Label(text="Please select folder", size_hint_y=0.1)
+
         # chooser = FileChooserListView()
         chooser = FileChooserIconView()
+
+        path_box = BoxLayout(orientation="horizontal", size_hint_y=0.12)
+
+        path_label = TextInput(
+            text="", hint_text="path", size_hint_x=0.7, size_hint_y=1, multiline=False
+        )
+        path_label.bind(
+            on_text_validate=lambda x: select_directory(chooser, path_label.text),
+        )
+
+        path_btn = MDLabelBtn(text="Submit", size_hint_x=0.3, size_hint_y=1)
+        path_btn.allow_hover = True
+        path_btn.bind(
+            on_press=lambda x: select_directory(chooser, path_label.text),
+        )
+
+        path_box.add_widget(path_label)
+        path_box.add_widget(path_btn)
 
         btn = MDLabelBtn(text="Submit", size_hint_y=0.1)
         btn.bind(
@@ -56,7 +83,18 @@ class ImageViewScreen(Screen, BaseScreen):
         )
         btn.allow_hover = True
 
+        def update_text_field(file_chooser: FileChooserListView, event, p_label):
+            if not event.is_mouse_scrolling:
+                p_label.text = file_chooser.path
+
+        chooser.bind(
+            on_touch_up=lambda x, y: Clock.schedule_once(
+                lambda tm: update_text_field(x, y, path_label), 0.5
+            )
+        )
+
         box.add_widget(lbl)
+        box.add_widget(path_box)
         box.add_widget(chooser)
         box.add_widget(btn)
 
@@ -131,17 +169,20 @@ class ImageViewScreen(Screen, BaseScreen):
     def toggle_load_label(self, mode):
         lbl: MDLabel = self.ids.load_label
 
-        def lbl_prop(text="", lbl_hint_y=0.2, color=(1, 1, 1, 1), pbar_hint_y=0.1):
+        def lbl_prop(
+            text="", lbl_hint_y=0.2, color=(1, 1, 1, 1), pbar_hint_y=0.1, opacity=1
+        ):
             lbl.text = text
             lbl.size_hint_y = lbl_hint_y
             lbl.color = color
             self.progress_bar.size_hint_y = pbar_hint_y
+            self.progress_bar.opacity = opacity
 
         if mode == "on":
             lbl_prop("Loading, please wait...")
 
         elif mode == "no_dir":
-            lbl_prop("No images, please select folder.", pbar_hint_y=0)
+            lbl_prop("No images, please select folder.", opacity=0)
 
         elif mode == "success":
             lbl_prop("Success!", color=(0, 1, 0, 1))
