@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import checksumdir
 from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
@@ -25,19 +26,26 @@ class ImageViewScreen(Screen, BaseScreen):
         self.lock_schedule = False
         self.grid = None
         self.key = ""
-        self.loaded = False
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.load_event = None
+
+        self.loaded_hash = ""
+        self.path = "G://Downloads//photo"  # TODO:remove static path
 
     def on_enter(self, *args):
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()
-        if not self.loaded:
-            self.show_folder_images("G://Downloads//photo")  # TODO: remove this
+
+        dir_hash = checksumdir.dirhash(self.path, "sha1")
+
+        if self.loaded_hash != dir_hash:
+            self.show_folder_images(self.path)
+
+        self.exit_screen = False
 
     def file_chooser_popup(self):
         def select_directory(file_chooser: FileChooserListView, path):
@@ -109,7 +117,6 @@ class ImageViewScreen(Screen, BaseScreen):
         else:
             files = None
 
-        self.loaded = True
         self.grid.clear_widgets()
         self.unselect_all_images()
         self.selected_counter_update()
@@ -135,12 +142,19 @@ class ImageViewScreen(Screen, BaseScreen):
             popup.dismiss()
 
     def async_image_load(self):
-        if len(self.images_to_load) == 0 or self.exit_screen:
+        stop = False
+        if len(self.images_to_load) == 0:
+            self.loaded_hash = checksumdir.dirhash(self.path, "sha1")
+            stop = True
+
+        if self.exit_screen:
+            print("terminate loading")
+            stop = True
+
+        if stop:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
             self.ids.choose_image.disabled = False
-            self.exit_screen = False
-            print("terminate loading")
             return
 
         self.progress_bar.value += 1

@@ -7,6 +7,7 @@ import webbrowser
 from math import ceil
 from threading import Thread
 
+import checksumdir
 import cv2
 import keras
 import numpy as np
@@ -80,12 +81,21 @@ class MLViewScreen(Screen, BaseScreen):
         self.acc = None
         self.loss = None
 
+        self.loaded_hash = ""
+        self.path = ML_FOLDER + "all"  # TODO: remove static path
+
     def on_enter(self, *args):
         self.key = extend_key(self.manager.get_screen("login").key)
         self.create_db_and_check()
         self.load_classes()
         self.load_model_names()
-        self.show_folder_images(path=ML_FOLDER + "all")
+
+        dir_hash = checksumdir.dirhash(self.path, "sha1")
+
+        if self.loaded_hash != dir_hash:
+            self.show_folder_images(path=self.path)
+
+        self.exit_screen = False
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -248,12 +258,19 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.page_label.text = f"{self.page}/{self.total_pages}"
 
     def async_image_load(self):
-        if len(self.images_to_load) == 0 or self.exit_screen:
+        stop = False
+        if len(self.images_to_load) == 0:
+            self.loaded_hash = checksumdir.dirhash(self.path, "sha1")
+            stop = True
+
+        if self.exit_screen:
+            print("terminate loading")
+            stop = True
+
+        if stop:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
             self.enable_switch_buttons()
-            self.exit_screen = False
-            print("terminate loading")
             return
 
         self.progress_bar.value += 1

@@ -4,3 +4,4 @@ numpy~=1.22.3
 pycryptodomex~=3.14.1
 opencv-contrib-python~=4.5.5.64
 tensorflow~=2.8.0
+checksumdir~=1.2.0
