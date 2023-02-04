@@ -1,4 +1,5 @@
 import base64
+import os
 import webbrowser
 
 from Cryptodome.Cipher import AES
@@ -20,8 +21,7 @@ class MainScreen(Screen, BaseScreen):
         self.ids.word_input.focus = True
         self.create_db_and_check()
 
-        key = self.manager.get_screen("login").key
-        self.key = extend_key(key)
+        self.key = extend_key(self.manager.get_screen("login").key)
 
         self.show_records()
 
@@ -152,4 +152,7 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("This is not a link probably")
             return
 
-        webbrowser.get(chrome_path + " --incognito").open(url)
+        if os.name == "posix":
+            webbrowser.open(url)
+        else:
+            webbrowser.get(chrome_path + " --incognito").open(url)

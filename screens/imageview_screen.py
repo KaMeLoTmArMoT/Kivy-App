@@ -15,7 +15,7 @@ from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.configs import ML_FOLDER
-from utils import call_db
+from utils import call_db, extend_key
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -31,7 +31,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("login").key
+        self.key = extend_key(self.manager.get_screen("login").key)
         self.grid = self.ids.grid
         self.selected_counter_update()
         self.create_db_and_check()

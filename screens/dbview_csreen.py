@@ -11,7 +11,7 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
-from utils import call_db
+from utils import call_db, extend_key
 
 
 class DbViewScreen(Screen, BaseScreen):
@@ -26,7 +26,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.checkbox_first = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("login").key
+        self.key = extend_key(self.manager.get_screen("login").key)
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
         self.create_db_and_check()

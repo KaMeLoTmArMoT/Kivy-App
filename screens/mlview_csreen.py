@@ -42,7 +42,7 @@ from screens.ml import (
     get_model_preprocess,
     read_config_file,
 )
-from utils import call_db
+from utils import call_db, extend_key
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -81,7 +81,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.loss = None
 
     def on_enter(self, *args):
-        self.key = self.manager.get_screen("login").key
+        self.key = extend_key(self.manager.get_screen("login").key)
         self.create_db_and_check()
         self.load_classes()
         self.load_model_names()
