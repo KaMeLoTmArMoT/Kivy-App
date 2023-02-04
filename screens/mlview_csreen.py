@@ -94,6 +94,10 @@ class MLViewScreen(Screen, BaseScreen):
         btn.bind(on_press=self.select_label_btn)
         self.ids.class_grid.add_widget(btn)
 
+        if not os.path.isdir(ML_TRAIN_FOLDER):
+            print("No classes folder")
+            return
+
         for file in os.listdir(ML_TRAIN_FOLDER):
             path = os.path.join(ML_TRAIN_FOLDER, file)
             if os.path.isdir(path):
@@ -279,17 +283,20 @@ class MLViewScreen(Screen, BaseScreen):
     def toggle_load_label(self, mode):
         lbl: MDLabel = self.ids.load_label
 
-        def lbl_prop(text="", lbl_hint_y=0.2, color=(1, 1, 1, 1), pbar_hint_y=0.1):
+        def lbl_prop(
+            text="", lbl_hint_y=0.2, color=(1, 1, 1, 1), pbar_hint_y=0.1, opacity=1
+        ):
             lbl.text = text
             lbl.size_hint_y = lbl_hint_y
             lbl.color = color
             self.progress_bar.size_hint_y = pbar_hint_y
+            self.progress_bar.opacity = opacity
 
         if mode == "on":
             lbl_prop("Loading, please wait...")
 
         elif mode == "no_dir":
-            lbl_prop("No images, please select folder.", pbar_hint_y=0)
+            lbl_prop("No images, please select folder.", opacity=0)
 
         elif mode == "success":
             lbl_prop("Success!", color=(0, 1, 0, 1))
@@ -665,9 +672,13 @@ class MLViewScreen(Screen, BaseScreen):
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
 
-        parse_path = ML_FOLDER + "models"
-        for file in os.listdir(parse_path):
-            path = os.path.join(parse_path, file)
+        models_path = ML_FOLDER + "models"
+        if not os.path.isdir(models_path):
+            print("No models folder")
+            return
+
+        for file in os.listdir(models_path):
+            path = os.path.join(models_path, file)
             if os.path.isdir(path):
                 btn = MDLabelBtn(text=file)
                 btn.bind(on_press=self.select_model_btn)
@@ -695,6 +706,10 @@ class MLViewScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def launch_tensorboard(self):
+        if not os.path.isdir(TENSORBOARD_PATH):
+            print("No tensorboard folder")
+            return
+
         if len(os.listdir(TENSORBOARD_PATH)) == 0:
             self.error_popup_clock("No data to show TB!")
             return
