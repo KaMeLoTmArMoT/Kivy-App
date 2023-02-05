@@ -1,8 +1,7 @@
 import os
-import shutil
+from shutil import copy
 
-import checksumdir
-from Cryptodome.Cipher import AES
+from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
@@ -40,7 +39,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
         self.create_db_and_check()
 
-        dir_hash = checksumdir.dirhash(self.path, "sha1")
+        dir_hash = dirhash(self.path, "sha1")
 
         if self.loaded_hash != dir_hash:
             self.show_folder_images(self.path)
@@ -144,7 +143,7 @@ class ImageViewScreen(Screen, BaseScreen):
     def async_image_load(self):
         stop = False
         if len(self.images_to_load) == 0:
-            self.loaded_hash = checksumdir.dirhash(self.path, "sha1")
+            self.loaded_hash = dirhash(self.path, "sha1")
             stop = True
 
         if self.exit_screen:
@@ -224,6 +223,8 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
 
     def save_img_to_db(self, enc):
+        from Cryptodome.Cipher import AES
+
         num_images = len(self.selected_images)
         self.schedule_counter_update()
         if num_images == 0:
@@ -252,7 +253,7 @@ class ImageViewScreen(Screen, BaseScreen):
         if not os.path.isdir(ML_FOLDER + "all"):
             os.makedirs(ML_FOLDER + "all")
         for path in self.selected_images:
-            shutil.copy(path.source, ML_FOLDER + "all")
+            copy(path.source, ML_FOLDER + "all")
 
         self.unselect_all_images()
         self.ids.selected_images.text = f"Copied {num_images}"

@@ -1,7 +1,6 @@
 import configparser
 import os
 
-import keras
 import tensorflow as tf
 
 from screens.configs import IMG_SHAPE, ML_CONFIGS_FOLDER
@@ -46,16 +45,16 @@ def get_base_model(model_type):
 
 def get_model_preprocess(model_type):
     if model_type in ["DenseNet121"]:
-        preprocess = keras.layers.Rescaling(1.0 / 255)
+        preprocess = tf.keras.layers.Rescaling(1.0 / 255)
     elif model_type in [
         "EfficientNetB0",
         "EfficientNetB1",
         "EfficientNetV2B0",
         "EfficientNetV2B1",
     ]:
-        preprocess = keras.layers.Rescaling(1.0)
+        preprocess = tf.keras.layers.Rescaling(1.0)
     else:  # "MobileNet" "MobileNetV2" "NASNetMobile"
-        preprocess = keras.layers.Rescaling(1.0 / 127.5, offset=-1)
+        preprocess = tf.keras.layers.Rescaling(1.0 / 127.5, offset=-1)
 
     return preprocess
 

@@ -1,8 +1,3 @@
-import io
-
-import cv2
-import numpy as np
-from Cryptodome.Cipher import AES
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.uix.popup import Popup
@@ -35,6 +30,12 @@ class DbViewScreen(Screen, BaseScreen):
             self.show_db_images()
 
     def show_db_images(self):
+        import io
+
+        import cv2
+        import numpy as np
+        from Cryptodome.Cipher import AES
+
         db_images = call_db("SELECT * FROM images")
         self.grid_1.clear_widgets()
         self.grid_2.clear_widgets()

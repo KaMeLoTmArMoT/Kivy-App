@@ -7,11 +7,9 @@ import webbrowser
 from math import ceil
 from threading import Thread
 
-import checksumdir
-import cv2
-import keras
 import numpy as np
 import tensorflow as tf
+from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.properties import ListProperty
@@ -90,7 +88,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_classes()
         self.load_model_names()
 
-        dir_hash = checksumdir.dirhash(self.path, "sha1")
+        dir_hash = dirhash(self.path, "sha1")
 
         if self.loaded_hash != dir_hash:
             self.show_folder_images(path=self.path)
@@ -260,7 +258,7 @@ class MLViewScreen(Screen, BaseScreen):
     def async_image_load(self):
         stop = False
         if len(self.images_to_load) == 0:
-            self.loaded_hash = checksumdir.dirhash(self.path, "sha1")
+            self.loaded_hash = dirhash(self.path, "sha1")
             stop = True
 
         if self.exit_screen:
@@ -524,7 +522,9 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.model_name = self.selected_model.text
-        self.model = keras.models.load_model(ML_FOLDER + "models\\" + self.model_name)
+        self.model = tf.keras.models.load_model(
+            ML_FOLDER + "models\\" + self.model_name
+        )
 
         config_path = ML_CONFIGS_FOLDER + self.model_name + ".conf"
         if os.path.exists(config_path):
@@ -552,7 +552,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.base_model = None
         self.model_preprocess = None
 
-        keras.backend.clear_session()
+        tf.keras.backend.clear_session()
 
         self.unselect_model_btn()
         print("unload complete")
@@ -626,11 +626,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_preprocess = get_model_preprocess(self.model_type)
         self.base_model.trainable = False
 
-        inputs = keras.Input(shape=IMG_SHAPE)
+        inputs = tf.keras.Input(shape=IMG_SHAPE)
         x = self.base_model(inputs, training=False)
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        outputs = keras.layers.Dense(self.num_classes)(x)
-        self.model = keras.Model(inputs, outputs)
+        x = tf.keras.layers.GlobalAveragePooling2D()(x)
+        outputs = tf.keras.layers.Dense(self.num_classes)(x)
+        self.model = tf.keras.Model(inputs, outputs)
         print("create complete")
         print(self.model.summary())
 
@@ -740,6 +740,8 @@ class MLViewScreen(Screen, BaseScreen):
         webbrowser.get(chrome_path).open("http://localhost:6006/")
 
     def rotate(self, side):
+        import cv2
+
         if len(self.selected_images) == 0:
             self.error_popup_clock("Select image(s)!")
             return
