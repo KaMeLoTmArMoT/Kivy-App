@@ -4,12 +4,12 @@
 
         MDBoxLayout:
             size_hint: 1, None
-            height: 20
+            height: 30
 
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "Main Screen"
                 on_press: root.goto_main()
@@ -17,7 +17,7 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "Image Screen"
                 background_color: 1.8, 1.8, 1.8, 1
@@ -26,7 +26,7 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "DB Screen"
                 background_color: 1.8, 1.8, 1.8, 1
@@ -35,15 +35,17 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "ML Screen"
                 background_color: 1.8, 1.8, 1.8, 1
                 on_press: root.goto_ml()
 
+        MDBoxLayout:
+            size_hint: 1, 0.025
+
         MDCard:
-            size_hint: None, None
-            size: 780, 580
+            size_hint: 0.95, 0.95
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             elevation: 10
             padding: 20
@@ -84,36 +86,40 @@
                     root.submit()
 
             MDBoxLayout:
+                orientation:'horizontal'
                 size_hint_y: None
+                size_hint_x: .9
+                pos_hint: {"center_x": 0.5}
                 height: 40
 
-                MDFloatLayout:
-                    MDGridLayout:
-                        cols: 5
-                        pos: 25, 30
-                        spacing: 5
+                MDGridLayout:
+                    cols: 5
+                    spacing: 5
 
-                        MDRoundFlatButton:
-                            font_size: 22
-                            text: "Submit Name"
-                            on_press: root.submit()
+                    MDRoundFlatButton:
+                        font_size: 22
+                        text: "Submit Name"
+                        on_press: root.submit()
 
-                        MDRoundFlatButton:
-                            font_size: 22
-                            text: "Show Records"
-                            on_press: root.show_records()
+                    MDRoundFlatButton:
+                        font_size: 22
+                        text: "Show Records"
+                        on_press: root.show_records()
 
-                        MDRoundFlatButton:
-                            font_size: 22
-                            text: "Delete Name"
-                            on_press: root.delete_record()
+                    MDRoundFlatButton:
+                        font_size: 22
+                        text: "Delete Record"
+                        on_press: root.delete_record()
 
-                        MDRoundFlatButton:
-                            font_size: 22
-                            text: "Update Name"
-                            on_press: root.update_record()
+                    MDRoundFlatButton:
+                        font_size: 22
+                        text: "Update Record"
+                        on_press: root.update_record()
 
-                        MDRoundFlatButton:
-                            font_size: 22
-                            text: "Open Url"
-                            on_press: root.open_url()
+                    MDRoundFlatButton:
+                        font_size: 22
+                        text: "Open Url"
+                        on_press: root.open_url()
+
+        MDBoxLayout:
+            size_hint: 1, 0.025

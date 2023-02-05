@@ -1,5 +1,6 @@
 from base64 import b64encode
 
+from kivy.clock import Clock
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.image import Image
 from kivymd.uix import SpecificBackgroundColorBehavior
@@ -88,6 +89,31 @@ class BaseScreen:
             image blob
         ) """
         )
+
+    def toggle_load_label(self, mode):
+        lbl: MDLabel = self.ids.load_label
+
+        def lbl_prop(
+            text="", lbl_hint_y=0.1, color=(1, 1, 1, 1), pbar_hint_y=0.1, opacity=1
+        ):
+            lbl.text = text
+            lbl.size_hint_y = lbl_hint_y
+            lbl.color = color
+            self.progress_bar.size_hint_y = pbar_hint_y
+            self.progress_bar.opacity = opacity
+
+        if mode == "on":
+            lbl_prop("Loading, please wait...")
+
+        elif mode == "no_dir":
+            lbl_prop("No images, please select folder.", opacity=0)
+
+        elif mode == "success":
+            lbl_prop("Success!", color=(0, 1, 0, 1))
+            Clock.schedule_once(lambda tm: self.toggle_load_label("off"), 1)
+
+        elif mode == "off":
+            lbl_prop(lbl_hint_y=0, pbar_hint_y=0, opacity=0)
 
     def goto_images(self):
         self.select_direction("imageview")

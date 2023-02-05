@@ -1,6 +1,7 @@
 import os
 import sys
 
+from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.resources import resource_add_path
 from kivy.uix.screenmanager import ScreenManager
@@ -25,6 +26,8 @@ class MainApp(MDApp):
 if __name__ == "__main__":
     if hasattr(sys, "_MEIPASS"):
         resource_add_path(os.path.join(sys._MEIPASS))
+
+    Window.size = (960, 720)
 
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)

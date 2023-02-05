@@ -4,12 +4,12 @@
 
         MDBoxLayout:
             size_hint: 1, None
-            height: 20
+            height: 30
 
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "Main Screen"
                 background_color: 1.8, 1.8, 1.8, 1
@@ -18,7 +18,7 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "Image Screen"
                 on_press: root.goto_images()
@@ -26,7 +26,7 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "DB Screen"
                 background_color: 1.8, 1.8, 1.8, 1
@@ -35,7 +35,7 @@
             Button:
                 size_hint_y: None
                 pos_hint: {"center_x": 0.5}
-                height: 20
+                height: 30
                 font_size: 22
                 text: "ML Screen"
                 background_color: 1.8, 1.8, 1.8, 1
@@ -49,7 +49,7 @@
                 halign: 'center'
                 font_size: 36
                 text: "Loading, please wait..."
-                size_hint_y: .2
+                size_hint_y: .1
 
             ProgressBar:
                 id: progress_bar
