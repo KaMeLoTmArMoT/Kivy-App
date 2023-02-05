@@ -1,0 +1,33 @@
+<LoadingScreen>
+    MDCard:
+        size_hint: None, None
+        size: 400, 300
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        elevation: 10
+        padding: 25
+        spacing: 25
+        radius: 10, 10, 10, 10
+        orientation: 'vertical'
+
+        MDLabel:
+            id: word_label
+            text: "Loading, please wait..."
+            font_size: 32
+            halign: 'center'
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            height: self.texture_size[1]
+            size_hint_y: .8
+            padding_y: 15
+
+        ProgressBar:
+            id: pbar
+
+        MDLabel:
+            id: status
+            text: "Module Kivy init"
+            font_size: 22
+            halign: 'center'
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            height: self.texture_size[1]
+            size_hint_y: .2
+            padding_y: 15
