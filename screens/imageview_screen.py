@@ -266,6 +266,12 @@ class ImageViewScreen(Screen, BaseScreen):
                 lambda dt: self.selected_counter_update(schedule=True), 1
             )
 
+    def select_or_unselect_button_action(self):
+        if len(self.selected_images) > 0:
+            self.unselect_all_images()
+        else:
+            self.select_all_images()
+
     def unselect_all_images(self):
         instances = self.selected_images.copy()
         for instance in instances:
@@ -275,8 +281,25 @@ class ImageViewScreen(Screen, BaseScreen):
             self.selected_images.remove(instance)
         self.selected_counter_update()
 
+    def select_all_images(self):
+        for float_layout in self.grid.children:
+            checkbox = float_layout.children[0]
+            checkbox.active = True
+
+            image = float_layout.children[1]
+            image.line_color = (1.0, 1.0, 1.0, 0.6)
+            image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+            self.selected_images.append(image)
+
+        self.selected_counter_update()
+
     def selected_counter_update(self, schedule=False):
         self.ids.selected_images.text = f"Selected: {len(self.selected_images)}"
+
+        if len(self.selected_images) == 0:
+            self.ids.select_unselect_action_button.text = "Select All"
+        else:
+            self.ids.select_unselect_action_button.text = "Unselect All"
 
         if schedule:
             self.lock_schedule = False

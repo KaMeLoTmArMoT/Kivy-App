@@ -105,10 +105,11 @@
                 on_press: root.save_img_to_ml()
 
             Button:
+                id: select_unselect_action_button
                 size_hint_x: 0.25
-                text: 'Unselect All'
+                text: 'Select All'
                 background_color: (1, 1, 1, .5)
-                on_press: root.unselect_all_images()
+                on_press: root.select_or_unselect_button_action()
 
             MDLabel:
                 size_hint_x: 0.3

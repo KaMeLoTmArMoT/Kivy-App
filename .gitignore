@@ -1,8 +1,10 @@
 .idea
 venv
-build_utils
+build_utils/build
+build_utils/dist
 patches
 projects
+tests
 test/*
 build/*
 dist/*
