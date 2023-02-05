@@ -1,6 +1,5 @@
-import base64
+from base64 import b64encode
 
-from Cryptodome.Cipher import AES
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.image import Image
 from kivymd.uix import SpecificBackgroundColorBehavior
@@ -59,9 +58,11 @@ class BaseScreen:
         return self.ids.word_input.text
 
     def encrypt(self, text):
+        from Cryptodome.Cipher import AES
+
         cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
         encoded_text = cipher.encrypt(text.encode("utf-8"))
-        b_encoded_text = base64.b64encode(encoded_text).decode("utf-8")
+        b_encoded_text = b64encode(encoded_text).decode("utf-8")
         return b_encoded_text
 
     def select_direction(self, screen_name):

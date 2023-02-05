@@ -1,16 +1,16 @@
-import hashlib
-import os
-import sqlite3
 import sys
+from hashlib import sha256
+from os.path import join
+from sqlite3 import connect
 
 
 def call_db(call, data=None):
     # Create db
     if hasattr(sys, "_MEIPASS"):
-        path = os.path.join(sys._MEIPASS + "app.db")
-        conn = sqlite3.connect(path)
+        path = join(sys._MEIPASS + "app.db")
+        conn = connect(path)
     else:
-        conn = sqlite3.connect("app.db")
+        conn = connect("app.db")
 
     # Create cursor
     c = conn.cursor()
@@ -32,7 +32,7 @@ def call_db(call, data=None):
 
 
 def get_sha(text):
-    enc = hashlib.sha256()
+    enc = sha256()
     enc.update(text.encode("utf-8"))
     return enc.hexdigest()
 
