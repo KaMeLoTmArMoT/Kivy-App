@@ -31,6 +31,7 @@ class LoginScreen(Screen, BaseScreen):
         if len(self.passwords) == 0:
             self.label_out("Enter a new password")
             self.ids.login.text = "Register"
+            self.ids.word_input.password = False
 
     def submit(self):
         self.key = self.get_input()
