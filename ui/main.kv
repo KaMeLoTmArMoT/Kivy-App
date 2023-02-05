@@ -53,7 +53,7 @@
 
             MDLabel:
                 id: word_label
-                text: "Enter a new word"
+                text: "Enter new text:"
                 font_size: 32
                 halign: 'center'
                 size_hint_y: None
@@ -106,12 +106,12 @@
                         MDRoundFlatButton:
                             font_size: 22
                             text: "Delete Name"
-                            on_press: root.delete_name()
+                            on_press: root.delete_record()
 
                         MDRoundFlatButton:
                             font_size: 22
                             text: "Update Name"
-                            on_press: root.update_name()
+                            on_press: root.update_record()
 
                         MDRoundFlatButton:
                             font_size: 22

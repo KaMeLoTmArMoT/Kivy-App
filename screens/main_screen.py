@@ -3,6 +3,7 @@ import os
 import webbrowser
 
 from Cryptodome.Cipher import AES
+from kivy.clock import Clock
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
@@ -50,6 +51,7 @@ class MainScreen(Screen, BaseScreen):
 
         # show message
         self.label_out(f"{text} added")
+        Clock.schedule_once(lambda x: self.label_out("Enter new text:"), 1)
 
         # clear input box
         self.ids.word_input.text = ""
@@ -103,7 +105,7 @@ class MainScreen(Screen, BaseScreen):
         for btn in grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
-    def delete_name(self):
+    def delete_record(self):
         if self.selected is None:
             self.show_records()
             self.label_out("First select any element")
@@ -118,7 +120,7 @@ class MainScreen(Screen, BaseScreen):
         self.show_records()
         self.label_out(f"Deleted: {text}")
 
-    def update_name(self):
+    def update_record(self):
         if self.selected is None:
             self.show_records()
             self.label_out("First select any element")
