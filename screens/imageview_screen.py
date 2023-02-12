@@ -92,7 +92,7 @@ class ImageViewScreen(Screen, BaseScreen):
         btn.allow_hover = True
 
         def update_text_field(file_chooser: FileChooserListView, event, p_label):
-            if not event.is_mouse_scrolling:
+            if not event.is_mouse_scrolling and not path_label.focus:
                 p_label.text = file_chooser.path
 
         chooser.bind(
@@ -110,6 +110,9 @@ class ImageViewScreen(Screen, BaseScreen):
         popup.open()
 
     def show_folder_images(self, path, selection=None, popup=None):
+        if popup is not None:
+            popup.dismiss()
+
         self.toggle_load_label("on")
 
         if os.path.isdir(path):
@@ -122,6 +125,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.selected_counter_update()
 
         if files is None:
+            self.ids.choose_image.disabled = False
             self.toggle_load_label("no_dir")
             return
 
@@ -132,14 +136,16 @@ class ImageViewScreen(Screen, BaseScreen):
                 im_path = os.path.join(path, name)
                 self.images_to_load.append(im_path)
 
+        if len(self.images_to_load) == 0:
+            self.ids.choose_image.disabled = False
+            self.toggle_load_label("no_dir")
+            return
+
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
         self.load_event = Clock.schedule_interval(
             lambda tm: self.async_image_load(), 0.001
         )
-
-        if popup is not None:
-            popup.dismiss()
 
     def async_image_load(self):
         stop = False
