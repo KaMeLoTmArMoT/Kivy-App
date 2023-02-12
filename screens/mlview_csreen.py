@@ -83,6 +83,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.path = ML_FOLDER + "all"  # TODO: remove static path
 
     def on_enter(self, *args):
+        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.key = extend_key(self.manager.get_screen("login").key)
         self.create_db_and_check()
         self.load_classes()

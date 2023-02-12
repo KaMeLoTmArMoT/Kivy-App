@@ -34,6 +34,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.path = "G://Downloads//photo"  # TODO:remove static path
 
     def on_enter(self, *args):
+        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid = self.ids.grid
         self.selected_counter_update()

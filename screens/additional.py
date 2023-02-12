@@ -5,6 +5,7 @@ from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.image import Image
 from kivymd.uix import SpecificBackgroundColorBehavior
 from kivymd.uix.behaviors import HoverBehavior
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 
@@ -126,3 +127,8 @@ class BaseScreen:
 
     def goto_ml(self):
         self.select_direction("mlview")
+
+
+class Header(MDBoxLayout, BaseScreen):
+    def __int__(self, **kwargs):
+        super().__init__(**kwargs)

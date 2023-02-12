@@ -19,6 +19,7 @@ class MainScreen(Screen, BaseScreen):
         self.selected = None
 
     def on_enter(self, *args):
+        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
         self.create_db_and_check()
 

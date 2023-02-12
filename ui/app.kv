@@ -5,3 +5,44 @@
     size_hint_y: None
     halign: "center"
     font_size: 32
+
+<Header>
+    Button:
+        id: main
+        size_hint_y: None
+        pos_hint: {"center_x": 0.5}
+        height: 30
+        font_size: 22
+        text: "Main Screen"
+        background_color: 1.8, 1.8, 1.8, 1
+        on_press: root.parent.parent.goto_main()  # parent.parent - wierd call to screen class...
+
+    Button:
+        id: imageview
+        size_hint_y: None
+        pos_hint: {"center_x": 0.5}
+        height: 30
+        font_size: 22
+        text: "Image Screen"
+        background_color: 1.8, 1.8, 1.8, 1
+        on_press: root.parent.parent.goto_images()
+
+    Button:
+        id: dbview
+        size_hint_y: None
+        pos_hint: {"center_x": 0.5}
+        height: 30
+        font_size: 22
+        text: "DB Screen"
+        background_color: 1.8, 1.8, 1.8, 1
+        on_press: root.parent.parent.goto_db()
+
+    Button:
+        id: mlview
+        size_hint_y: None
+        pos_hint: {"center_x": 0.5}
+        height: 30
+        font_size: 22
+        text: "ML Screen"
+        background_color: 1.8, 1.8, 1.8, 1
+        on_press: root.parent.parent.goto_ml()

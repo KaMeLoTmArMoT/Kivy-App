@@ -2,44 +2,10 @@
     MDBoxLayout:
         orientation:'vertical'
 
-        MDBoxLayout:
+        Header:
+            id: header
             size_hint: 1, None
             height: 30
-
-            Button:
-                size_hint_y: None
-                pos_hint: {"center_x": 0.5}
-                height: 30
-                font_size: 22
-                text: "Main Screen"
-                background_color: 1.8, 1.8, 1.8, 1
-                on_press: root.goto_main()
-
-            Button:
-                size_hint_y: None
-                pos_hint: {"center_x": 0.5}
-                height: 30
-                font_size: 22
-                text: "Image Screen"
-                background_color: 1.8, 1.8, 1.8, 1
-                on_press: root.goto_images()
-
-            Button:
-                size_hint_y: None
-                pos_hint: {"center_x": 0.5}
-                height: 30
-                font_size: 22
-                text: "DB Screen"
-                on_press: root.goto_db()
-
-            Button:
-                size_hint_y: None
-                pos_hint: {"center_x": 0.5}
-                height: 30
-                font_size: 22
-                text: "ML Screen"
-                background_color: 1.8, 1.8, 1.8, 1
-                on_press: root.goto_ml()
 
         MDBoxLayout:
             orientation: 'vertical'

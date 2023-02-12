@@ -1,3 +1,4 @@
+from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.uix.popup import Popup
@@ -21,13 +22,15 @@ class DbViewScreen(Screen, BaseScreen):
         self.checkbox_first = None
 
     def on_enter(self, *args):
+        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
         self.create_db_and_check()
-        self.show_db_images()
-        if not self.loaded:  # TODO: probably better to load ecah time
-            self.show_db_images()
+        # TODO: update property and add smth like hash check to reload if db images updated
+        #       and probably reload only updated grid, but not all images
+        # if not self.loaded:
+        Clock.schedule_once(lambda x: self.show_db_images())
 
     def show_db_images(self):
         import io
