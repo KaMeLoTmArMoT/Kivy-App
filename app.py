@@ -28,6 +28,8 @@ if __name__ == "__main__":
         resource_add_path(os.path.join(sys._MEIPASS))
 
     Window.size = (960, 720)
+    Window.top = 190
+    Window.left = 450
 
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
