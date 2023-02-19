@@ -4,6 +4,8 @@ from shutil import copy
 from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
@@ -15,7 +17,6 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.configs import ML_FOLDER
 from utils import call_db, extend_key
 
 
@@ -32,6 +33,9 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.loaded_hash = ""
         self.path = "G://Downloads//photo"  # TODO:remove static path
+
+        self.dropdown = None
+        self.projects = []
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -225,6 +229,21 @@ class ImageViewScreen(Screen, BaseScreen):
         self.unselect_all_images()
         self.ids.selected_images.text = f"Added {num_images}"
 
+    def transfer_images(self, projects_folder, project):
+        print(projects_folder, project)
+
+        num_images = len(self.selected_images)
+
+        target_path = os.path.join(projects_folder, project, "all")
+        print("target path", target_path)
+        if not os.path.isdir(target_path):
+            os.makedirs(target_path)
+        for path in self.selected_images:
+            copy(path.source, target_path)
+
+        self.unselect_all_images()
+        self.ids.selected_images.text = f"Copied {num_images}"
+
     def save_img_to_ml(self):
         num_images = len(self.selected_images)
         self.schedule_counter_update()
@@ -232,13 +251,37 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = "Choose 1+"
             return
 
-        if not os.path.isdir(ML_FOLDER + "all"):
-            os.makedirs(ML_FOLDER + "all")
-        for path in self.selected_images:
-            copy(path.source, ML_FOLDER + "all")
+        app_folder = os.getcwd()
+        projects_folder = os.path.join(app_folder, "projects")
+        to_ml_btn = self.ids.to_ml_btn
 
-        self.unselect_all_images()
-        self.ids.selected_images.text = f"Copied {num_images}"
+        projects = []
+        for folder in os.listdir(projects_folder):
+            if os.path.isdir(os.path.join(projects_folder, folder)):
+                projects.append(folder)
+
+        # If projects folders changed or dropdown was not created
+        if projects != self.projects or self.dropdown is None:
+            if self.dropdown is not None:
+                print("clear bind")
+                to_ml_btn.unbind(on_release=self.dropdown.open)
+
+            print("create bind")
+            self.dropdown = DropDown()
+            for folder in projects:
+                btn = Button(text=folder, size_hint_y=None, height=44)
+                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
+                self.dropdown.add_widget(btn)
+
+            to_ml_btn.bind(on_release=self.dropdown.open)
+            self.dropdown.bind(
+                on_select=lambda instance, project: self.transfer_images(
+                    projects_folder, project
+                )
+            )
+            self.projects = projects
+        else:
+            print("use bind")
 
     def schedule_counter_update(self):
         if not self.lock_schedule:  # to trigger schedule only once at a time
