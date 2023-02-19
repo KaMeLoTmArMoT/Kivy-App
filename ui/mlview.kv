@@ -14,6 +14,17 @@
                 orientation: 'vertical'
                 size_hint_x: 0.2
 
+                MDLabelBtn:
+                    id: project_label
+                    font_size: 14
+                    text: "Select Project"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.select_project_button()
+
                 TextInput:
                     id: class_input
                     size_hint_y: 0.1

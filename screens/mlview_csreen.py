@@ -15,6 +15,7 @@ from kivy.core.image import Image as CoreImage
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
@@ -77,7 +78,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.app_folder = os.getcwd()
         self.projects_folder = os.path.join(self.app_folder, "projects")
         os.makedirs(self.projects_folder, exist_ok=True)
-        self.active_project_folder = os.path.join(self.projects_folder, "Kivy")
+
+        self.active_project = "Kivy"
+        self.active_project_folder = os.path.join(
+            self.projects_folder, self.active_project
+        )
 
         self.images_path = os.path.join(self.active_project_folder, "all")
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
@@ -86,6 +91,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.tensorboard_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
+
+        self.dropdown = None
+        self.projects = []
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -100,6 +108,20 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(path=self.images_path)
 
         self.exit_screen = False
+
+    def update_project_paths(self):
+        os.makedirs(self.projects_folder, exist_ok=True)
+        self.active_project_folder = os.path.join(
+            self.projects_folder, self.active_project
+        )
+
+        self.images_path = os.path.join(self.active_project_folder, "all")
+        self.ml_train_folder = os.path.join(self.active_project_folder, "train")
+        self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
+        self.ml_models_folder = os.path.join(self.active_project_folder, "models")
+        self.tensorboard_folder = os.path.join(
+            self.active_project_folder, "tensorboard"
+        )
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -775,3 +797,75 @@ class MLViewScreen(Screen, BaseScreen):
                 image.texture = texture
 
         self.unselect_all_images()
+
+    def open_project_folder(self, main_button, project_name):
+        print(project_name)
+
+        if project_name == "New project":
+            # open popup
+            project_name = "Entered name"
+            pass
+
+        setattr(main_button, "text", project_name)
+        cur_project_path = os.path.join(self.projects_folder, project_name)
+        os.makedirs(cur_project_path, exist_ok=True)
+
+        folders = [
+            "all",
+            "configs",
+            "models",
+            "tensorboard",
+            "train",
+        ]  # TODO: rename train to dataset(s)
+        for folder in folders:
+            os.makedirs(os.path.join(cur_project_path, folder), exist_ok=True)
+
+        self.active_project = project_name
+        self.restore_project_params(project_name, cur_project_path)
+
+    def restore_project_params(self, project_name, cur_project_path):
+        self.loaded_hash = ""
+        self.update_project_paths()
+        self.unload_model()
+        self.unselect_model_btn()
+        self.unselect_label_btn()
+        self.unselect_all_images()
+        self.load_classes()
+        self.load_model_names()
+        self.show_folder_images(path=os.path.join(cur_project_path, "all"))
+
+    def select_project_button(self):
+        main_button = self.ids.project_label
+
+        projects = []
+        for folder in os.listdir(self.projects_folder):
+            if os.path.isdir(os.path.join(self.projects_folder, folder)):
+                projects.append(folder)
+
+        # If projects folders changed or dropdown was not created
+        if projects != self.projects or self.dropdown is None:
+            if self.dropdown is not None:
+                print("clear bind")
+                main_button.unbind(on_release=self.dropdown.open)
+
+            print("create bind")
+            self.dropdown = DropDown()
+            for folder in projects:
+                btn = Button(text=f"{folder}", size_hint_y=None, height=44)
+                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
+                self.dropdown.add_widget(btn)
+
+            btn_new = Button(text="New project", size_hint_y=None, height=44)
+            # TODO: grab new project name from popup
+            btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
+            self.dropdown.add_widget(btn_new)
+
+            main_button.bind(on_release=self.dropdown.open)
+            self.dropdown.bind(
+                on_select=lambda instance, project: self.open_project_folder(
+                    main_button, project
+                )
+            )
+            self.projects = projects
+        else:
+            print("use bind")
