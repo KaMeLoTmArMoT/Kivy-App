@@ -660,6 +660,22 @@ class MLViewScreen(Screen, BaseScreen):
         print("create complete")
         print(self.model.summary())
 
+        # print('trainable 1: ', len(self.model.trainable_variables))
+
+        # layers = len(self.base_model.layers)
+        # print("Number of layers in the base model: ", layers)
+
+        # self.base_model.trainable = True
+
+        # fine_tune_from = int(layers / 4 * 3)
+        # print("fine_tune_from: ", fine_tune_from)
+
+        # for layer in self.base_model.layers[:fine_tune_from]:
+        #     layer.trainable = False
+
+        # print(self.model.summary())
+        # print('trainable 2: ', len(self.model.trainable_variables))
+
         self.model.compile(
             optimizer="adam",
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -770,7 +786,7 @@ class MLViewScreen(Screen, BaseScreen):
             url = self.tensorboard.launch()
             print(f"{url=}")
 
-        webbrowser.get(chrome_path).open("http://localhost:6006/")
+        webbrowser.get(chrome_path).open(url)
 
     def rotate(self, side):
         import cv2
