@@ -21,8 +21,8 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
+from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from tensorboard import program
 
@@ -34,7 +34,7 @@ from screens.ml import (
     get_model_preprocess,
     read_config_file,
 )
-from utils import call_db, extend_key
+from utils import extend_key
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -94,6 +94,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.dropdown = None
         self.projects = []
+        self.popup = None
+        self.main_button = self.ids.project_label
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -108,6 +110,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(path=self.images_path)
 
         self.exit_screen = False
+        self.main_button.text = self.active_project
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
@@ -798,15 +801,56 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.unselect_all_images()
 
-    def open_project_folder(self, main_button, project_name):
-        print(project_name)
+    def create_project_name_input_popup(self):
+        self.popup = Popup(
+            title="New project creation", size_hint=(None, None), size=(400, 150)
+        )
+        box = BoxLayout(orientation="vertical")
 
+        lbl = Label(text="Please enter new name", size_hint_y=0.3)
+
+        name_input = TextInput(
+            text="",
+            hint_text="Project name",
+            size_hint_y=0.4,
+            multiline=False,
+            font_size=16,
+        )
+        name_input.bind(
+            on_text_validate=lambda x: self.open_project_folder(
+                name_input.text,
+            ),
+        )
+
+        submit_btn = MDLabelBtn(text="Create", size_hint_y=0.3)
+        submit_btn.bind(
+            on_release=lambda x: self.open_project_folder(
+                name_input.text,
+            )
+        )
+        submit_btn.allow_hover = True
+
+        box.add_widget(lbl)
+        box.add_widget(name_input)
+        box.add_widget(submit_btn)
+
+        self.popup.content = box
+        self.popup.open()
+
+    def open_project_folder(self, project_name):
+        print("project_name", project_name)
+        if project_name == "":
+            return
+
+        if self.popup is not None:
+            self.popup.dismiss()
+
+        # trigger popup and then call this method again with correct name
         if project_name == "New project":
-            # open popup
-            project_name = "Entered name"
-            pass
+            self.create_project_name_input_popup()
+            return
 
-        setattr(main_button, "text", project_name)
+        self.main_button.text = project_name
         cur_project_path = os.path.join(self.projects_folder, project_name)
         os.makedirs(cur_project_path, exist_ok=True)
 
@@ -835,8 +879,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.show_folder_images(path=os.path.join(cur_project_path, "all"))
 
     def select_project_button(self):
-        main_button = self.ids.project_label
-
         projects = []
         for folder in os.listdir(self.projects_folder):
             if os.path.isdir(os.path.join(self.projects_folder, folder)):
@@ -846,7 +888,7 @@ class MLViewScreen(Screen, BaseScreen):
         if projects != self.projects or self.dropdown is None:
             if self.dropdown is not None:
                 print("clear bind")
-                main_button.unbind(on_release=self.dropdown.open)
+                self.main_button.unbind(on_release=self.dropdown.open)
 
             print("create bind")
             self.dropdown = DropDown()
@@ -858,13 +900,12 @@ class MLViewScreen(Screen, BaseScreen):
             btn_new = Button(text="New project", size_hint_y=None, height=44)
             # TODO: grab new project name from popup
             btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
+            btn_new.background_color = 0.5, 0.9, 0.5, 1
             self.dropdown.add_widget(btn_new)
 
-            main_button.bind(on_release=self.dropdown.open)
+            self.main_button.bind(on_release=self.dropdown.open)
             self.dropdown.bind(
-                on_select=lambda instance, project: self.open_project_folder(
-                    main_button, project
-                )
+                on_select=lambda instance, project: self.open_project_folder(project)
             )
             self.projects = projects
         else:
