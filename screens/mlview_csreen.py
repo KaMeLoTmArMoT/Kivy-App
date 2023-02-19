@@ -15,33 +15,26 @@ from kivy.core.image import Image as CoreImage
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
+from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from tensorboard import program
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.configs import (
-    IMG_SHAPE,
-    MAX_IMAGES_PER_PAGE,
-    ML_CONFIGS_FOLDER,
-    ML_FOLDER,
-    ML_TRAIN_FOLDER,
-    TENSORBOARD_PATH,
-    chrome_path,
-)
+from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, chrome_path
 from screens.ml import (
     create_config_file,
     get_base_model,
     get_model_preprocess,
     read_config_file,
 )
-from utils import call_db, extend_key
+from utils import extend_key
 
 
 class MLViewScreen(Screen, BaseScreen):
@@ -55,7 +48,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
-        self.cur_dir = "all"
         self.touch_time = time.time()
         self.train_active = False
         self.load_event = None
@@ -80,7 +72,30 @@ class MLViewScreen(Screen, BaseScreen):
         self.loss = None
 
         self.loaded_hash = ""
-        self.path = ML_FOLDER + "all"  # TODO: remove static path
+
+        self.cur_dir = ""
+
+        self.app_folder = os.getcwd()
+        self.projects_folder = os.path.join(self.app_folder, "projects")
+        os.makedirs(self.projects_folder, exist_ok=True)
+
+        self.active_project = "Kivy"
+        self.active_project_folder = os.path.join(
+            self.projects_folder, self.active_project
+        )
+
+        self.images_path = os.path.join(self.active_project_folder, "all")
+        self.ml_train_folder = os.path.join(self.active_project_folder, "train")
+        self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
+        self.ml_models_folder = os.path.join(self.active_project_folder, "models")
+        self.tensorboard_folder = os.path.join(
+            self.active_project_folder, "tensorboard"
+        )
+
+        self.dropdown = None
+        self.projects = []
+        self.popup = None
+        self.main_button = self.ids.project_label
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -89,12 +104,27 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_classes()
         self.load_model_names()
 
-        dir_hash = dirhash(self.path, "sha1")
+        dir_hash = dirhash(self.images_path, "sha1")
 
         if self.loaded_hash != dir_hash:
-            self.show_folder_images(path=self.path)
+            self.show_folder_images(path=self.images_path)
 
         self.exit_screen = False
+        self.main_button.text = self.active_project
+
+    def update_project_paths(self):
+        os.makedirs(self.projects_folder, exist_ok=True)
+        self.active_project_folder = os.path.join(
+            self.projects_folder, self.active_project
+        )
+
+        self.images_path = os.path.join(self.active_project_folder, "all")
+        self.ml_train_folder = os.path.join(self.active_project_folder, "train")
+        self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
+        self.ml_models_folder = os.path.join(self.active_project_folder, "models")
+        self.tensorboard_folder = os.path.join(
+            self.active_project_folder, "tensorboard"
+        )
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -103,19 +133,19 @@ class MLViewScreen(Screen, BaseScreen):
         btn.bind(on_press=self.select_label_btn)
         self.ids.class_grid.add_widget(btn)
 
-        if not os.path.isdir(ML_TRAIN_FOLDER):
+        if not os.path.isdir(self.ml_train_folder):
             print("No classes folder")
             return
 
-        for file in os.listdir(ML_TRAIN_FOLDER):
-            path = os.path.join(ML_TRAIN_FOLDER, file)
+        for file in os.listdir(self.ml_train_folder):
+            path = os.path.join(self.ml_train_folder, file)
             if os.path.isdir(path):
                 btn = MDLabelBtn(text="train\\" + file)
                 btn.bind(on_press=self.select_label_btn)
                 self.ids.class_grid.add_widget(btn)
 
     def select_label_btn(self, instance):
-        print(f"The button <{instance.text}> is being pressed")
+        print(f"The label button <{instance.text}> is being pressed")
         if self.selected_dir:
             if instance.uid == self.selected_dir.uid:
                 # custom double touch event
@@ -125,7 +155,10 @@ class MLViewScreen(Screen, BaseScreen):
                     if self.ids.open.disabled:
                         return
 
-                    self.show_folder_images(ML_FOLDER + instance.text, new=True)
+                    path = os.path.join(self.active_project_folder, instance.text)
+                    print(instance.text)
+                    print(path)
+                    self.show_folder_images(path, new=True)
                 return
 
         # reset selection
@@ -148,7 +181,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Enter name!")
             return
 
-        path = os.path.join(ML_TRAIN_FOLDER, name)
+        path = os.path.join(self.ml_train_folder, name)
         if os.path.exists(path):
             self.error_popup_clock("Class exists!")
             return
@@ -180,7 +213,8 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Can`t delete main dir!")
             return
 
-        path = ML_FOLDER + self.selected_dir.text
+        path = os.path.join(self.active_project_folder, self.selected_dir.text)
+        print("!!!!!", path)
         shutil.rmtree(path)
 
         self.unselect_label_btn()
@@ -210,8 +244,9 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.toggle_load_label("on")
-        if path is None:
-            path = ML_FOLDER + self.selected_dir.text
+        if path is None:  # TODO: re-check if we call without path
+            path = os.path.join(self.active_project_folder, self.selected_dir.text)
+            print(path)
 
         if os.path.isdir(path):
             files = os.listdir(path)
@@ -259,7 +294,7 @@ class MLViewScreen(Screen, BaseScreen):
     def async_image_load(self):
         stop = False
         if len(self.images_to_load) == 0:
-            self.loaded_hash = dirhash(self.path, "sha1")
+            self.loaded_hash = dirhash(self.images_path, "sha1")
             stop = True
 
         if self.exit_screen:
@@ -326,7 +361,10 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         in_dir = self.cur_dir
-        out_dir = ML_FOLDER + self.selected_dir.text
+        out_dir = os.path.join(self.active_project_folder, self.selected_dir.text)
+
+        print(in_dir)
+        print(out_dir)
 
         if in_dir == out_dir:
             self.error_popup_clock("Can`t paste to same dir!")
@@ -369,13 +407,13 @@ class MLViewScreen(Screen, BaseScreen):
             self.page += 1
             self.show_folder_images(self.cur_dir)
 
-    def prepare_dataset(self):
+    def prepare_dataset(self, batch_size=8):
         img_height, img_width = 224, 224
 
         train_ds = tf.keras.utils.image_dataset_from_directory(
-            ML_TRAIN_FOLDER,
+            self.ml_train_folder,
             image_size=(img_height, img_width),
-            batch_size=8,
+            batch_size=batch_size,
         )
 
         # class_names = train_ds.class_names
@@ -393,11 +431,9 @@ class MLViewScreen(Screen, BaseScreen):
             metrics=["accuracy"],
         )
 
-        log_dir = (
-            ML_FOLDER
-            + "tensorboard\\"
-            + datetime.datetime.now().strftime("%Y_%m_%d-%H_%M")
-            + f"_{self.model_name}"
+        log_dir = os.path.join(
+            self.tensorboard_folder,
+            datetime.datetime.now().strftime("%Y_%m_%d-%H_%M") + f"_{self.model_name}",
         )
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=log_dir, histogram_freq=1
@@ -499,14 +535,13 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model_name = self.selected_model.text
         self.model = tf.keras.models.load_model(
-            ML_FOLDER + "models\\" + self.model_name
+            os.path.join(self.ml_models_folder, self.model_name)
         )
 
-        config_path = ML_CONFIGS_FOLDER + self.model_name + ".conf"
+        config_path = os.path.join(self.ml_configs_folder, self.model_name + ".conf")
+        print("load model config path", config_path)
         if os.path.exists(config_path):
-            model_type, num_classes, img_shape, classes = read_config_file(
-                self.model_name
-            )
+            model_type, num_classes, img_shape, classes = read_config_file(config_path)
             self.classes = classes
             print(model_type, num_classes, img_shape)
             # TODO: use config, not just load
@@ -538,10 +573,20 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         # TODO: if change ach and save - have wrong name, test it.
-        self.model.save(ML_FOLDER + "models\\" + self.model_name)
+        path = os.path.join(self.active_project_folder, "models", self.model_name)
+        self.model.save(path)
         print("save complete")
 
     def evaluate_model(self, data=None):
+        if self.eval_event is not None:
+            Clock.unschedule(self.eval_event)
+            self.eval_event = None
+            self.toggle_error_popup("off")
+            self.ids.evaluate_btn.text = "Evaluate"
+            print("Cancel eval process")
+            return
+
+        self.ids.evaluate_btn.text = "Stop eval"
         if self.model is None:
             if self.selected_model is None:
                 self.error_popup_clock("Select/Load model first!")
@@ -550,7 +595,7 @@ class MLViewScreen(Screen, BaseScreen):
                 self.load_model()
 
         if data is None:
-            data = self.prepare_dataset()
+            data = self.prepare_dataset(32)
 
         self.data = list(data)
         self.toggle_error_popup("on", "Start eval...")
@@ -571,11 +616,16 @@ class MLViewScreen(Screen, BaseScreen):
 
         if iters == 0:
             Clock.unschedule(self.eval_event)
+            self.eval_event = None
             self.toggle_error_popup("off")
             print(f"Eval loss: {self.loss}, acc: {self.acc}")
+            self.ids.evaluate_btn.text = "Evaluate"
             return
 
         batch = self.data.pop()
+        print("batch len")
+        print(len(batch))
+        print(len(batch[0]))
         loss, acc = self.model.evaluate(batch[0], batch[1], verbose=0)
 
         if self.loss is None and self.acc is None:
@@ -610,6 +660,22 @@ class MLViewScreen(Screen, BaseScreen):
         print("create complete")
         print(self.model.summary())
 
+        # print('trainable 1: ', len(self.model.trainable_variables))
+
+        # layers = len(self.base_model.layers)
+        # print("Number of layers in the base model: ", layers)
+
+        # self.base_model.trainable = True
+
+        # fine_tune_from = int(layers / 4 * 3)
+        # print("fine_tune_from: ", fine_tune_from)
+
+        # for layer in self.base_model.layers[:fine_tune_from]:
+        #     layer.trainable = False
+
+        # print(self.model.summary())
+        # print('trainable 2: ', len(self.model.trainable_variables))
+
         self.model.compile(
             optimizer="adam",
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -624,10 +690,15 @@ class MLViewScreen(Screen, BaseScreen):
             ]
         )
         create_config_file(
-            self.model_name, self.model_type, self.num_classes, self.classes
+            self.model_name,
+            self.model_type,
+            self.num_classes,
+            self.classes,
+            self.ml_configs_folder,
         )
         self.save_model()
         self.load_model_names()
+        self.ids.model_input.text = ""
 
     def delete_model(self):
         if self.selected_model is None:
@@ -638,9 +709,11 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Can`t delete while loaded!")
             return
 
-        path = ML_FOLDER + "models\\" + self.selected_model.text
+        path = os.path.join(self.ml_models_folder, self.selected_model.text)
         shutil.rmtree(path)
-        config_path = ML_CONFIGS_FOLDER + self.selected_model.text + ".conf"
+        config_path = os.path.join(
+            self.ml_configs_folder, self.selected_model.text + ".conf"
+        )
         os.remove(config_path)
 
         self.unselect_model_btn()
@@ -659,26 +732,26 @@ class MLViewScreen(Screen, BaseScreen):
             image = np.expand_dims(image, axis=0)
             pred = self.model.predict(image)
             pred = np.argmax(pred, axis=1)[0]
+            print(pred, self.classes)
             print(self.classes[pred], pred, end=", ")
         print()
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
 
-        models_path = ML_FOLDER + "models"
-        if not os.path.isdir(models_path):
+        if not os.path.isdir(self.ml_models_folder):
             print("No models folder")
             return
 
-        for file in os.listdir(models_path):
-            path = os.path.join(models_path, file)
+        for file in os.listdir(self.ml_models_folder):
+            path = os.path.join(self.ml_models_folder, file)
             if os.path.isdir(path):
                 btn = MDLabelBtn(text=file)
                 btn.bind(on_press=self.select_model_btn)
                 self.ids.model_grid.add_widget(btn)
 
     def select_model_btn(self, instance):
-        print(f"The button <{instance.text}> is being pressed")
+        print(f"The model button <{instance.text}> is being pressed")
         if self.selected_model:
             if instance.uid == self.selected_model.uid:
                 # custom double touch event
@@ -699,21 +772,21 @@ class MLViewScreen(Screen, BaseScreen):
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
     def launch_tensorboard(self):
-        if not os.path.isdir(TENSORBOARD_PATH):
+        if not os.path.isdir(self.tensorboard_folder):
             print("No tensorboard folder")
             return
 
-        if len(os.listdir(TENSORBOARD_PATH)) == 0:
+        if len(os.listdir(self.tensorboard_folder)) == 0:
             self.error_popup_clock("No data to show TB!")
             return
         # TODO: check freeze issue here.
         if self.tensorboard is None:
             self.tensorboard = program.TensorBoard()
-            self.tensorboard.configure(argv=[None, "--logdir", TENSORBOARD_PATH])
+            self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
             url = self.tensorboard.launch()
             print(f"{url=}")
 
-        webbrowser.get(chrome_path).open("http://localhost:6006/")
+        webbrowser.get(chrome_path).open(url)
 
     def rotate(self, side):
         import cv2
@@ -743,3 +816,113 @@ class MLViewScreen(Screen, BaseScreen):
                 image.texture = texture
 
         self.unselect_all_images()
+
+    def create_project_name_input_popup(self):
+        self.popup = Popup(
+            title="New project creation", size_hint=(None, None), size=(400, 150)
+        )
+        box = BoxLayout(orientation="vertical")
+
+        lbl = Label(text="Please enter new name", size_hint_y=0.3)
+
+        name_input = TextInput(
+            text="",
+            hint_text="Project name",
+            size_hint_y=0.4,
+            multiline=False,
+            font_size=16,
+        )
+        name_input.bind(
+            on_text_validate=lambda x: self.open_project_folder(
+                name_input.text,
+            ),
+        )
+
+        submit_btn = MDLabelBtn(text="Create", size_hint_y=0.3)
+        submit_btn.bind(
+            on_release=lambda x: self.open_project_folder(
+                name_input.text,
+            )
+        )
+        submit_btn.allow_hover = True
+
+        box.add_widget(lbl)
+        box.add_widget(name_input)
+        box.add_widget(submit_btn)
+
+        self.popup.content = box
+        self.popup.open()
+
+    def open_project_folder(self, project_name):
+        print("project_name", project_name)
+        if project_name == "":
+            return
+
+        if self.popup is not None:
+            self.popup.dismiss()
+
+        # trigger popup and then call this method again with correct name
+        if project_name == "New project":
+            self.create_project_name_input_popup()
+            return
+
+        self.main_button.text = project_name
+        cur_project_path = os.path.join(self.projects_folder, project_name)
+        os.makedirs(cur_project_path, exist_ok=True)
+
+        folders = [
+            "all",
+            "configs",
+            "models",
+            "tensorboard",
+            "train",
+        ]  # TODO: rename train to dataset(s)
+        for folder in folders:
+            os.makedirs(os.path.join(cur_project_path, folder), exist_ok=True)
+
+        self.active_project = project_name
+        self.restore_project_params(project_name, cur_project_path)
+
+    def restore_project_params(self, project_name, cur_project_path):
+        self.loaded_hash = ""
+        self.update_project_paths()
+        self.unload_model()
+        self.unselect_model_btn()
+        self.unselect_label_btn()
+        self.unselect_all_images()
+        self.load_classes()
+        self.load_model_names()
+        self.show_folder_images(path=os.path.join(cur_project_path, "all"))
+
+    def select_project_button(self):
+        projects = []
+        for folder in os.listdir(self.projects_folder):
+            if os.path.isdir(os.path.join(self.projects_folder, folder)):
+                projects.append(folder)
+
+        # If projects folders changed or dropdown was not created
+        if projects != self.projects or self.dropdown is None:
+            if self.dropdown is not None:
+                print("clear bind")
+                self.main_button.unbind(on_release=self.dropdown.open)
+
+            print("create bind")
+            self.dropdown = DropDown()
+            for folder in projects:
+                btn = Button(text=f"{folder}", size_hint_y=None, height=44)
+                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
+                self.dropdown.add_widget(btn)
+
+            btn_new = Button(text="New project", size_hint_y=None, height=44)
+            # TODO: grab new project name from popup
+            btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
+            btn_new.background_color = 0.5, 0.9, 0.5, 1
+            self.dropdown.add_widget(btn_new)
+
+            self.main_button.bind(on_release=self.dropdown.open)
+            self.dropdown.bind(
+                on_select=lambda instance, project: self.open_project_folder(project)
+            )
+            self.projects = projects
+        else:
+            print("use bind")

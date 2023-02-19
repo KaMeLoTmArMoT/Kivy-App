@@ -3,7 +3,7 @@ import os
 
 import tensorflow as tf
 
-from screens.configs import IMG_SHAPE, ML_CONFIGS_FOLDER
+from screens.configs import IMG_SHAPE
 
 
 def get_base_model(model_type):
@@ -59,7 +59,7 @@ def get_model_preprocess(model_type):
     return preprocess
 
 
-def create_config_file(model_name, model_type, num_classes, classes):
+def create_config_file(model_name, model_type, num_classes, classes, config_dir):
     config = configparser.ConfigParser()
     config["Model"] = {
         "model_name": model_name,
@@ -70,14 +70,15 @@ def create_config_file(model_name, model_type, num_classes, classes):
         "height": IMG_SHAPE[1],
         "channels": IMG_SHAPE[2],
     }
-    os.makedirs(ML_CONFIGS_FOLDER, exist_ok=True)
-    with open(ML_CONFIGS_FOLDER + model_name + ".conf", "w") as configfile:
+    os.makedirs(config_dir, exist_ok=True)
+    config_path = os.path.join(config_dir, model_name + ".conf")
+    with open(config_path, "w") as configfile:
         config.write(configfile)
 
 
-def read_config_file(model_name):
+def read_config_file(config_path):
     config = configparser.ConfigParser()
-    config.read(ML_CONFIGS_FOLDER + model_name + ".conf")
+    config.read(config_path)
     model_section = config["Model"]
 
     model_type = model_section["model_type"]
