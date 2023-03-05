@@ -1,0 +1,23 @@
+<DetectionScreen>
+    MDBoxLayout:
+        orientation:'vertical'
+
+        Header:
+            id: header
+            size_hint: 1, None
+            height: 30
+
+        MDBoxLayout:
+            orientation: 'horizontal'
+
+            MDBoxLayout:    # left sidebar
+                orientation: 'vertical'
+                size_hint_x: 0.2
+
+            MDBoxLayout:    # image preview window
+                orientation: 'vertical'
+                id: preview
+
+            MDBoxLayout:    # right sidebar
+                orientation: 'vertical'
+                size_hint_x: 0.2

@@ -13,7 +13,7 @@ class LoadingScreen(Screen, BaseScreen):
         super().__init__(**kwargs)
         self.loader: Thread = Thread(target=self.load_all)
         self.ids.pbar.value = 0
-        self.ids.pbar.max = 5
+        self.ids.pbar.max = 6
 
     def on_enter(self, *args):
         self.loader.start()
@@ -30,6 +30,7 @@ class LoadingScreen(Screen, BaseScreen):
             self.load_imageview,
             self.load_dbview,
             self.load_mlview,
+            self.load_detection,
         ]
 
         for module in modules:
@@ -84,6 +85,16 @@ class LoadingScreen(Screen, BaseScreen):
 
         self.ids.status.text = "mlview loaded"
         print("mlview done")
+        self.increment_pbar()
+
+    def load_detection(self, tm):
+        from screens.detection_screen import DetectionScreen
+
+        Builder.load_file("ui/detectionview.kv")
+        self.manager.add_widget(DetectionScreen(name="detectionview"))
+
+        self.ids.status.text = "detectionview loaded"
+        print("detectionview done")
         self.increment_pbar()
 
         Clock.schedule_once(self.next_screen, 0.2)
