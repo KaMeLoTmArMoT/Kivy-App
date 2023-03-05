@@ -38,6 +38,27 @@
                 orientation: 'vertical'
                 id: preview
 
+                Image:
+                    id: image
+                    size_hint: 1, 0.6
+                    allow_stretch: True  # allow the video image to be scaled
+                    keep_ratio: True  # keep the aspect ratio so people don't look squashed
+                    pos_hint: {'center_x':0.5, 'top':0.8}
+
+                Button:
+                    text: 'Start Video'
+                    pos_hint: {"x":0.0, "y":0.0}
+                    size_hint: 1.0, 0.1
+                    font_size: 24
+                    on_release: root.display_start()
+
+                Button:
+                    text: 'Stop Video'
+                    pos_hint: {"x":0.0, "y":0.0}
+                    size_hint: 1.0, 0.1
+                    font_size: 24
+                    on_release: root.display_stop()
+
             MDBoxLayout:    # right sidebar
                 orientation: 'vertical'
                 size_hint_x: 0.2
