@@ -4,7 +4,9 @@ build_utils/build
 build_utils/dist
 patches
 projects
+projects_detection
 tests
+runs
 test/*
 build/*
 dist/*
