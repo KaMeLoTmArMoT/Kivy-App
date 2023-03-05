@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 import cv2
@@ -12,8 +13,11 @@ class DetectionScreen(Screen, BaseScreen):
         self.camara: cv2.VideoCapture = None
         self.labelimg_process = None
 
+        self.app_folder = os.getcwd()
+        self.projects_folder = os.path.join(self.app_folder, "projects_detection")
+
     def on_enter(self, *args):
-        pass
+        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
     def init_camera(self) -> None:
         if self.camara is not None:
@@ -32,11 +36,16 @@ class DetectionScreen(Screen, BaseScreen):
 
     def labelimg_open(self) -> None:
         # TODO: make dynamic path for different projects
-        pth_images = (
-            "G:\\Programming\\kivy_apps\\projects_detection\\cup\\dataset\\raw\\images"
+        if self.labelimg_process is not None:
+            self.labelimg_close()
+
+        pth_images = os.path.join(self.projects_folder, "cup\\dataset\\raw\\images")
+        pth_classes = os.path.join(
+            self.projects_folder, "cup\\dataset\\raw\\annotations\\classes.txt"
         )
-        pth_classes = "G:\\Programming\\kivy_apps\\projects_detection\\cup\\dataset\\raw\\annotations\\classes.txt"
-        pth_annotations = "G:\\Programming\\kivy_apps\\projects_detection\\cup\\dataset\\raw\\annotations"
+        pth_annotations = os.path.join(
+            self.projects_folder, "cup\\dataset\\raw\\annotations"
+        )
 
         self.labelimg_process = subprocess.Popen(
             ["labelImg", pth_images, pth_classes, pth_annotations]

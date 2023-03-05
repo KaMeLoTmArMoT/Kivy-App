@@ -14,6 +14,26 @@
                 orientation: 'vertical'
                 size_hint_x: 0.2
 
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Open LabelImg"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.labelimg_open()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Close LabelImg"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.labelimg_close()
+
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'
                 id: preview
