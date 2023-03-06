@@ -1,3 +1,4 @@
+import gc
 import os
 import subprocess
 import threading
@@ -8,6 +9,7 @@ import numpy as np
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.screenmanager import Screen
+from ultralytics import YOLO
 
 from screens.additional import BaseScreen
 
@@ -25,6 +27,9 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.projects = []
         self.active_project = None
+
+        self.model: YOLO = None
+        self.confidence = 0.5
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -75,6 +80,10 @@ class DetectionScreen(Screen, BaseScreen):
             Clock.schedule_once(partial(self.display_frame, frame))
 
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
+        if self.model is not None:
+            print("use model")
+            frame = self.yolo_inference(frame)
+
         texture: Texture = Texture.create(
             size=(frame.shape[1], frame.shape[0]), colorfmt=colorfmt
         )
@@ -85,22 +94,22 @@ class DetectionScreen(Screen, BaseScreen):
         self.ids.image.texture = texture
         print("put texture")
 
-    def display_stop(self):
+    def display_stop(self, msg="Camera paused"):
         self.show_frames = False
-        self.display_camera_paused()
+        self.display_camera_paused(msg)
 
-    def display_camera_paused(self):
+    def display_camera_paused(self, msg="Camera paused"):
         frame = np.zeros((720, 1280, 3), dtype=np.float32)
         cv2.putText(
             frame,
-            "Camera paused",
+            msg,
             (40, 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             (255, 255, 255),
             thickness=2,
         )
-        Clock.schedule_once(partial(self.display_frame, frame), 0.1)
+        Clock.schedule_once(partial(self.display_frame, frame), 0.15)
 
     def labelimg_open(self) -> None:
         # TODO: make dynamic path for different projects
@@ -137,3 +146,48 @@ class DetectionScreen(Screen, BaseScreen):
         if self.labelimg_process is not None:
             self.labelimg_process.terminate()
             self.labelimg_process = None
+
+    def yolo_load(self):
+        last_display_mode = self.show_frames
+        self.display_stop("Model initialize")
+        Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
+
+    def yolo_init(self, last_display_mode, tm=None):
+        self.model = YOLO(
+            os.path.join(self.app_folder, "runs\\detect\\train3\\weights\\best.pt")
+        )
+        self.model.fuse()
+        self.model.overrides["verbose"] = False
+        print("model initialised")
+
+        # model warmup
+        self.model(np.ones((500, 500, 3)))
+        print("warmup done")
+
+        if last_display_mode:
+            self.display_start()
+
+    def yolo_inference(self, cv2_frame):
+        cv2_frame = cv2_frame[:, :, ::-1]
+
+        # TODO: confidence from UI
+        results = self.model(cv2_frame, conf=self.confidence)
+
+        if len(results) > 1:
+            print("yolo_inference: more results")
+
+        res_plotted = results[0].plot()
+        res_plotted = res_plotted[:, :, ::-1]
+
+        return res_plotted
+
+    def yolo_terminate(self):
+        self.display_stop()
+        self.model = None
+        gc.collect()
+        self.display_start()
+
+    def update_confidence(self):
+        # TODO: check why double call happens
+        self.confidence = self.ids.slider.value
+        print(self.confidence)

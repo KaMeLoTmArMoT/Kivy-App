@@ -62,3 +62,37 @@
             MDBoxLayout:    # right sidebar
                 orientation: 'vertical'
                 size_hint_x: 0.2
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "YOLO Load"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.yolo_load()
+
+                Slider:
+                    id: slider
+                    min: 0.05
+                    value: 0.5
+                    max: 1
+                    step: 0.05
+                    size_hint_y: 0.1
+                    orientation: 'horizontal'
+                    on_touch_up: if self.collide_point(*args[1].pos): root.update_confidence()
+
+                Label:
+                    size_hint_y: 0.1
+                    text: "confidence: " + str(round(slider.value, 2))
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "YOLO Terminate"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.yolo_terminate()
