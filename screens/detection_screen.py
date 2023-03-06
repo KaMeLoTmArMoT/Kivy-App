@@ -4,6 +4,7 @@ import threading
 from functools import partial
 
 import cv2
+import numpy as np
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.screenmanager import Screen
@@ -22,10 +23,26 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.show_frames = False
 
+        self.projects = []
+        self.active_project = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
-        self.display_start()
+        self.projects = self.get_projects()
+        self.active_project = self.projects[0]
+        print("active project:", self.active_project)
+
+        self.display_camera_paused()
+
+    def get_projects(self) -> list:
+        projects = os.listdir(self.projects_folder)
+        if len(projects) == 0:
+            default_project = "default"
+            os.makedirs(default_project)
+            projects.append(default_project)
+        print(projects)
+        return projects
 
     def init_camera(self) -> None:
         if self.camara is not None:
@@ -57,7 +74,7 @@ class DetectionScreen(Screen, BaseScreen):
             print("call clock")
             Clock.schedule_once(partial(self.display_frame, frame))
 
-    def display_frame(self, frame, tm, colorfmt="bgr"):
+    def display_frame(self, frame, tm=None, colorfmt="bgr"):
         texture: Texture = Texture.create(
             size=(frame.shape[1], frame.shape[0]), colorfmt=colorfmt
         )
@@ -70,18 +87,36 @@ class DetectionScreen(Screen, BaseScreen):
 
     def display_stop(self):
         self.show_frames = False
+        self.display_camera_paused()
+
+    def display_camera_paused(self):
+        frame = np.zeros((720, 1280, 3), dtype=np.float32)
+        cv2.putText(
+            frame,
+            "Camera paused",
+            (40, 100),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            thickness=2,
+        )
+        Clock.schedule_once(partial(self.display_frame, frame), 0.1)
 
     def labelimg_open(self) -> None:
         # TODO: make dynamic path for different projects
         if self.labelimg_process is not None:
             self.labelimg_close()
 
-        pth_images = os.path.join(self.projects_folder, "cup\\dataset\\raw\\images")
+        pth_images = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\raw\\images"
+        )
         pth_classes = os.path.join(
-            self.projects_folder, "cup\\dataset\\raw\\annotations\\classes.txt"
+            self.projects_folder,
+            self.active_project,
+            "dataset\\raw\\annotations\\classes.txt",
         )
         pth_annotations = os.path.join(
-            self.projects_folder, "cup\\dataset\\raw\\annotations"
+            self.projects_folder, self.active_project, "dataset\\raw\\annotations"
         )
 
         self.labelimg_process = subprocess.Popen(
