@@ -2,6 +2,7 @@ import gc
 import os
 import subprocess
 import threading
+import webbrowser
 from functools import partial
 
 import cv2
@@ -9,9 +10,11 @@ import numpy as np
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.screenmanager import Screen
+from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen
+from screens.configs import chrome_path
 
 """
 Detection projects structure:
@@ -81,6 +84,10 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.model: YOLO = None
         self.confidence = 0.5
+
+        self.tensorboard = None
+        self.tensorboard_port = 6006
+        self.tensorboard_folder = os.path.join(self.app_folder, "runs", "detect")
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -242,3 +249,22 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: check why double call happens
         self.confidence = self.ids.slider.value
         print(self.confidence)
+
+    def launch_tensorboard(self):
+        # TODO: move to base and define different ports for projects
+
+        if not os.path.isdir(self.tensorboard_folder):
+            print("No tensorboard folder")
+            return
+
+        if len(os.listdir(self.tensorboard_folder)) == 0:
+            self.error_popup_clock("No data to show TB!")
+            return
+        # TODO: check freeze issue here.
+        if self.tensorboard is None:
+            self.tensorboard = program.TensorBoard()
+            self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
+            url = self.tensorboard.launch()
+            print(f"{url=}")
+
+        webbrowser.get(chrome_path).open(url)
