@@ -25,6 +25,22 @@
                     valign: "center"
                     on_press: root.select_project_button()
 
+                ScrollView:
+                    size_hint_y: 0.6
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    height: 100
+                    scroll_wheel_distance: 60
+
+                    GridLayout:
+                        id: model_grid
+                        cols: 1
+                        size: self.parent.size
+                        pos: self.parent.pos
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 20
+
                 MDLabelBtn:
                     font_size: 14
                     text: "Open LabelImg"

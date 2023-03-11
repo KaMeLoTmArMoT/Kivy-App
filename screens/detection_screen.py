@@ -99,6 +99,9 @@ class DetectionScreen(Screen, BaseScreen):
         self.main_button = self.ids.project_label
         self.popup = None
 
+        self.active_project_folder = None
+        self.selected_model = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
@@ -106,7 +109,9 @@ class DetectionScreen(Screen, BaseScreen):
         self.active_project = self.projects[0]
         print("active project:", self.active_project)
 
+        self.update_project_paths()
         self.display_camera_paused()
+        self.load_model_names()
 
     def get_projects(self) -> list:
         projects = []
@@ -227,9 +232,23 @@ class DetectionScreen(Screen, BaseScreen):
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
 
     def yolo_init(self, last_display_mode, tm=None):
-        self.model = YOLO(
-            os.path.join(self.app_folder, "runs\\detect\\train3\\weights\\best.pt")
-        )
+        if self.selected_model:
+            if self.active_project == "default":
+                model_path = os.path.join(
+                    self.active_project_folder, self.selected_model.text
+                )
+            else:
+                # TODO: parse for models at runs folder
+                model_path = os.path.join(
+                    self.active_project_folder, self.selected_model.text
+                )
+        else:
+            model_path = os.path.join(
+                self.app_folder, "runs\\detect\\train3\\weights\\best.pt"
+            )
+
+        print(f"{model_path=}")
+        self.model = YOLO(model_path)
         self.model.fuse()
         self.model.overrides["verbose"] = False
         print("model initialised")
@@ -259,6 +278,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.display_stop()
         self.model = None
         gc.collect()
+        self.unselect_model_btn()
         if display:
             self.display_start()
 
@@ -317,9 +337,10 @@ class DetectionScreen(Screen, BaseScreen):
         self.restore_project_params(project_name, cur_project_path)
 
     def restore_project_params(self, project_name, cur_project_path):
-        # self.update_project_paths()
+        self.update_project_paths()
         self.yolo_terminate(display=False)  # <- self.unload_model()
-        # self.load_model_names()
+        self.load_model_names()
+        self.unselect_model_btn()
 
     def create_project_name_input_popup(self):
         self.popup = Popup(
@@ -375,3 +396,42 @@ class DetectionScreen(Screen, BaseScreen):
             print(f"{url=}")
 
         webbrowser.get(chrome_path).open(url)
+
+    def update_project_paths(self):
+        self.active_project_folder = os.path.join(
+            self.projects_folder, self.active_project
+        )
+
+    def load_model_names(self):
+        self.ids.model_grid.clear_widgets()
+
+        if self.active_project == "default":
+            models = ["n", "s", "m", "l", "x"]
+
+            for model in models:
+                btn = MDLabelBtn(text=f"yolov8{model}.pt")
+                btn.bind(on_press=self.select_model_btn)
+                self.ids.model_grid.add_widget(btn)
+        else:
+            pass  # TODO parse models at runs folder or exported ones
+
+    def select_model_btn(self, instance):
+        print(f"The model button <{instance.text}> is being pressed")
+        if self.selected_model:
+            if instance.uid == self.selected_model.uid:
+                # custom double touch event
+                self.unselect_model_btn()
+                return
+
+        # reset selection
+        for btn in self.ids.model_grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+        instance.radius = (20, 20, 20, 20)
+        self.selected_model = instance
+
+    def unselect_model_btn(self):
+        self.selected_model = None
+        for btn in self.ids.model_grid.children:
+            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
