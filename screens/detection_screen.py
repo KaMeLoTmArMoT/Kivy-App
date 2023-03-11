@@ -373,7 +373,7 @@ class DetectionScreen(Screen, BaseScreen):
 
     def restore_project_params(self, project_name, cur_project_path):
         self.update_project_paths()
-        self.yolo_terminate(display=False)  # <- self.unload_model()
+        self.yolo_terminate(display=self.show_frames)
         self.load_model_names()
         self.unselect_model_btn()
 
