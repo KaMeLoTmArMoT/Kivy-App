@@ -21,6 +21,7 @@ from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
+from utils import call_db
 
 """
 Detection projects structure:
@@ -104,14 +105,47 @@ class DetectionScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.create_db_and_check()
 
         self.projects = self.get_projects()
-        self.active_project = self.projects[0]
+        latest_active_project = self.db_get_last_active_project()
+
+        if len(latest_active_project) != 0:
+            print("check latest from db")
+            latest_active_project = latest_active_project[0][0]
+            if latest_active_project in self.projects:
+                print("use latest from db")
+                self.active_project = latest_active_project
+
+        if self.active_project is None:
+            self.active_project = self.projects[0]
+        self.db_set_last_active_project()
         print("active project:", self.active_project)
 
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
+
+    def create_db_and_check(self):
+        # Create a table
+        call_db(
+            """
+        CREATE TABLE IF NOT EXISTS configs (
+            name text unique,
+            value text
+        ) """
+        )
+
+    def db_get_last_active_project(self):
+        val = call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
+        print("db get:", val, type(val))
+        return val
+
+    def db_set_last_active_project(self):
+        call_db(
+            f"INSERT OR REPLACE INTO configs VALUES "
+            f"('latest_detection_project', '{self.active_project}')"
+        )
 
     def get_projects(self) -> list:
         projects = []
@@ -335,6 +369,7 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.active_project = project_name
         self.restore_project_params(project_name, cur_project_path)
+        self.db_set_last_active_project()
 
     def restore_project_params(self, project_name, cur_project_path):
         self.update_project_paths()
