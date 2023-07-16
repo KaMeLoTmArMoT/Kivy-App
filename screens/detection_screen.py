@@ -452,6 +452,7 @@ class DetectionScreen(Screen, BaseScreen):
             for model in models:
                 btn = MDLabelBtn(text=f"yolov8{model}.pt")
                 btn.bind(on_press=self.select_model_btn)
+                btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
         else:
             pass  # TODO parse models at runs folder or exported ones
