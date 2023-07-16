@@ -914,7 +914,6 @@ class MLViewScreen(Screen, BaseScreen):
                 self.dropdown.add_widget(btn)
 
             btn_new = Button(text="New project", size_hint_y=None, height=44)
-            # TODO: grab new project name from popup
             btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
             btn_new.background_color = 0.5, 0.9, 0.5, 1
             self.dropdown.add_widget(btn_new)

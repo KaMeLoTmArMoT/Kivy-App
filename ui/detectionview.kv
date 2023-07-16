@@ -1,0 +1,182 @@
+<DetectionScreen>
+    MDBoxLayout:
+        orientation:'vertical'
+
+        Header:
+            id: header
+            size_hint: 1, None
+            height: 30
+
+        MDBoxLayout:
+            orientation: 'horizontal'
+
+            MDBoxLayout:    # left sidebar
+                orientation: 'vertical'
+                size_hint_x: 0.2
+
+                MDLabelBtn:
+                    id: project_label
+                    font_size: 14
+                    text: "Select Project"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.select_project_button()
+
+                ScrollView:
+                    size_hint_y: 0.6
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    height: 100
+                    scroll_wheel_distance: 60
+
+                    GridLayout:
+                        id: model_grid
+                        cols: 1
+                        size: self.parent.size
+                        pos: self.parent.pos
+                        size_hint: None, None
+                        height: self.minimum_height
+                        row_default_height: 20
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Open LabelImg"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.labelimg_open()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Close LabelImg"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.labelimg_close()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Split"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.split()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Train"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.train()
+
+            MDBoxLayout:    # image preview window
+                orientation: 'vertical'
+                id: preview
+
+                Image:
+                    id: image
+                    size_hint: 1, 0.6
+                    allow_stretch: True  # allow the video image to be scaled
+                    keep_ratio: True  # keep the aspect ratio so people don't look squashed
+                    pos_hint: {'center_x':0.5, 'top':0.8}
+
+                MDBoxLayout:  # start/stop video preview
+                	size_hint_y: 0.2
+                	orientation: 'vertical'
+
+                	# line around MDBoxLayout
+                	canvas.after:
+                        Color:
+                            rgba: 1, 1, 1, 0.2
+                        Line:
+                            rectangle: (self.x, self.y, self.width, self.height)
+                            width: 2
+
+                    MDLabelBtn:
+                        text: 'Start Video'
+                        pos_hint: {"x":0.0, "y":0.0}
+                        size_hint: 1.0, 0.5
+                        allow_hover: True
+                        font_size: 24
+                        on_release: root.display_start()
+
+                    MDLabelBtn:
+                        text: 'Stop Video'
+                        pos_hint: {"x":0.0, "y":0.0}
+                        size_hint: 1.0, 0.5
+                        allow_hover: True
+                        font_size: 24
+                        on_release: root.display_stop()
+
+            MDBoxLayout:    # right sidebar
+                orientation: 'vertical'
+                size_hint_x: 0.2
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "YOLO Load"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.yolo_load()
+
+                MDBoxLayout:  # slider and confidence box
+                	size_hint_y: 0.05
+                	orientation: 'vertical'
+
+                	# line around MDBoxLayout
+                	canvas.after:
+                        Color:
+                            rgba: 1, 1, 1, 0.2
+                        Line:
+                            rectangle: (self.x, self.y, self.width, self.height)
+                            width: 2
+
+                    Label:
+                        size_hint_y: 0.1
+                        text: "Confidence: " + str(round(slider.value, 2))
+
+                    MDSlider:
+                        id: slider
+                        min: 0.05
+                        value: 0.5
+                        max: 1
+                        step: 0.05
+                        size_hint_y: 0.1
+                        hint: False
+                        orientation: 'horizontal'
+                        on_touch_up: if self.collide_point(*args[1].pos): root.update_confidence()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "YOLO Terminate"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.yolo_terminate()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Open tensorboard"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.launch_tensorboard()
