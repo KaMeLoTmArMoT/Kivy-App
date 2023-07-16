@@ -1,5 +1,6 @@
 import gc
 import os
+import shutil
 import subprocess
 import threading
 import webbrowser
@@ -7,6 +8,7 @@ from functools import partial
 
 import cv2
 import numpy as np
+import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -16,6 +18,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
+from sklearn.model_selection import train_test_split
 from tensorboard import program
 from ultralytics import YOLO
 
@@ -125,6 +128,9 @@ class DetectionScreen(Screen, BaseScreen):
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
+
+        print(f"{torch.__version__=}")
+        print(f"{torch.cuda.is_available()=}")
 
     def create_db_and_check(self):
         # Create a table
@@ -470,3 +476,83 @@ class DetectionScreen(Screen, BaseScreen):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+    def split(self):
+        pth_annotations = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\raw\\annotations"
+        )
+        pth_images = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\raw\\images"
+        )
+        print(f"{pth_annotations=}, {pth_images=}")
+
+        annotations = os.listdir(pth_annotations)
+        annotations.remove("classes.txt")
+        images = os.listdir(pth_images)
+        print(f"all: {len(annotations)=}, {len(images)=}")
+
+        # select images only with annotations
+        selected_images = []
+
+        for annotation in annotations:
+            name = annotation.replace(".txt", ".png")  # TODO: check image type png or jpg
+            if name in images:
+                selected_images.append(name)
+
+        print(f"clear: {len(annotations)=}, {len(selected_images)=}")
+
+        X_train, X_test, y_train, y_test = train_test_split(selected_images, annotations, test_size=.2)
+        print(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
+
+        # TODO: create target dirs
+
+        out_train = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\raw\\out\\train"
+        )
+        out_test = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\raw\\out\\val"
+        )
+
+        os.makedirs(out_train, exist_ok=True)
+        os.makedirs(out_test, exist_ok=True)
+        os.makedirs(os.path.join(out_train, "labels"), exist_ok=True)
+        os.makedirs(os.path.join(out_train, "images"), exist_ok=True)
+        os.makedirs(os.path.join(out_test, "labels"), exist_ok=True)
+        os.makedirs(os.path.join(out_test, "images"), exist_ok=True)
+
+        for img, ann in zip(X_train, y_train):
+            shutil.copy(os.path.join(pth_annotations, ann), os.path.join(out_train, "labels", ann))
+            shutil.copy(os.path.join(pth_images, img), os.path.join(out_train, "images", img))
+
+        for img, ann in zip(X_test, y_test):
+            shutil.copy(os.path.join(pth_annotations, ann), os.path.join(out_test, "labels", ann))
+            shutil.copy(os.path.join(pth_images, img), os.path.join(out_test, "images", img))
+
+        class_file = os.path.join(pth_annotations, "classes.txt")
+        print(class_file)
+        with open(class_file, "r") as f:
+            classes = f.read().split("\n")
+            classes.remove("")
+            print(f"{classes=}, {len(classes)=}")
+
+        yaml_file = os.path.join(self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml")
+        with open(yaml_file, "w") as f:
+            f.write("train: ./train\n")
+            f.write("val: ./val\n")
+            f.write("\n")
+            f.write(f"nc: {len(classes)}\n")
+            f.write("\n")
+            f.write(f"names: {classes}")
+
+        # move from out to dataset
+        shutil.move(out_train, os.path.join(self.projects_folder, self.active_project, "dataset"))
+        shutil.move(out_test, os.path.join(self.projects_folder, self.active_project, "dataset"))
+
+    def train(self):
+        yaml_file = os.path.join(self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml")
+
+        # TODO: use selected model
+        cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
+        train_process = subprocess.Popen(
+            cmd.split(" ")
+        )

@@ -61,6 +61,26 @@
                     valign: "center"
                     on_press: root.labelimg_close()
 
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Split"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.split()
+
+                MDLabelBtn:
+                    font_size: 14
+                    text: "Train"
+                    size_hint_y: 0.1
+                    padding: 0, 0
+                    allow_hover: True
+                    halign: "center"
+                    valign: "center"
+                    on_press: root.train()
+
             MDBoxLayout:    # image preview window
                 orientation: 'vertical'
                 id: preview

@@ -8,3 +8,5 @@ checksumdir~=1.2.0
 ultralytics~=8.0.49
 torch~=1.13.1
 torchvision~=0.14.1
+labelImg~=1.8.6
+scikit-learn~=1.2.2
