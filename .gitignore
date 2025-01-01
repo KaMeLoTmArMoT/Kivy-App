@@ -11,3 +11,4 @@ test/*
 build/*
 dist/*
 *.db
+data

@@ -24,7 +24,7 @@ from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
-from utils import call_db
+from utils import call_db, get_system_type
 
 """
 Detection projects structure:
@@ -86,6 +86,7 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.app_folder = os.getcwd()
         self.projects_folder = os.path.join(self.app_folder, "projects_detection")
+        os.makedirs(self.projects_folder, exist_ok=True)
 
         self.show_frames = False
 
@@ -172,7 +173,15 @@ class DetectionScreen(Screen, BaseScreen):
         if self.camara is not None:
             return
 
-        self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if get_system_type() == "Linux":
+            self.camara = cv2.VideoCapture(-1)
+        else:
+            self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+        if not self.camara.isOpened():
+            print("Error: Unable to open camera")
+            return
+
         self.camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.camara.set(cv2.CAP_PROP_FPS, 30)
@@ -195,7 +204,11 @@ class DetectionScreen(Screen, BaseScreen):
     def display_thread(self):
         while self.show_frames:
             ret, frame = self.camara.read()
-            print("call clock")
+            if not ret:
+                print("Warning: Unable to read frame from camera")
+                frame = np.zeros(
+                    (720, 1280, 3), dtype=np.uint8
+                )  # Display a black frame
             Clock.schedule_once(partial(self.display_frame, frame))
 
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
@@ -496,13 +509,17 @@ class DetectionScreen(Screen, BaseScreen):
         selected_images = []
 
         for annotation in annotations:
-            name = annotation.replace(".txt", ".png")  # TODO: check image type png or jpg
+            name = annotation.replace(
+                ".txt", ".png"
+            )  # TODO: check image type png or jpg
             if name in images:
                 selected_images.append(name)
 
         print(f"clear: {len(annotations)=}, {len(selected_images)=}")
 
-        X_train, X_test, y_train, y_test = train_test_split(selected_images, annotations, test_size=.2)
+        X_train, X_test, y_train, y_test = train_test_split(
+            selected_images, annotations, test_size=0.2
+        )
         print(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
 
         # TODO: create target dirs
@@ -522,12 +539,22 @@ class DetectionScreen(Screen, BaseScreen):
         os.makedirs(os.path.join(out_test, "images"), exist_ok=True)
 
         for img, ann in zip(X_train, y_train):
-            shutil.copy(os.path.join(pth_annotations, ann), os.path.join(out_train, "labels", ann))
-            shutil.copy(os.path.join(pth_images, img), os.path.join(out_train, "images", img))
+            shutil.copy(
+                os.path.join(pth_annotations, ann),
+                os.path.join(out_train, "labels", ann),
+            )
+            shutil.copy(
+                os.path.join(pth_images, img), os.path.join(out_train, "images", img)
+            )
 
         for img, ann in zip(X_test, y_test):
-            shutil.copy(os.path.join(pth_annotations, ann), os.path.join(out_test, "labels", ann))
-            shutil.copy(os.path.join(pth_images, img), os.path.join(out_test, "images", img))
+            shutil.copy(
+                os.path.join(pth_annotations, ann),
+                os.path.join(out_test, "labels", ann),
+            )
+            shutil.copy(
+                os.path.join(pth_images, img), os.path.join(out_test, "images", img)
+            )
 
         class_file = os.path.join(pth_annotations, "classes.txt")
         print(class_file)
@@ -536,7 +563,9 @@ class DetectionScreen(Screen, BaseScreen):
             classes.remove("")
             print(f"{classes=}, {len(classes)=}")
 
-        yaml_file = os.path.join(self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml")
+        yaml_file = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml"
+        )
         with open(yaml_file, "w") as f:
             f.write("train: ./train\n")
             f.write("val: ./val\n")
@@ -546,14 +575,19 @@ class DetectionScreen(Screen, BaseScreen):
             f.write(f"names: {classes}")
 
         # move from out to dataset
-        shutil.move(out_train, os.path.join(self.projects_folder, self.active_project, "dataset"))
-        shutil.move(out_test, os.path.join(self.projects_folder, self.active_project, "dataset"))
+        shutil.move(
+            out_train,
+            os.path.join(self.projects_folder, self.active_project, "dataset"),
+        )
+        shutil.move(
+            out_test, os.path.join(self.projects_folder, self.active_project, "dataset")
+        )
 
     def train(self):
-        yaml_file = os.path.join(self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml")
+        yaml_file = os.path.join(
+            self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml"
+        )
 
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
-        train_process = subprocess.Popen(
-            cmd.split(" ")
-        )
+        train_process = subprocess.Popen(cmd.split(" "))

@@ -17,7 +17,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from utils import call_db, extend_key
+from utils import call_db, extend_key, get_system_type
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -32,7 +32,10 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
         self.loaded_hash = ""
-        self.path = "G://Downloads//photo"  # TODO:remove static path
+        self.path = os.path.join(os.getcwd(), "data")
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path, exist_ok=True)
 
         self.dropdown = None
         self.projects = []
