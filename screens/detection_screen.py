@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import threading
+import time
 import webbrowser
 from functools import partial
 
@@ -208,12 +209,16 @@ class DetectionScreen(Screen, BaseScreen):
                 print("Warning: Unable to read frame from camera")
                 frame = np.zeros(
                     (720, 1280, 3), dtype=np.uint8
-                )  # Display a black frame
+                )
+                self.release_camera_and_windows()
+                time.sleep(0.25)
+                self.init_camera()
+                time.sleep(0.25)
             Clock.schedule_once(partial(self.display_frame, frame))
+        self.display_stop()
 
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
         if self.model is not None:
-            print("use model")
             frame = self.yolo_inference(frame)
 
         texture: Texture = Texture.create(
@@ -224,7 +229,6 @@ class DetectionScreen(Screen, BaseScreen):
         )
         texture.flip_vertical()
         self.ids.image.texture = texture
-        print("put texture")
 
     def display_stop(self, msg="Camera paused"):
         self.show_frames = False
