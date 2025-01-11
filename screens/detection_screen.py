@@ -9,7 +9,6 @@ from functools import partial
 
 import cv2
 import numpy as np
-import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -21,7 +20,6 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
 from tensorboard import program
-from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
@@ -87,14 +85,13 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.app_folder = os.getcwd()
         self.projects_folder = os.path.join(self.app_folder, "projects_detection")
-        os.makedirs(self.projects_folder, exist_ok=True)
 
         self.show_frames = False
 
         self.projects = []
         self.active_project = None
 
-        self.model: YOLO = None
+        self.model = None
         self.confidence = 0.5
 
         self.tensorboard = None
@@ -108,7 +105,11 @@ class DetectionScreen(Screen, BaseScreen):
         self.active_project_folder = None
         self.selected_model = None
 
+        self.load_libraries_in_background()
+
     def on_enter(self, *args):
+        os.makedirs(self.projects_folder, exist_ok=True)
+
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.create_db_and_check()
 
@@ -130,9 +131,6 @@ class DetectionScreen(Screen, BaseScreen):
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
-
-        print(f"{torch.__version__=}")
-        print(f"{torch.cuda.is_available()=}")
 
     def create_db_and_check(self):
         # Create a table
@@ -287,6 +285,18 @@ class DetectionScreen(Screen, BaseScreen):
         last_display_mode = self.show_frames
         self.display_stop("Model initialize")
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
+
+    def load_libraries_in_background(self):
+        """Background task to import heavy libraries."""
+        def import_libraries():
+            t1 = time.time()
+            print("Starting to import heavy libraries...")
+            global torch, YOLO
+            import torch
+            from ultralytics import YOLO
+            print(f"Libraries imported successfully in {round(time.time() - t1, 2)}s!")
+
+        threading.Thread(target=import_libraries, daemon=True).start()
 
     def yolo_init(self, last_display_mode, tm=None):
         if self.selected_model:

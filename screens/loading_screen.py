@@ -1,5 +1,6 @@
 import time
 from threading import Thread
+from functools import wraps
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -8,12 +9,26 @@ from kivy.uix.screenmanager import Screen
 from screens.additional import BaseScreen
 
 
+def log_exec_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        exec_time = end_time - start_time
+        print(f"Function {func.__name__} executed in {exec_time:.4f} seconds")
+        return result
+
+    return wrapper
+
+
 class LoadingScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loader: Thread = Thread(target=self.load_all)
         self.ids.pbar.value = 0
         self.ids.pbar.max = 6
+        self.init_time = time.time()
 
     def on_enter(self, *args):
         self.loader.start()
@@ -37,6 +52,7 @@ class LoadingScreen(Screen, BaseScreen):
             time.sleep(0.01)
             Clock.schedule_once(module)
 
+    @log_exec_time
     def load_login(self, tm):
         from screens.login_screen import LoginScreen
 
@@ -44,9 +60,10 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(LoginScreen(name="login"))
 
         self.ids.status.text = "login loaded"
-        print("login loaded")
+        print("login done")
         self.increment_pbar()
 
+    @log_exec_time
     def load_main(self, tm):
         from screens.main_screen import MainScreen
 
@@ -57,6 +74,7 @@ class LoadingScreen(Screen, BaseScreen):
         print("main done")
         self.increment_pbar()
 
+    @log_exec_time
     def load_imageview(self, tm):
         from screens.imageview_screen import ImageViewScreen
 
@@ -67,6 +85,7 @@ class LoadingScreen(Screen, BaseScreen):
         print("imageview done")
         self.increment_pbar()
 
+    @log_exec_time
     def load_dbview(self, tm):
         from screens.dbview_csreen import DbViewScreen
 
@@ -77,6 +96,7 @@ class LoadingScreen(Screen, BaseScreen):
         print("dbview done")
         self.increment_pbar()
 
+    @log_exec_time
     def load_mlview(self, tm):
         from screens.mlview_csreen import MLViewScreen
 
@@ -87,6 +107,7 @@ class LoadingScreen(Screen, BaseScreen):
         print("mlview done")
         self.increment_pbar()
 
+    @log_exec_time
     def load_detection(self, tm):
         from screens.detection_screen import DetectionScreen
 
@@ -100,5 +121,6 @@ class LoadingScreen(Screen, BaseScreen):
         Clock.schedule_once(self.next_screen, 0.2)
 
     def next_screen(self, tm):
+        print(f"Loading complete in {round(time.time() - self.init_time, 2)}")
         self.manager.transition.direction = "left"
         self.manager.current = "login"
