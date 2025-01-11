@@ -137,7 +137,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.checkbox_first = True
 
     def image_click(self, instance):
-        path = instance.source
+        # path = instance.source
 
         if instance in self.selected_images:
             self.unselect_image(instance)

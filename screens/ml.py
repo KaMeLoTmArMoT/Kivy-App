@@ -1,9 +1,9 @@
 import configparser
 import os
 
-# import tensorflow as tf
-
 from screens.configs import IMG_SHAPE
+
+# import tensorflow as tf
 
 
 def get_base_model(model_type):

@@ -205,9 +205,7 @@ class DetectionScreen(Screen, BaseScreen):
             ret, frame = self.camara.read()
             if not ret:
                 print("Warning: Unable to read frame from camera")
-                frame = np.zeros(
-                    (720, 1280, 3), dtype=np.uint8
-                )
+                frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 self.release_camera_and_windows()
                 time.sleep(0.25)
                 self.init_camera()
@@ -288,12 +286,14 @@ class DetectionScreen(Screen, BaseScreen):
 
     def load_libraries_in_background(self):
         """Background task to import heavy libraries."""
+
         def import_libraries():
             t1 = time.time()
             print("Starting to import heavy libraries...")
             global torch, YOLO
             import torch
             from ultralytics import YOLO
+
             print(f"Libraries imported successfully in {round(time.time() - t1, 2)}s!")
 
         threading.Thread(target=import_libraries, daemon=True).start()
@@ -605,3 +605,4 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
+        print(f"status, {train_process}")

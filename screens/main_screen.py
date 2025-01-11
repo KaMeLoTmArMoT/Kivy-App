@@ -143,7 +143,7 @@ class MainScreen(Screen, BaseScreen):
 
         self.ids.word_input.text = ""
         self.show_records()
-        self.label_out(f"Successfully updated.")
+        self.label_out("Successfully updated.")
 
     def open_url(self):
         if self.selected is None:

@@ -13,11 +13,10 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from utils import call_db, extend_key, get_system_type
+from utils import call_db, extend_key
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -194,7 +193,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.grid.add_widget(fl)
 
     def image_click(self, instance):
-        path = instance.source
+        # path = instance.source
 
         if instance in self.selected_images:
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
@@ -228,7 +227,7 @@ class ImageViewScreen(Screen, BaseScreen):
                     cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
                     blob_data = cipher.encrypt(blob_data)
 
-                call_db(f"INSERT INTO images (image) VALUES (?)", [blob_data])
+                call_db("INSERT INTO images (image) VALUES (?)", [blob_data])
         self.unselect_all_images()
         self.ids.selected_images.text = f"Added {num_images}"
 
