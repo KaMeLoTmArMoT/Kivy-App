@@ -8,6 +8,7 @@ from math import ceil
 from threading import Thread
 
 import numpy as np
+
 # import tensorflow as tf
 from checksumdir import dirhash
 from kivy.clock import Clock
@@ -341,7 +342,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.selected_images.remove(instance)
 
     def image_click(self, instance):
-        path = instance.source
+        # path = instance.source
 
         if instance in self.selected_images:
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)

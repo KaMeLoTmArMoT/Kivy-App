@@ -1,6 +1,6 @@
 import time
-from threading import Thread
 from functools import wraps
+from threading import Thread
 
 from kivy.clock import Clock
 from kivy.lang import Builder
