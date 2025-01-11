@@ -8,7 +8,7 @@ from math import ceil
 from threading import Thread
 
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage

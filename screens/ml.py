@@ -1,7 +1,7 @@
 import configparser
 import os
 
-import tensorflow as tf
+# import tensorflow as tf
 
 from screens.configs import IMG_SHAPE
 
