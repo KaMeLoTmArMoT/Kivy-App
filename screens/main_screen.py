@@ -18,14 +18,20 @@ class MainScreen(Screen, BaseScreen):
         self.key = None
         self.selected = None
 
+        self.delete_btn = self.ids.text_delete
+        self.update_btn = self.ids.text_update
+        self.url_btn = self.ids.url_open
+        self.submit_btn = self.ids.text_submit
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
+        self.ids.word_input.bind(text=self.on_text_input)
         self.create_db_and_check()
 
         self.key = extend_key(self.manager.get_screen("login").key)
 
-        self.show_records()
+        self.reload_records()
 
     def create_db_and_check(self):
         # Create a table
@@ -48,7 +54,7 @@ class MainScreen(Screen, BaseScreen):
         b_encoded_text = self.encrypt(text)
         call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
 
-        self.show_records()
+        self.reload_records()
 
         # show message
         self.label_out(f"{text} added")
@@ -57,7 +63,7 @@ class MainScreen(Screen, BaseScreen):
         # clear input box
         self.ids.word_input.text = ""
 
-    def show_records(self):
+    def reload_records(self):
         records = call_db("SELECT * FROM customers")
 
         layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
@@ -100,15 +106,29 @@ class MainScreen(Screen, BaseScreen):
         instance.radius = (20, 20, 20, 20)
         self.selected = instance
 
+        self.delete_btn.disabled = False
+
+        if len(self.get_input()) > 2:
+            self.update_btn.disabled = False
+
+        if "http" in self.selected.text:
+            self.url_btn.disabled = False
+        else:
+            self.url_btn.disabled = True
+
     def unselect_label_btn(self):
         self.selected = None
         grid = self.ids.scroll.children[0]
         for btn in grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
+        self.delete_btn.disabled = True
+        self.update_btn.disabled = True
+        self.url_btn.disabled = True
+
     def delete_record(self):
         if self.selected is None:
-            self.show_records()
+            self.reload_records()
             self.label_out("First select any element")
             return
 
@@ -118,12 +138,12 @@ class MainScreen(Screen, BaseScreen):
         call_db(f"DELETE FROM customers WHERE name='{b_encoded_text}'")
 
         self.selected = None
-        self.show_records()
+        self.reload_records()
         self.label_out(f"Deleted: {text}")
 
     def update_record(self):
         if self.selected is None:
-            self.show_records()
+            self.reload_records()
             self.label_out("First select any element")
             return
 
@@ -142,7 +162,7 @@ class MainScreen(Screen, BaseScreen):
         )
 
         self.ids.word_input.text = ""
-        self.show_records()
+        self.reload_records()
         self.label_out("Successfully updated.")
 
     def open_url(self):
@@ -159,3 +179,16 @@ class MainScreen(Screen, BaseScreen):
             webbrowser.open(url)
         else:
             webbrowser.get(chrome_path + " --incognito").open(url)
+
+    def on_text_input(self, instance, value):
+        text = self.get_input()
+
+        if len(text) > 2:
+            self.submit_btn.disabled = False
+
+            if self.selected:
+                self.update_btn.disabled = False
+
+        else:
+            self.submit_btn.disabled = True
+            self.update_btn.disabled = True

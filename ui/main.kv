@@ -31,6 +31,7 @@
                 id: scroll
                 do_scroll_x: False
                 do_scroll_y: True
+                size_hint_y: 1
 
                 canvas.before:
                     Color:
@@ -43,49 +44,73 @@
             MDTextFieldRound:
                 id: word_input
                 multiline: False
-                hint_text: "enter any word"
+                hint_text: "Enter text:"
                 font_size: 28
                 size_hint_x: 0.8
                 pos_hint: {"center_x": 0.5}
                 normal_color: 0.6, 0.8, 1, 0.4
-                on_text_validate:
-                    root.submit()
+                on_text_validate: root.submit()
 
             MDBoxLayout:
-                orientation:'horizontal'
+                orientation: 'horizontal'
                 size_hint_y: None
-                size_hint_x: .9
-                pos_hint: {"center_x": 0.5}
                 height: 40
 
-                MDGridLayout:
-                    cols: 5
-                    spacing: 5
+                FloatLayout:
+                    size_hint: 1, 1
 
-                    MDRoundFlatButton:
-                        font_size: 22
-                        text: "Submit Name"
-                        on_press: root.submit()
+                    MDGridLayout:
+                        cols: 5
+                        spacing: 5
+                        size_hint_x: None
+                        width: self.minimum_width
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
-                    MDRoundFlatButton:
-                        font_size: 22
-                        text: "Show Records"
-                        on_press: root.show_records()
+                        MDRoundFlatButton:
+                            id: text_submit
+                            font_size: 22
+                            text: "Submit"
+                            on_press: root.submit()
+                            disabled: True
 
-                    MDRoundFlatButton:
-                        font_size: 22
-                        text: "Delete Record"
-                        on_press: root.delete_record()
+                        MDRoundFlatButton:
+                            id: text_delete
+                            font_size: 22
+                            text: "Delete Record"
+                            on_press: root.delete_record()
+                            disabled: True
 
-                    MDRoundFlatButton:
-                        font_size: 22
-                        text: "Update Record"
-                        on_press: root.update_record()
+                        MDRoundFlatButton:
+                            id: text_update
+                            font_size: 22
+                            text: "Update Record"
+                            on_press: root.update_record()
+                            disabled: True
 
-                    MDRoundFlatButton:
-                        font_size: 22
-                        text: "Open Url"
-                        on_press: root.open_url()
+                        MDRoundFlatButton:
+                            id: url_open
+                            font_size: 22
+                            text: "Open Url"
+                            on_press: root.open_url()
+
+                        ImageMDButton:
+                            source: 'reload.png'
+                            size_hint: None, None
+                            size: dp(40), dp(40)
+                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                            on_press: root.reload_records()
+
+                            allow_stretch: True
+                            keep_ratio: True
+                            allow_hover: True
+
+                            canvas.before:
+                                Color:
+                                    rgba: 1, 1, 1, .18
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
 
         MDBoxLayout:
-            size_hint: 1, 0.025
+            size_hint: 1, 0.025 # Spacer
