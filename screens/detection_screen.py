@@ -9,6 +9,7 @@ from functools import partial
 
 import cv2
 import numpy as np
+import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -20,6 +21,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
 from tensorboard import program
+from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
@@ -85,13 +87,14 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.app_folder = os.getcwd()
         self.projects_folder = os.path.join(self.app_folder, "projects_detection")
+        os.makedirs(self.projects_folder, exist_ok=True)
 
         self.show_frames = False
 
         self.projects = []
         self.active_project = None
 
-        self.model = None
+        self.model: YOLO = None
         self.confidence = 0.5
 
         self.tensorboard = None
@@ -105,11 +108,9 @@ class DetectionScreen(Screen, BaseScreen):
         self.active_project_folder = None
         self.selected_model = None
 
-        self.load_libraries_in_background()
+        self.yolo_generation = 11
 
     def on_enter(self, *args):
-        os.makedirs(self.projects_folder, exist_ok=True)
-
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.create_db_and_check()
 
@@ -284,20 +285,6 @@ class DetectionScreen(Screen, BaseScreen):
         self.display_stop("Model initialize")
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
 
-    def load_libraries_in_background(self):
-        """Background task to import heavy libraries."""
-
-        def import_libraries():
-            t1 = time.time()
-            print("Starting to import heavy libraries...")
-            global torch, YOLO
-            import torch
-            from ultralytics import YOLO
-
-            print(f"Libraries imported successfully in {round(time.time() - t1, 2)}s!")
-
-        threading.Thread(target=import_libraries, daemon=True).start()
-
     def yolo_init(self, last_display_mode, tm=None):
         if self.selected_model:
             if self.active_project == "default":
@@ -341,12 +328,12 @@ class DetectionScreen(Screen, BaseScreen):
 
         return res_plotted
 
-    def yolo_terminate(self, display=True):
+    def yolo_terminate(self):
         self.display_stop()
         self.model = None
         gc.collect()
         self.unselect_model_btn()
-        if display:
+        if self.show_frames:
             self.display_start()
 
     def update_confidence(self):
@@ -406,7 +393,7 @@ class DetectionScreen(Screen, BaseScreen):
 
     def restore_project_params(self, project_name, cur_project_path):
         self.update_project_paths()
-        self.yolo_terminate(display=self.show_frames)
+        self.yolo_terminate()
         self.load_model_names()
         self.unselect_model_btn()
 
@@ -474,10 +461,19 @@ class DetectionScreen(Screen, BaseScreen):
         self.ids.model_grid.clear_widgets()
 
         if self.active_project == "default":
-            models = ["n", "s", "m", "l", "x"]
+            name = "yolov"
+            if self.yolo_generation == 8:
+                models = ["n", "s", "m", "l", "x"]
+            elif self.yolo_generation == 9:
+                models = ["t", "s", "m", "c", "e"]
+            elif self.yolo_generation == 10:
+                models = ["n", "s", "m", "b", "l", "x"]
+            else:  # 11 gen default
+                models = ["n", "s", "m", "l", "x"]
+                name = "yolo"
 
             for model in models:
-                btn = MDLabelBtn(text=f"yolov8{model}.pt")
+                btn = MDLabelBtn(text=f"{name}{self.yolo_generation}{model}.pt")
                 btn.bind(on_press=self.select_model_btn)
                 btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
@@ -504,6 +500,15 @@ class DetectionScreen(Screen, BaseScreen):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+    def update_value(self, increment):
+        current_value = int(self.ids.label_spinner.text)
+        new_value = current_value + increment
+
+        if 8 <= new_value <= 11:
+            self.ids.label_spinner.text = str(new_value)
+            self.yolo_generation = new_value
+            self.load_model_names()
 
     def split(self):
         pth_annotations = os.path.join(
@@ -605,4 +610,3 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
-        print(f"status, {train_process}")

@@ -25,6 +25,24 @@
                     valign: "center"
                     on_press: root.select_project_button()
 
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.1
+
+                    Button:
+                        text: "⬅"  # Left arrow
+                        on_press: root.update_value(-1)
+
+                    Label:
+                        id: label_spinner
+                        text: "11"  # Default value
+                        halign: "center"
+                        valign: "middle"
+
+                    Button:
+                        text: "+"  # Right arrow
+                        on_press: root.update_value(1)
+
                 ScrollView:
                     size_hint_y: 0.6
                     do_scroll_x: False
