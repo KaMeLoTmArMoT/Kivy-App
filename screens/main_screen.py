@@ -183,6 +183,7 @@ class MainScreen(Screen, BaseScreen):
     def on_text_input(self, instance, value):
         text = self.get_input()
 
+        self.update_buttons_state()
         if len(text) > 2:
             self.submit_btn.disabled = False
 
@@ -192,3 +193,7 @@ class MainScreen(Screen, BaseScreen):
         else:
             self.submit_btn.disabled = True
             self.update_btn.disabled = True
+
+    def update_buttons_state(self):
+        """TODO: implement and use"""
+        pass

@@ -209,6 +209,7 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.parent.children[0].active = True
 
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def save_img_to_db(self, enc):
         from Cryptodome.Cipher import AES
@@ -307,6 +308,7 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.parent.children[0].active = False
             self.selected_images.remove(instance)
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def select_all_images(self):
         for float_layout in self.grid.children:
@@ -319,6 +321,7 @@ class ImageViewScreen(Screen, BaseScreen):
             self.selected_images.append(image)
 
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def selected_counter_update(self, schedule=False):
         self.ids.selected_images.text = f"Selected: {len(self.selected_images)}"
@@ -331,3 +334,13 @@ class ImageViewScreen(Screen, BaseScreen):
         if schedule:
             self.lock_schedule = False
             print("release")
+
+    def update_buttons_state(self):
+        if len(self.selected_images) > 0:
+            self.ids.to_db_simple_btn.disabled = False
+            self.ids.to_db_protect_btn.disabled = False
+            self.ids.to_ml_btn.disabled = False
+        else:
+            self.ids.to_db_simple_btn.disabled = True
+            self.ids.to_db_protect_btn.disabled = True
+            self.ids.to_ml_btn.disabled = True

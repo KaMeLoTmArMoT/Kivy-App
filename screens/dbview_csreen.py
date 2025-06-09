@@ -135,6 +135,7 @@ class DbViewScreen(Screen, BaseScreen):
     def checkbox_click(self, instance):
         print(instance)
         self.checkbox_first = True
+        self.update_buttons_state()
 
     def image_click(self, instance):
         # path = instance.source
@@ -157,6 +158,7 @@ class DbViewScreen(Screen, BaseScreen):
         instance.line_color = (1.0, 1.0, 1.0, 0.6)
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.parent.children[0].active = True
+        self.update_buttons_state()
 
     def unselect_image(self, instance):
         if len(self.selected_images) > 0:
@@ -164,11 +166,13 @@ class DbViewScreen(Screen, BaseScreen):
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
             instance.parent.children[0].active = False  # disable checkbox
             self.selected_images.remove(instance)
+        self.update_buttons_state()
 
     def unselect_all_images(self):
         images = self.selected_images.copy()
         for image in images:
             self.unselect_image(image)
+        self.update_buttons_state()
 
     def preview_img(self):
         if len(self.selected_images) != 1:
@@ -193,3 +197,15 @@ class DbViewScreen(Screen, BaseScreen):
 
         self.unselect_all_images()
         self.show_db_images()
+
+    def update_buttons_state(self):
+        if len(self.selected_images) > 0:
+            self.ids.delete.disabled = False
+        else:
+            self.ids.delete.disabled = True
+
+        if len(self.selected_images) == 1:
+            self.ids.preview.disabled = False
+        else:
+            self.ids.preview.disabled = True
+
