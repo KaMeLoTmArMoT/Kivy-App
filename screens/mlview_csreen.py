@@ -114,6 +114,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.exit_screen = False
         self.main_button.text = self.active_project
 
+        self.ids.class_input.bind(text=self.on_text_input)
+
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
         self.active_project_folder = os.path.join(
@@ -142,7 +144,7 @@ class MLViewScreen(Screen, BaseScreen):
         for file in os.listdir(self.ml_train_folder):
             path = os.path.join(self.ml_train_folder, file)
             if os.path.isdir(path):
-                btn = MDLabelBtn(text="train\\" + file)
+                btn = MDLabelBtn(text="train/" + file)
                 btn.bind(on_press=self.select_label_btn)
                 self.ids.class_grid.add_widget(btn)
 
@@ -154,7 +156,7 @@ class MLViewScreen(Screen, BaseScreen):
                 self.unselect_label_btn()
 
                 if time.time() - self.touch_time < 0.2:
-                    if self.ids.open.disabled:
+                    if self.ids.open_class.disabled:
                         return
 
                     path = os.path.join(self.active_project_folder, instance.text)
@@ -172,10 +174,18 @@ class MLViewScreen(Screen, BaseScreen):
         self.selected_dir = instance
         self.touch_time = time.time()
 
+        self.ids.delete_class.disabled = False
+        self.ids.open_class.disabled = False
+        self.transfer_button_set_state()
+
     def unselect_label_btn(self):
         self.selected_dir = None
         for btn in self.ids.class_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        self.ids.delete_class.disabled = True
+        self.ids.open_class.disabled = True
+        self.transfer_button_set_state()
 
     def add_class(self):
         name = self.ids.class_input.text
@@ -217,18 +227,19 @@ class MLViewScreen(Screen, BaseScreen):
 
         path = os.path.join(self.active_project_folder, self.selected_dir.text)
         print("!!!!!", path)
-        shutil.rmtree(path)
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError as e:
+            print("No such file or directory, skipping")
 
         self.unselect_label_btn()
         self.load_classes()
 
     def disable_switch_buttons(self):
-        self.ids.open.disabled = True
         self.ids.prev_page.disabled = True
         self.ids.next_page.disabled = True
 
     def enable_switch_buttons(self):
-        self.ids.open.disabled = False
         self.ids.prev_page.disabled = False
         self.ids.next_page.disabled = False
 
@@ -306,7 +317,7 @@ class MLViewScreen(Screen, BaseScreen):
         if stop:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
-            self.enable_switch_buttons()
+            # self.enable_switch_buttons()  # TODO: check
             return
 
         self.progress_bar.value += 1
@@ -356,6 +367,19 @@ class MLViewScreen(Screen, BaseScreen):
             self.selected_images.append(instance)
 
             instance.parent.children[0].active = True
+        self.transfer_button_set_state()
+
+    def transfer_button_set_state(self):
+        out_dir = os.path.join(self.active_project_folder, self.selected_dir.text) if self.selected_dir else None
+        if (
+                len(self.selected_images) == 0 or
+                self.selected_dir is None or
+                self.cur_dir == out_dir
+        ):
+            self.ids.transfer_image.disabled = True
+
+        else:
+            self.ids.transfer_image.disabled = False
 
     def transfer_images(self):
         if len(self.selected_images) == 0 or self.selected_dir is None:
@@ -927,3 +951,11 @@ class MLViewScreen(Screen, BaseScreen):
             self.projects = projects
         else:
             print("use bind")
+
+    def on_text_input(self, instance, value):
+        text = self.ids.class_input.text
+
+        if len(text) > 0:
+            self.ids.add_clas.disabled = False
+        else:
+            self.ids.add_clas.disabled = True

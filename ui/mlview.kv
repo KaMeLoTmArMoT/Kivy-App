@@ -36,11 +36,13 @@
                         pass
 
                 Button:
+                    id: add_clas
                     text: 'Add class'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.add_class()
+                    disabled: True
 
                 ScrollView:
                     size_hint_y: 0.6
@@ -59,26 +61,31 @@
                         row_default_height: 20
 
                 Button:
+                    id: delete_class
                     text: 'Delete class'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.delete_class()
+                    disabled: True
 
                 Button:
-                    id: open
-                    text: 'Open'
+                    id: open_class
+                    text: 'Open class'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.show_folder_images(new=True)
+                    disabled: True
 
                 Button:
+                    id: transfer_image
                     text: 'Transfer'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.transfer_images()
+                    disabled: True
 
                 Button:
                     id: train
@@ -95,35 +102,39 @@
                     padding: 2
 
                     ImageMDButton:
+                        id: rotate_left
                         height: 30
                         on_press: root.rotate("left")
+                        disabled: True
 
                         source: 'rotate_left.png'
                         allow_stretch: True
                         keep_ratio: True
-                        allow_hover: True
+                        allow_hover: False if self.disabled else True
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                         canvas.before:
                             Color:
-                                rgba: 1, 1, 1, .18
+                                rgba: 1, 1, 1, 0 if self.disabled else .18
                             Rectangle:
                                 pos: self.pos
                                 size: self.size
 
                     ImageMDButton:
+                        id: rotate_right
                         height: 30
                         on_press: root.rotate("right")
+                        disabled: True
 
                         source: 'rotate_right.png'
                         allow_stretch: True
                         keep_ratio: True
-                        allow_hover: True
+                        allow_hover: False if self.disabled else True
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                         canvas.before:
                             Color:
-                                rgba: 1, 1, 1, .18
+                                rgba: 1, 1, 1, 0 if self.disabled else .18
                             Rectangle:
                                 pos: self.pos
                                 size: self.size
@@ -271,6 +282,7 @@
 
             Button:
                 id: prev_page
+                disabled: True
                 text: '<<<'
                 size_hint_x: .3
                 background_color: (1, 1, 1, .5)
@@ -278,6 +290,7 @@
 
             MDLabel:
                 id: page_label
+                disabled: True
                 text: "1"
                 font_size: 36
                 size_hint_x: .4
@@ -286,6 +299,7 @@
 
             Button:
                 id: next_page
+                disabled: True
                 text: '>>>'
                 size_hint_x: .3
                 background_color: (1, 1, 1, .5)
