@@ -208,4 +208,3 @@ class DbViewScreen(Screen, BaseScreen):
             self.ids.preview.disabled = False
         else:
             self.ids.preview.disabled = True
-

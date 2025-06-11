@@ -370,11 +370,15 @@ class MLViewScreen(Screen, BaseScreen):
         self.transfer_button_set_state()
 
     def transfer_button_set_state(self):
-        out_dir = os.path.join(self.active_project_folder, self.selected_dir.text) if self.selected_dir else None
+        out_dir = (
+            os.path.join(self.active_project_folder, self.selected_dir.text)
+            if self.selected_dir
+            else None
+        )
         if (
-                len(self.selected_images) == 0 or
-                self.selected_dir is None or
-                self.cur_dir == out_dir
+            len(self.selected_images) == 0
+            or self.selected_dir is None
+            or self.cur_dir == out_dir
         ):
             self.ids.transfer_image.disabled = True
 
