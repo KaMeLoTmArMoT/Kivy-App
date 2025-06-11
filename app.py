@@ -1,6 +1,9 @@
 import os
 import sys
 
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.resources import resource_add_path
