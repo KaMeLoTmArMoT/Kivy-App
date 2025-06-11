@@ -36,7 +36,7 @@
                         pass
 
                 Button:
-                    id: add_clas
+                    id: add_class
                     text: 'Add class'
                     size_hint_y: 0.1
                     height: 30
@@ -94,6 +94,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.trigger_training()
+                    disabled: True
 
                 MDBoxLayout:
                     orientation: 'horizontal'
@@ -199,11 +200,13 @@
                         root.create_model(self.text)
 
                 Button:
+                    id: create_model
                     text: 'Create model'
                     size_hint_y: 0.1
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.create_model(model_input.text)
+                    disabled: True
 
                 ScrollView:
                     size_hint_y: 0.6
@@ -227,6 +230,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.delete_model()
+                    disabled: True
 
                 Button:
                     text: 'Load'
@@ -234,6 +238,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.load_model()
+                    disabled: True
 
                 Button:
                     text: 'Unload'
@@ -241,6 +246,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.unload_model()
+                    disabled: True
 
                 Button:
                     id: evaluate_btn
@@ -249,6 +255,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.evaluate_model()
+                    disabled: True
 
                 Button:
                     text: 'Save'
@@ -256,6 +263,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.save_model()
+                    disabled: True
 
                 Button:
                     text: 'Predict'
@@ -263,6 +271,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.model_predict()
+                    disabled: True
 
                 Button:
                     text: 'Tensorboard'
@@ -270,6 +279,7 @@
                     height: 30
                     background_color: (1, 1, 1, .5)
                     on_press: root.launch_tensorboard()
+                    disabled: True
 
     FloatLayout:
         size: root.width, root.height

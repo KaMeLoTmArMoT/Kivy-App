@@ -46,6 +46,7 @@ class MLViewScreen(Screen, BaseScreen):
         BaseScreen.__init__(self)
         self.key = ""
         self.selected_dir = None
+        self.selected_dir_full = None
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
@@ -114,7 +115,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.exit_screen = False
         self.main_button.text = self.active_project
 
-        self.ids.class_input.bind(text=self.on_text_input)
+        self.ids.class_input.bind(text=self.on_text_input_class)
+        self.ids.model_input.bind(text=self.on_text_input_model)
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
@@ -133,7 +135,10 @@ class MLViewScreen(Screen, BaseScreen):
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
 
-        btn = MDLabelBtn(text="all")
+        btn = MDLabelBtn(text="all",
+            theme_text_color="Custom",
+            text_color="red",
+        )
         btn.bind(on_press=self.select_label_btn)
         self.ids.class_grid.add_widget(btn)
 
@@ -144,7 +149,11 @@ class MLViewScreen(Screen, BaseScreen):
         for file in os.listdir(self.ml_train_folder):
             path = os.path.join(self.ml_train_folder, file)
             if os.path.isdir(path):
-                btn = MDLabelBtn(text="train/" + file)
+                btn = MDLabelBtn(
+                    text="train/" + file,
+                    theme_text_color="Custom",
+                    text_color="white",
+                )
                 btn.bind(on_press=self.select_label_btn)
                 self.ids.class_grid.add_widget(btn)
 
@@ -172,20 +181,34 @@ class MLViewScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected_dir = instance
+        self.selected_dir_full = (
+            os.path.join(self.active_project_folder, self.selected_dir.text)
+            if self.selected_dir
+            else None
+        )
         self.touch_time = time.time()
 
-        self.ids.delete_class.disabled = False
-        self.ids.open_class.disabled = False
-        self.transfer_button_set_state()
+        if self.selected_dir.text != "all":
+            self.ids.delete_class.disabled = False
+        else:
+            self.ids.delete_class.disabled = True
+
+        if self.selected_dir_full != self.cur_dir:
+            self.ids.open_class.disabled = False
+        else:
+            self.ids.open_class.disabled = True
+
+        self.buttons_set_state()
 
     def unselect_label_btn(self):
         self.selected_dir = None
+        self.selected_dir_full = None
         for btn in self.ids.class_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         self.ids.delete_class.disabled = True
         self.ids.open_class.disabled = True
-        self.transfer_button_set_state()
+        self.buttons_set_state()
 
     def add_class(self):
         name = self.ids.class_input.text
@@ -225,10 +248,8 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Can`t delete main dir!")
             return
 
-        path = os.path.join(self.active_project_folder, self.selected_dir.text)
-        print("!!!!!", path)
         try:
-            shutil.rmtree(path)
+            shutil.rmtree(self.selected_dir_full)
         except FileNotFoundError as e:
             print("No such file or directory, skipping")
 
@@ -258,8 +279,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.toggle_load_label("on")
         if path is None:  # TODO: re-check if we call without path
-            path = os.path.join(self.active_project_folder, self.selected_dir.text)
-            print(path)
+            path = self.selected_dir_full
 
         if os.path.isdir(path):
             files = os.listdir(path)
@@ -277,6 +297,10 @@ class MLViewScreen(Screen, BaseScreen):
             self.page = 1
             print("reset page")
 
+            for btn in self.ids.class_grid.children:
+                btn.text_color = "white"
+            self.selected_dir.text_color = "red"
+
         self.disable_switch_buttons()  # disable load button
         self.cur_dir = path
 
@@ -288,6 +312,7 @@ class MLViewScreen(Screen, BaseScreen):
         n_images = len(self.images_to_load)
         self.total_pages = ceil(n_images / MAX_IMAGES_PER_PAGE)
         self.toggle_switch_buttons()
+        self.ids.open_class.disabled = True
 
         self.update_page_counter()
         if n_images > MAX_IMAGES_PER_PAGE:
@@ -317,7 +342,7 @@ class MLViewScreen(Screen, BaseScreen):
         if stop:
             Clock.unschedule(self.load_event)
             self.toggle_load_label("success")
-            # self.enable_switch_buttons()  # TODO: check
+            self.enable_switch_buttons()
             return
 
         self.progress_bar.value += 1
@@ -351,6 +376,7 @@ class MLViewScreen(Screen, BaseScreen):
             instance.line_color = (1.0, 1.0, 1.0, 0.2)
             instance.parent.children[0].active = False
             self.selected_images.remove(instance)
+        self.buttons_set_state()
 
     def image_click(self, instance):
         # path = instance.source
@@ -367,46 +393,49 @@ class MLViewScreen(Screen, BaseScreen):
             self.selected_images.append(instance)
 
             instance.parent.children[0].active = True
-        self.transfer_button_set_state()
 
-    def transfer_button_set_state(self):
-        out_dir = (
-            os.path.join(self.active_project_folder, self.selected_dir.text)
-            if self.selected_dir
-            else None
-        )
+        self.buttons_set_state()
+
+    def buttons_set_state(self):
+        # transfer btn
         if (
             len(self.selected_images) == 0
             or self.selected_dir is None
-            or self.cur_dir == out_dir
+            or self.cur_dir == self.selected_dir_full
         ):
             self.ids.transfer_image.disabled = True
 
         else:
             self.ids.transfer_image.disabled = False
 
+        # rotate btns
+        if len(self.selected_images) == 0:
+            self.ids.rotate_right.disabled = True
+            self.ids.rotate_left.disabled = True
+
+        else:
+            self.ids.rotate_right.disabled = False
+            self.ids.rotate_left.disabled = False
+
     def transfer_images(self):
         if len(self.selected_images) == 0 or self.selected_dir is None:
             self.error_popup_clock("Select images and dir!")
             return
 
-        in_dir = self.cur_dir
-        out_dir = os.path.join(self.active_project_folder, self.selected_dir.text)
+        print(self.cur_dir)
+        print(self.selected_dir_full)
 
-        print(in_dir)
-        print(out_dir)
-
-        if in_dir == out_dir:
+        if self.cur_dir == self.selected_dir_full:
             self.error_popup_clock("Can`t paste to same dir!")
             return
 
         for image in self.selected_images:
-            out_img = image.source.replace(in_dir, out_dir)
+            out_img = image.source.replace(self.cur_dir, self.selected_dir_full)
             shutil.move(image.source, out_img)
 
         self.unselect_all_images()
         self.unselect_label_btn()
-        self.show_folder_images(in_dir)
+        self.show_folder_images(self.cur_dir)
 
     def trigger_training(self):
         if self.model is None:
@@ -493,14 +522,14 @@ class MLViewScreen(Screen, BaseScreen):
         box_inner.add_widget(lbl2_2)
 
         model_types = [
-            ["MobileNet", 4.3, 70.4],
-            ["MobileNetV2", 3.5, 71.3],
-            ["DenseNet121", 8.1, 75.0],
-            ["NASNetMobile", 5.3, 74.4],
-            ["EfficientNetB0", 5.3, 77.1],
-            ["EfficientNetB1", 7.9, 79.1],
-            ["EfficientNetV2B0", 7.2, 78.7],
-            ["EfficientNetV2B1", 8.2, 79.8],
+            ["MobileNetV2", 3.5, 72.15],  # TODO v2
+            ["MobileNetV3", 5.5, 75.27],  # TODO large one, v2
+            ["ResNet", 	11.7, 69.76],  # TODO 18
+            ["ResNeXt", 25.0, 81.20],  # TODO 50_32x4d, v2
+            ["EfficientNet", 5.3, 77.69], # TODO b0
+            ["EfficientNetV2", 21.5, 84.23], # TODO s
+            ["AlexNet", 61.1, 56.52], # TODO
+            ["VGG", 132.9, 69.02], # TODO 11
         ]
 
         grid = GridLayout(cols=2)
@@ -667,7 +696,7 @@ class MLViewScreen(Screen, BaseScreen):
         if name == "":
             self.error_popup_clock("No model name.")
             return
-        self.unload_model()
+        # self.unload_model()  # TODO
 
         self.num_classes = len(self.ids.class_grid.children) - 1
         self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
@@ -680,6 +709,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.base_model = get_base_model(self.model_type)
         self.model_preprocess = get_model_preprocess(self.model_type)
+        return # TODO: continue
         self.base_model.trainable = False
 
         inputs = tf.keras.Input(shape=IMG_SHAPE)
@@ -956,10 +986,19 @@ class MLViewScreen(Screen, BaseScreen):
         else:
             print("use bind")
 
-    def on_text_input(self, instance, value):
+    def on_text_input_class(self, instance, value):
         text = self.ids.class_input.text
 
         if len(text) > 0:
-            self.ids.add_clas.disabled = False
+            self.ids.add_class.disabled = False
         else:
-            self.ids.add_clas.disabled = True
+            self.ids.add_class.disabled = True
+
+    def on_text_input_model(self, instance, value):
+        text = self.ids.model_input.text
+
+        if len(text) > 0:
+            self.ids.create_model.disabled = False
+        else:
+            self.ids.create_model.disabled = True
+

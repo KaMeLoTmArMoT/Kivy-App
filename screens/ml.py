@@ -7,6 +7,16 @@ from screens.configs import IMG_SHAPE
 
 
 def get_base_model(model_type):
+    if model_type == "MobileNetV2":
+        from torchvision.models import MobileNet_V2_Weights, mobilenet_v2
+
+        weights = MobileNet_V2_Weights.DEFAULT
+        model = mobilenet_v2(weights=weights)
+
+    return model
+
+
+def get_base_model_old(model_type):
     if model_type == "MobileNet":
         model = tf.keras.applications.MobileNet(
             input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
@@ -42,8 +52,17 @@ def get_base_model(model_type):
 
     return model
 
-
 def get_model_preprocess(model_type):
+    if model_type == "MobileNetV2":
+        from torchvision.models import MobileNet_V2_Weights
+
+        weights = MobileNet_V2_Weights.DEFAULT
+        preprocess = weights.transforms()
+
+    return preprocess
+
+
+def get_model_preprocess_old(model_type):
     if model_type in ["DenseNet121"]:
         preprocess = tf.keras.layers.Rescaling(1.0 / 255)
     elif model_type in [
