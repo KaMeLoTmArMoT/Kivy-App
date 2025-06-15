@@ -1,79 +1,33 @@
 import configparser
 import os
 
+import torch.nn as nn
+import torchvision.models as models
+
 from screens.configs import IMG_SHAPE
 
 # import tensorflow as tf
 
 
-def get_base_model(model_type):
+def get_base_model(model_type, num_classes, device, no_weights=False):
     if model_type == "MobileNetV2":
-        from torchvision.models import MobileNet_V2_Weights, mobilenet_v2
+        if not no_weights:
+            weights = None
+        else:
+            weights = models.MobileNet_V2_Weights.DEFAULT
 
-        weights = MobileNet_V2_Weights.DEFAULT
-        model = mobilenet_v2(weights=weights)
-
-    return model
-
-
-def get_base_model_old(model_type):
-    if model_type == "MobileNet":
-        model = tf.keras.applications.MobileNet(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "DenseNet121":
-        model = tf.keras.applications.DenseNet121(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "NASNetMobile":
-        model = tf.keras.applications.NASNetMobile(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetB0":
-        model = tf.keras.applications.EfficientNetB0(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetB1":
-        model = tf.keras.applications.EfficientNetB1(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetV2B0":
-        model = tf.keras.applications.EfficientNetV2B0(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetV2B1":
-        model = tf.keras.applications.EfficientNetV2B1(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    else:  # "MobileNetV2"
-        model = tf.keras.applications.MobileNetV2(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
+        model = models.mobilenet_v2(weights=weights)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+        model.to(device=device)
 
     return model
+
 
 def get_model_preprocess(model_type):
     if model_type == "MobileNetV2":
-        from torchvision.models import MobileNet_V2_Weights
-
-        weights = MobileNet_V2_Weights.DEFAULT
+        weights = models.MobileNet_V2_Weights.DEFAULT
         preprocess = weights.transforms()
-
-    return preprocess
-
-
-def get_model_preprocess_old(model_type):
-    if model_type in ["DenseNet121"]:
-        preprocess = tf.keras.layers.Rescaling(1.0 / 255)
-    elif model_type in [
-        "EfficientNetB0",
-        "EfficientNetB1",
-        "EfficientNetV2B0",
-        "EfficientNetV2B1",
-    ]:
-        preprocess = tf.keras.layers.Rescaling(1.0)
-    else:  # "MobileNet" "MobileNetV2" "NASNetMobile"
-        preprocess = tf.keras.layers.Rescaling(1.0 / 127.5, offset=-1)
+        # TODO: check custom
 
     return preprocess
 
