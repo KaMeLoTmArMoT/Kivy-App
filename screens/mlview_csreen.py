@@ -24,6 +24,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
+from PIL import Image
 from tensorboard import program
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -170,19 +171,23 @@ class MLViewScreen(Screen, BaseScreen):
 
     def select_label_btn(self, instance):
         print(f"The label button <{instance.text}> is being pressed")
-        if self.selected_dir:
-            if instance.uid == self.selected_dir.uid:
-                # custom double touch event
-                self.unselect_label_btn()
 
-                if time.time() - self.touch_time < 0.2:
-                    if self.ids.open_class.disabled:
-                        return
+        current_time = time.time()
+        double_click_threshold = 0.3
+        is_same_button = self.selected_dir and instance.uid == self.selected_dir.uid
+        time_diff = current_time - getattr(self, "touch_time", 0)
 
+        # TODO: fix if already selected
+        if is_same_button:
+            if time_diff < double_click_threshold:
+                if not self.ids.open_class.disabled:
                     path = os.path.join(self.active_project_folder, instance.text)
-                    print(instance.text)
-                    print(path)
+                    print("Double-click: opening", path)
                     self.show_folder_images(path, new=True)
+                return
+            else:
+                print("Single-click: deselect")
+                self.unselect_label_btn()
                 return
 
         # reset selection
@@ -197,19 +202,12 @@ class MLViewScreen(Screen, BaseScreen):
             if self.selected_dir
             else None
         )
-        self.touch_time = time.time()
+        self.touch_time = current_time
 
-        if self.selected_dir.text != "all":
-            self.ids.delete_class.disabled = False
-        else:
-            self.ids.delete_class.disabled = True
+        self.ids.delete_class.disabled = instance.text == "all"
+        self.ids.open_class.disabled = self.selected_dir_full == self.cur_dir
 
-        if self.selected_dir_full != self.cur_dir:
-            self.ids.open_class.disabled = False
-        else:
-            self.ids.open_class.disabled = True
-
-        self.buttons_set_state()
+        self.update_all_button_states()
 
     def unselect_label_btn(self):
         self.selected_dir = None
@@ -219,7 +217,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.ids.delete_class.disabled = True
         self.ids.open_class.disabled = True
-        self.buttons_set_state()
+        self.update_all_button_states()
 
     def add_class(self):
         name = self.ids.class_input.text
@@ -389,7 +387,7 @@ class MLViewScreen(Screen, BaseScreen):
             instance.line_color = (1.0, 1.0, 1.0, 0.2)
             instance.parent.children[0].active = False
             self.selected_images.remove(instance)
-        self.buttons_set_state()
+        self.update_all_button_states()
 
     def image_click(self, instance):
         # path = instance.source
@@ -407,28 +405,7 @@ class MLViewScreen(Screen, BaseScreen):
 
             instance.parent.children[0].active = True
 
-        self.buttons_set_state()
-
-    def buttons_set_state(self):
-        # transfer btn
-        if (
-            len(self.selected_images) == 0
-            or self.selected_dir is None
-            or self.cur_dir == self.selected_dir_full
-        ):
-            self.ids.transfer_image.disabled = True
-
-        else:
-            self.ids.transfer_image.disabled = False
-
-        # rotate btns
-        if len(self.selected_images) == 0:
-            self.ids.rotate_right.disabled = True
-            self.ids.rotate_left.disabled = True
-
-        else:
-            self.ids.rotate_right.disabled = False
-            self.ids.rotate_left.disabled = False
+        self.update_all_button_states()
 
     def transfer_images(self):
         if len(self.selected_images) == 0 or self.selected_dir is None:
@@ -649,7 +626,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         print("load complete")
         print(self.model)
-        self.update_btn_states()
+        self.update_all_button_states()
 
     def unload_model(self):
         if self.model is None:
@@ -747,7 +724,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.toggle_error_popup(
             "on",
             f"[{self.processed_steps}/{self.total_steps}] "
-            f"Loss: {round(self.loss, 4)} | Acc: {round(self.acc, 4)}"
+            f"Loss: {round(self.loss, 4)} | Acc: {round(self.acc, 4)}",
         )
 
     def create_model(self, name):
@@ -818,20 +795,36 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
-        # TODO: check if model is loaded
         if self.selected_images is None or self.model is None:
             self.error_popup_clock("Select model and images!")
             return
 
+        self.model.eval()
+
+        transform = transforms.Compose(
+            [
+                transforms.Resize((224, 224)),  # or your IMG_SHAPE
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+
         for selected in self.selected_images:
             path = selected.source
-            image = tf.keras.preprocessing.image.load_img(path, target_size=IMG_SHAPE)
-            image = self.model_preprocess(image)
-            image = np.expand_dims(image, axis=0)
-            pred = self.model.predict(image)
-            pred = np.argmax(pred, axis=1)[0]
-            print(pred, self.classes)
-            print(self.classes[pred], pred, end=", ")
+            image = Image.open(path).convert("RGB")
+            image = (
+                transform(image).unsqueeze(0).to(self.device)
+            )  # Add batch dim and move to device
+
+            with torch.no_grad():
+                output = self.model(image)
+                pred = torch.argmax(output, dim=1).item()
+
+            cls_name = self.classes[pred].replace("train/", "")
+            print(f"CLS: |{cls_name}| ID: |{pred}|")
+
         print()
 
     def load_model_names(self):
@@ -868,37 +861,57 @@ class MLViewScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected_model = instance
-        self.update_btn_states()
+        self.update_all_button_states()
 
-    def update_btn_states(self):
-        if self.selected_model and not self.model_name:
-            self.ids.model_load.disabled = False
-        else:
-            self.ids.model_load.disabled = True
+    def update_all_button_states(self):
+        has_selection = bool(self.selected_images)
+        can_transfer = (
+            has_selection
+            and self.selected_dir
+            and self.cur_dir != self.selected_dir_full
+        )
+        is_model_selected = bool(self.selected_model)
+        is_model_loaded = bool(self.model)
+        is_model_named = bool(self.model_name)
+        model_name_differs = (
+            is_model_selected and self.selected_model.text != self.model_name
+        )
 
-        if self.selected_model and self.selected_model.text != self.model_name:
-            self.ids.model_delete.disabled = False
-        else:
-            self.ids.model_delete.disabled = True
+        # Transfer button
+        self.ids.transfer_image.disabled = not can_transfer
 
+        # Rotate buttons
+        self.ids.rotate_right.disabled = not has_selection
+        self.ids.rotate_left.disabled = not has_selection
+
+        # Model control buttons
+        self.ids.model_load.disabled = not (is_model_selected and not is_model_named)
+        self.ids.model_delete.disabled = not model_name_differs
+
+        # Highlight active model
         for btn in self.ids.model_grid.children:
-            if btn.text == self.model_name:
-                btn.text_color = "red"
-            else:
-                btn.text_color = "white"
+            btn.text_color = "red" if btn.text == self.model_name else "white"
 
-        if self.model and self.model_name:
-            self.ids.model_unload.disabled = False
-            self.ids.evaluate_btn.disabled = False
-        else:
-            self.ids.model_unload.disabled = True
-            self.ids.evaluate_btn.disabled = True
+        self.ids.model_unload.disabled = not (is_model_loaded and is_model_named)
+        self.ids.evaluate_btn.disabled = not (is_model_loaded and is_model_named)
+        self.ids.save_btn.disabled = not (is_model_loaded and is_model_named)
+
+        # Predict
+        self.ids.predict_btn.disabled = not (
+            is_model_loaded and is_model_named and has_selection
+        )
+
+        # Image selection info
+        self.ids.unselect_all_images.disabled = not has_selection
+        self.ids.num_selected_images.text = (
+            f"{len(self.selected_images)}" if has_selection else ""
+        )
 
     def unselect_model_btn(self):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-        self.update_btn_states()
+        self.update_all_button_states()
 
     def launch_tensorboard(self):
         if not os.path.isdir(self.tensorboard_folder):
