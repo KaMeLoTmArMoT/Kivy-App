@@ -2,8 +2,10 @@ import datetime
 import io
 import os
 import shutil
+import sys
 import time
 import webbrowser
+from collections import deque
 from math import ceil
 from threading import Thread
 
@@ -26,9 +28,12 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 from tensorboard import program
+from torch import nn, optim
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
+from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, chrome_path
@@ -60,11 +65,13 @@ class MLViewScreen(Screen, BaseScreen):
         self.total_pages = None
 
         self.selected_model = None
-        self.model = None
+        self.model: nn.Module = None
         self.base_model = None
         self.model_preprocess = None
         self.model_name = None
         self.criterion = None
+        self.optimizer = None
+        self.writer = None
         self.total_steps = None
         self.processed_steps = None
         self.model_type = "MobileNetV2"
@@ -106,7 +113,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.popup = None
         self.main_button = self.ids.project_label
 
-        self.device = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -125,6 +132,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
+
+        print(f"USING DEVICE {self.device}")
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
@@ -436,7 +445,7 @@ class MLViewScreen(Screen, BaseScreen):
                 return
 
         self.train_active = True
-        self.ids.train.disabled = True
+        self.ids.train_btn.disabled = True
         self.error_popup_clock("Open tensorboard to get status.", 5)
         Thread(target=self.train_model).start()
 
@@ -481,26 +490,86 @@ class MLViewScreen(Screen, BaseScreen):
     def train_model(self):
         normalized_ds = self.prepare_dataset()
 
-        self.model.compile(
-            optimizer="adam",
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=["accuracy"],
-        )
+        self.model.train()
 
         log_dir = os.path.join(
             self.tensorboard_folder,
             datetime.datetime.now().strftime("%Y_%m_%d-%H_%M") + f"_{self.model_name}",
         )
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=log_dir, histogram_freq=1
-        )
 
-        self.model.fit(normalized_ds, epochs=5, callbacks=[tensorboard_callback])
+        self.writer = SummaryWriter(log_dir=log_dir)
+        self.criterion = nn.CrossEntropyLoss()
+
+        print("\n--- Training Stage 1: Fine-tuning the classifier ---")
+        epochs_s1 = 3
+        for param in self.model.features.parameters():
+            param.requires_grad = False
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
+        self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
+
+        print(
+            "\n--- Training Stage 2: Unfreezing all layers and training end-to-end ---"
+        )
+        epochs_s2 = 3
+        for param in self.model.parameters():
+            param.requires_grad = True
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-6)
+        self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
 
         # self.evaluate_model(normalized_ds)
         self.train_active = False
-        self.ids.train.disabled = False
+        self.ids.train_btn.disabled = False
         self.save_model()
+        if self.writer:
+            self.writer.close()
+
+        # TODO: debug classes
+
+    def train_cycle(self, epochs, dataset, start_epoch=0):
+        smooth_window = 100
+        total_epochs = start_epoch + epochs
+
+        for epoch_idx in range(epochs):
+            epoch = start_epoch + epoch_idx
+            running_loss = 0.0
+            correct, total = 0, 0
+            loss_window = deque(maxlen=smooth_window)
+
+            progress_bar = tqdm(
+                dataset,
+                desc=f"Epoch {epoch + 1}/{total_epochs}",
+                file=sys.stdout,
+            )
+
+            for images, labels in progress_bar:
+                images, labels = images.to(self.device), labels.to(self.device)
+
+                self.optimizer.zero_grad()
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                loss_value = loss.item()
+                running_loss += loss_value
+
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+                loss_window.append(loss_value)
+                smoothed_loss = np.mean(loss_window)
+                progress_bar.set_postfix(loss=f"{smoothed_loss:.4f}")
+
+            avg_loss = running_loss / len(dataset)
+            accuracy = 100 * correct / total
+
+            self.writer.add_scalar("Loss/train", avg_loss, epoch)
+            self.writer.add_scalar("Accuracy/train", accuracy, epoch)
+
+            print(
+                f"Epoch [{epoch + 1}/{total_epochs}], Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%\n"
+            )
 
     def select_model_type(self):
         popup = Popup(
@@ -617,7 +686,9 @@ class MLViewScreen(Screen, BaseScreen):
             device=self.device,
             no_weights=True,
         )
-        self.model.load_state_dict(torch.load(save_path))
+        state_dict = torch.load(save_path, map_location=self.device)
+        self.model.load_state_dict(state_dict)
+        self.model.to(self.device)
 
         self.model_type = self.model_name.split("_")[-2]
         self.model_preprocess = get_model_preprocess(self.model_type)
@@ -637,7 +708,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.base_model = None
         self.model_preprocess = None
 
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
         self.unselect_model_btn()
         print("unload complete")
@@ -899,6 +970,11 @@ class MLViewScreen(Screen, BaseScreen):
         # Predict
         self.ids.predict_btn.disabled = not (
             is_model_loaded and is_model_named and has_selection
+        )
+
+        # Train
+        self.ids.train_btn.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
         )
 
         # Image selection info

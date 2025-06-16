@@ -6,8 +6,6 @@ import torchvision.models as models
 
 from screens.configs import IMG_SHAPE
 
-# import tensorflow as tf
-
 
 def get_base_model(model_type, num_classes, device, no_weights=False):
     if model_type == "MobileNetV2":
