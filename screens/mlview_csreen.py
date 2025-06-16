@@ -63,6 +63,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.base_model = None
         self.model_preprocess = None
         self.model_name = None
+        self.criterion = None
+        self.total_steps = None
+        self.processed_steps = None
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
@@ -70,7 +73,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.classes = None
         self.tensorboard = None
 
-        self.data = None
+        self.data_iter = None
         self.eval_event = None
         self.acc = None
         self.loss = None
@@ -694,44 +697,58 @@ class MLViewScreen(Screen, BaseScreen):
                 # in case model selected but not loaded
                 self.load_model()
 
+        self.model.eval()
         if data is None:
-            data = self.prepare_dataset(32)
+            data = self.prepare_dataset(batch_size=32)
 
-        self.data = list(data)
+        self.loss = None
+        self.acc = None
+        self.total_steps = len(data)
+        self.processed_steps = 0
+
+        # Convert DataLoader into list of batches
+        self.data_iter = iter(data)
         self.toggle_error_popup("on", "Start eval...")
+
+        self.criterion = torch.nn.CrossEntropyLoss()
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
 
     def async_eval_cycle(self):
-        iters = len(self.data)
-        if iters % 100 == 0:
-            print(len(self.data))
-            self.toggle_error_popup(
-                "on",
-                f"iters: {iters} "
-                f"loss: {round(self.loss, 3)} "
-                f"acc: {round(self.acc, 3)}",
-            )
-
-        if iters == 0:
+        try:
+            images, labels = next(self.data_iter)
+            self.processed_steps += 1
+        except StopIteration:
             Clock.unschedule(self.eval_event)
             self.eval_event = None
             self.toggle_error_popup("off")
-            print(f"Eval loss: {self.loss}, acc: {self.acc}")
+            print(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
             self.ids.evaluate_btn.text = "Evaluate"
             return
 
-        batch = self.data.pop()
-        print("batch len")
-        print(len(batch))
-        print(len(batch[0]))
-        loss, acc = self.model.evaluate(batch[0], batch[1], verbose=0)
+        images = images.to(self.device)
+        labels = labels.to(self.device)
 
-        if self.loss is None and self.acc is None:
-            self.loss, self.acc = loss, acc
+        with torch.no_grad():
+            outputs = self.model(images)
+            loss = self.criterion(outputs, labels)
+            _, predicted = torch.max(outputs, 1)
+            correct = (predicted == labels).sum().item()
+            accuracy = correct / labels.size(0)
+
+        # Sliding window averaging
+        if self.loss is None or self.acc is None:
+            self.loss, self.acc = loss.item(), accuracy
         else:
-            self.loss, self.acc = (self.loss + loss) / 2, (self.acc + acc) / 2
+            self.loss = self.loss * 0.9 + loss.item() * 0.1
+            self.acc = self.acc * 0.9 + accuracy * 0.1
+
+        self.toggle_error_popup(
+            "on",
+            f"[{self.processed_steps}/{self.total_steps}] "
+            f"Loss: {round(self.loss, 4)} | Acc: {round(self.acc, 4)}"
+        )
 
     def create_model(self, name):
         if name == "":
