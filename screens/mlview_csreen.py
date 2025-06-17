@@ -1,6 +1,7 @@
 import datetime
 import io
 import os
+import platform
 import shutil
 import sys
 import time
@@ -80,6 +81,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.num_classes = 0
         self.classes = None
         self.tensorboard = None
+        self.tensorboard_url = None
 
         self.data_iter = None
         self.eval_event = None
@@ -1002,6 +1004,10 @@ class MLViewScreen(Screen, BaseScreen):
             f"{len(self.selected_images)}" if has_selection else ""
         )
 
+        tb_folder_exists = os.path.isdir(self.tensorboard_folder)
+        empty_tb_folder = len(os.listdir(self.tensorboard_folder)) != 0
+        self.ids.tensorboard_btn.disabled = not (tb_folder_exists and empty_tb_folder)
+
     def unselect_model_btn(self):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
@@ -1017,13 +1023,29 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("No data to show TB!")
             return
         # TODO: check freeze issue here.
+
         if self.tensorboard is None:
             self.tensorboard = program.TensorBoard()
             self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
-            url = self.tensorboard.launch()
-            print(f"{url=}")
+            self.tensorboard_url = self.tensorboard.launch()
+            print(f"{self.tensorboard_url=}")
 
-        webbrowser.get(chrome_path).open(url)
+        system_platform = platform.system()
+
+        if system_platform == "Windows":
+            webbrowser.get(chrome_path).open(self.tensorboard_url)
+        elif system_platform == "Linux":
+            for browser in ["google-chrome", "chromium", "xdg-open"]:
+                if shutil.which(browser):
+                    webbrowser.get(browser).open(self.tensorboard_url)
+                    break
+            else:
+                print("No known browser found. Please install chrome or use xdg-open.")
+        else:
+            print("Unknown operating system.")
+            webbrowser.open(self.tensorboard_url)
+
+        self.update_all_button_states()
 
     def rotate(self, side):
         import cv2
