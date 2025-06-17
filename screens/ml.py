@@ -7,16 +7,17 @@ import torchvision.models as models
 from screens.configs import IMG_SHAPE
 
 
-def get_base_model(model_type, num_classes, device, no_weights=False):
+def get_base_model(model_type, num_classes, no_weights=False):
     if model_type == "MobileNetV2":
-        if not no_weights:
+        if no_weights:
+            print("--- No weights for MobileNetV2")
             weights = None
         else:
+            print("+++ Use weights for MobileNetV2")
             weights = models.MobileNet_V2_Weights.DEFAULT
 
         model = models.mobilenet_v2(weights=weights)
         model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-        model.to(device=device)
 
     return model
 

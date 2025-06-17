@@ -25,6 +25,7 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 from tensorboard import program
@@ -66,7 +67,6 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.selected_model = None
         self.model: nn.Module = None
-        self.base_model = None
         self.model_preprocess = None
         self.model_name = None
         self.criterion = None
@@ -465,7 +465,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.page += 1
             self.show_folder_images(self.cur_dir)
 
-    def prepare_dataset(self, batch_size=8):
+    def prepare_dataset(self, batch_size=8, shuffle=True):
         img_height, img_width = 224, 224
 
         mean = [0.485, 0.456, 0.406]
@@ -482,13 +482,13 @@ class MLViewScreen(Screen, BaseScreen):
         print(f"load dataset from {self.ml_train_folder}")
         test_dataset = ImageFolder(root=self.ml_train_folder, transform=transform)
         testloader = DataLoader(
-            test_dataset, batch_size=batch_size, shuffle=False, num_workers=4
+            test_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=4
         )
 
         return testloader
 
     def train_model(self):
-        normalized_ds = self.prepare_dataset()
+        normalized_ds = self.prepare_dataset(shuffle=True)
 
         self.model.train()
 
@@ -501,19 +501,19 @@ class MLViewScreen(Screen, BaseScreen):
         self.criterion = nn.CrossEntropyLoss()
 
         print("\n--- Training Stage 1: Fine-tuning the classifier ---")
-        epochs_s1 = 3
+        epochs_s1 = 5
         for param in self.model.features.parameters():
             param.requires_grad = False
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4)
         self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
 
         print(
             "\n--- Training Stage 2: Unfreezing all layers and training end-to-end ---"
         )
-        epochs_s2 = 3
+        epochs_s2 = 5
         for param in self.model.parameters():
             param.requires_grad = True
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-6)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
         self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
 
         # self.evaluate_model(normalized_ds)
@@ -683,7 +683,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.model = get_base_model(
             self.model_type,
             num_classes=self.num_classes,
-            device=self.device,
             no_weights=True,
         )
         state_dict = torch.load(save_path, map_location=self.device)
@@ -705,7 +704,6 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model_name = None
         self.model = None
-        self.base_model = None
         self.model_preprocess = None
 
         # torch.cuda.empty_cache()
@@ -747,7 +745,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model.eval()
         if data is None:
-            data = self.prepare_dataset(batch_size=32)
+            data = self.prepare_dataset(batch_size=32, shuffle=False)
 
         self.loss = None
         self.acc = None
@@ -813,13 +811,13 @@ class MLViewScreen(Screen, BaseScreen):
 
         print("creating", self.model_name)
 
-        self.base_model = get_base_model(
+        self.model = get_base_model(
             self.model_type,
             num_classes=self.num_classes,
-            device=self.device,
         )
+        self.model.to(device=self.device)
+
         self.model_preprocess = get_model_preprocess(self.model_type)
-        self.model = self.base_model
 
         for param in self.model.features.parameters():
             param.requires_grad = False
@@ -895,6 +893,27 @@ class MLViewScreen(Screen, BaseScreen):
 
             cls_name = self.classes[pred].replace("train/", "")
             print(f"CLS: |{cls_name}| ID: |{pred}|")
+
+            parent = selected.parent
+            existing_labels = [
+                child for child in parent.children if isinstance(child, MDLabel)
+            ]
+            for lbl in existing_labels:
+                parent.remove_widget(lbl)
+
+            label = MDLabel(
+                size_hint=(None, 0.25),
+                text=cls_name,
+                halign="center",
+                theme_text_color="Custom",
+                text_color=(1, 1, 1, 1),
+                pos_hint={"center_x": 0.5, "top": 1.0},
+                font_size="26sp",
+                bold=True,
+                md_bg_color=(0, 0, 0, 0.6),
+                padding=(6, 4),
+            )
+            parent.add_widget(label)
 
         print()
 
