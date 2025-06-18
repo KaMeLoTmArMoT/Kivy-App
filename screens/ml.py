@@ -7,28 +7,51 @@ import torchvision.models as models
 from screens.configs import IMG_SHAPE
 
 
-def get_base_model(model_type, num_classes, no_weights=False):
-    if model_type == "MobileNetV2":
-        if no_weights:
-            print("--- No weights for MobileNetV2")
-            weights = None
-        else:
-            print("+++ Use weights for MobileNetV2")
-            weights = models.MobileNet_V2_Weights.DEFAULT
+def get_base_model(model_type: str, num_classes: int, no_weights=False):
+    # Weights handling
+    pretrained = not no_weights
+    weights = None  # For newer versions, if needed
 
+    model_type = model_type.lower()
+
+    if model_type == "mobilenetv2":
+        weights = models.MobileNet_V2_Weights.DEFAULT if not no_weights else None
         model = models.mobilenet_v2(weights=weights)
         model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
 
+    elif model_type == "mobilenetv3":
+        weights = models.MobileNet_V3_Large_Weights.DEFAULT if not no_weights else None
+        model = models.mobilenet_v3_large(weights=weights)
+        model.classifier[3] = nn.Linear(model.classifier[3].in_features, num_classes)
+
+    elif model_type == "resnet":
+        model = models.resnet18(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    elif model_type == "resnext":
+        model = models.resnext50_32x4d(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    elif model_type == "efficientnet":
+        model = models.efficientnet_b0(pretrained=pretrained)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+
+    elif model_type == "efficientnetv2":
+        model = models.efficientnet_v2_s(pretrained=pretrained)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+
+    elif model_type == "alexnet":
+        model = models.alexnet(pretrained=pretrained)
+        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
+
+    elif model_type == "vgg":
+        model = models.vgg11(pretrained=pretrained)
+        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
+
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
+
     return model
-
-
-def get_model_preprocess(model_type):
-    if model_type == "MobileNetV2":
-        weights = models.MobileNet_V2_Weights.DEFAULT
-        preprocess = weights.transforms()
-        # TODO: check custom
-
-    return preprocess
 
 
 def create_config_file(model_name, model_type, num_classes, classes, config_dir):

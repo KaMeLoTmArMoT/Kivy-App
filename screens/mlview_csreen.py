@@ -1,4 +1,5 @@
 import datetime
+import gc
 import io
 import os
 import platform
@@ -38,13 +39,8 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, chrome_path
-from screens.ml import (
-    create_config_file,
-    get_base_model,
-    get_model_preprocess,
-    read_config_file,
-)
+from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, MEAN, STD, chrome_path
+from screens.ml import create_config_file, get_base_model, read_config_file
 from utils import extend_key
 
 
@@ -62,13 +58,13 @@ class MLViewScreen(Screen, BaseScreen):
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.touch_time = time.time()
         self.train_active = False
+        self.terminate_training = False
         self.load_event = None
         self.page = 1
         self.total_pages = None
 
         self.selected_model = None
         self.model: nn.Module = None
-        self.model_preprocess = None
         self.model_name = None
         self.criterion = None
         self.optimizer = None
@@ -116,6 +112,14 @@ class MLViewScreen(Screen, BaseScreen):
         self.main_button = self.ids.project_label
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((IMG_SHAPE[0], IMG_SHAPE[1])),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN, std=STD),
+            ]
+        )
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -439,6 +443,13 @@ class MLViewScreen(Screen, BaseScreen):
         self.show_folder_images(self.cur_dir)
 
     def trigger_training(self):
+        if self.train_active:
+            print("Training termination requested")
+            self.terminate_training = True
+            self.ids.train_btn.text = "Train"
+            self.ids.train_btn.disabled = True  # Temporarily disable until cleanup
+            return
+
         if self.model is None:
             if self.selected_model:
                 self.load_model()
@@ -447,7 +458,9 @@ class MLViewScreen(Screen, BaseScreen):
                 return
 
         self.train_active = True
-        self.ids.train_btn.disabled = True
+        self.terminate_training = False
+        self.ids.train_btn.text = "Stop"
+        self.ids.train_btn.disabled = False
         self.update_all_button_states()
         self.error_popup_clock("Open tensorboard to get status.", 5)
         Thread(target=self.train_model).start()
@@ -469,21 +482,8 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(self.cur_dir)
 
     def prepare_dataset(self, batch_size=8, shuffle=True):
-        img_height, img_width = 224, 224
-
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
-
-        transform = transforms.Compose(
-            [
-                transforms.Resize((img_height, img_width)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std),
-            ]
-        )
-
         print(f"load dataset from {self.ml_train_folder}")
-        test_dataset = ImageFolder(root=self.ml_train_folder, transform=transform)
+        test_dataset = ImageFolder(root=self.ml_train_folder, transform=self.transform)
         testloader = DataLoader(
             test_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=4
         )
@@ -491,8 +491,13 @@ class MLViewScreen(Screen, BaseScreen):
         return testloader
 
     def train_model(self):
-        normalized_ds = self.prepare_dataset(shuffle=True)
+        epochs_s1 = 5
+        epochs_s2 = 5
 
+        lr_s1 = 1e-4
+        lr_s2 = 1e-5
+
+        normalized_ds = self.prepare_dataset(shuffle=True)
         self.model.train()
 
         log_dir = os.path.join(
@@ -503,36 +508,39 @@ class MLViewScreen(Screen, BaseScreen):
         self.writer = SummaryWriter(log_dir=log_dir)
         self.criterion = nn.CrossEntropyLoss()
 
-        print("\n--- Training Stage 1: Fine-tuning the classifier ---")
-        epochs_s1 = 5
-        for param in self.model.features.parameters():
-            param.requires_grad = False
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4)
-        self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
+        try:
+            print("\n--- Stage 1: Fine-tuning the classifier ---")
+            for p in self.model.features.parameters():
+                p.requires_grad = False
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s1)
+            self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
 
-        print(
-            "\n--- Training Stage 2: Unfreezing all layers and training end-to-end ---"
-        )
-        epochs_s2 = 5
-        for param in self.model.parameters():
-            param.requires_grad = True
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-5)
-        self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
+            print("\n--- Stage 2: Unfreeze all layers ---")
+            for p in self.model.parameters():
+                p.requires_grad = True
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s2)
+            self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
 
-        # self.evaluate_model(normalized_ds)
-        self.train_active = False
-        self.ids.train_btn.disabled = False
-        self.save_model()
-        if self.writer:
-            self.writer.close()
-
-        # TODO: debug classes
+        finally:
+            # self.evaluate_model(normalized_ds)
+            self.train_active = False
+            self.terminate_training = False
+            self.ids.train_btn.text = "Train"
+            self.ids.train_btn.disabled = False
+            self.update_all_button_states()
+            self.save_model()
+            if self.writer:
+                self.writer.close()
 
     def train_cycle(self, epochs, dataset, start_epoch=0):
         smooth_window = 100
         total_epochs = start_epoch + epochs
 
         for epoch_idx in range(epochs):
+            if self.terminate_training:
+                print("Training terminated by user")
+                return
+
             epoch = start_epoch + epoch_idx
             running_loss = 0.0
             correct, total = 0, 0
@@ -545,8 +553,11 @@ class MLViewScreen(Screen, BaseScreen):
             )
 
             for images, labels in progress_bar:
-                images, labels = images.to(self.device), labels.to(self.device)
+                if self.terminate_training:
+                    print("Early termination inside batch")
+                    return
 
+                images, labels = images.to(self.device), labels.to(self.device)
                 self.optimizer.zero_grad()
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
@@ -693,7 +704,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.model.to(self.device)
 
         self.model_type = self.model_name.split("_")[-2]
-        self.model_preprocess = get_model_preprocess(self.model_type)
 
         self.ids.model_label.text = self.model_type
 
@@ -701,18 +711,29 @@ class MLViewScreen(Screen, BaseScreen):
         print(self.model)
         self.update_all_button_states()
 
+    def log_gpu(self, tag, summary=False):
+        print(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
+        print(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB")
+        if summary:
+            print(torch.cuda.memory_summary())
+
     def unload_model(self):
+        self.log_gpu("--- Before")
+
         if self.model is None:
             return
 
-        self.model_name = None
+        self.model.to("cpu")
+        del self.model
         self.model = None
-        self.model_preprocess = None
+        self.model_name = None
 
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
+        gc.collect()
 
         self.unselect_model_btn()
-        print("unload complete")
+        print("Unload complete. GPU memory should be freed.")
+        self.log_gpu("--- After unload")
 
     def save_model(self):
         if self.model is None:
@@ -727,6 +748,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         torch.save(self.model.state_dict(), save_path)
         print("save complete")
+        self.update_all_button_states()
 
     def evaluate_model(self, data=None):
         if self.eval_event is not None:
@@ -820,8 +842,6 @@ class MLViewScreen(Screen, BaseScreen):
         )
         self.model.to(device=self.device)
 
-        self.model_preprocess = get_model_preprocess(self.model_type)
-
         for param in self.model.features.parameters():
             param.requires_grad = False
 
@@ -873,21 +893,11 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.model.eval()
 
-        transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),  # or your IMG_SHAPE
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-
         for selected in self.selected_images:
             path = selected.source
             image = Image.open(path).convert("RGB")
             image = (
-                transform(image).unsqueeze(0).to(self.device)
+                self.transform(image).unsqueeze(0).to(self.device)
             )  # Add batch dim and move to device
 
             with torch.no_grad():
@@ -1004,9 +1014,7 @@ class MLViewScreen(Screen, BaseScreen):
         )
 
         # Train
-        self.ids.train_btn.disabled = not (
-            is_model_loaded and is_model_named and not self.train_active
-        )
+        self.ids.train_btn.disabled = not (is_model_loaded and is_model_named)
 
         # Image selection info
         self.ids.unselect_all_images.disabled = not has_selection
