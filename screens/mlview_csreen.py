@@ -448,6 +448,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.train_active = True
         self.ids.train_btn.disabled = True
+        self.update_all_button_states()
         self.error_popup_clock("Open tensorboard to get status.", 5)
         Thread(target=self.train_model).start()
 
@@ -984,13 +985,22 @@ class MLViewScreen(Screen, BaseScreen):
         for btn in self.ids.model_grid.children:
             btn.text_color = "red" if btn.text == self.model_name else "white"
 
-        self.ids.model_unload.disabled = not (is_model_loaded and is_model_named)
-        self.ids.evaluate_btn.disabled = not (is_model_loaded and is_model_named)
-        self.ids.save_btn.disabled = not (is_model_loaded and is_model_named)
+        self.ids.model_unload.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
+        self.ids.evaluate_btn.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
+        self.ids.save_btn.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
 
         # Predict
         self.ids.predict_btn.disabled = not (
-            is_model_loaded and is_model_named and has_selection
+            is_model_loaded
+            and is_model_named
+            and has_selection
+            and not self.train_active
         )
 
         # Train
