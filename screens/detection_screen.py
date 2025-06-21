@@ -9,7 +9,6 @@ from functools import partial
 
 import cv2
 import numpy as np
-import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -610,3 +609,4 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
+        print(train_process)

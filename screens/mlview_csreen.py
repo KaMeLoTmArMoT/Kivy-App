@@ -277,7 +277,7 @@ class MLViewScreen(Screen, BaseScreen):
         try:
             shutil.rmtree(self.selected_dir_full)
         except FileNotFoundError as e:
-            print("No such file or directory, skipping")
+            print("No such file or directory, skipping", e)
 
         self.unselect_label_btn()
         self.load_classes()
@@ -629,7 +629,9 @@ class MLViewScreen(Screen, BaseScreen):
             self.writer.add_scalar("Accuracy/train", accuracy, epoch)
 
             print(
-                f"Epoch [{epoch + 1}/{total_epochs}], Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%\n"
+                f"Epoch [{epoch + 1}/{total_epochs}], "
+                f"Loss: {avg_loss:.4f}, "
+                f"Accuracy: {accuracy:.2f}%\n"
             )
 
     def select_model_type(self):
