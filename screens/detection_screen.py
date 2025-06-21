@@ -24,7 +24,8 @@ from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
-from utils import call_db, get_system_type
+from screens.db import DB
+from utils import get_system_type
 
 """
 Detection projects structure:
@@ -108,6 +109,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.selected_model = None
 
         self.yolo_generation = 11
+        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -133,25 +135,15 @@ class DetectionScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS configs (
-            name text unique,
-            value text
-        ) """
-        )
+        self.db.create_configs_table()
 
     def db_get_last_active_project(self):
-        val = call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
+        val = self.db.get_latest_detection_project()
         print("db get:", val, type(val))
         return val
 
     def db_set_last_active_project(self):
-        call_db(
-            f"INSERT OR REPLACE INTO configs VALUES "
-            f"('latest_detection_project', '{self.active_project}')"
-        )
+        self.db.set_latest_detection_project(self.active_project)
 
     def get_projects(self) -> list:
         projects = []
