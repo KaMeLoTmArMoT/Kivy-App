@@ -9,7 +9,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 
-from utils import call_db
+from screens.db import DB
 
 
 class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
@@ -18,6 +18,7 @@ class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
 
         self.allow_hover = False
         self.saved_color = None
+        self.db = DB()
 
     def on_enter(self):
         if self.allow_hover:
@@ -88,14 +89,7 @@ class BaseScreen:
         self.manager.current = screen_name
 
     def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            image blob
-        ) """
-        )
+        self.db.create_images_table()
 
     def toggle_load_label(self, mode):
         lbl: MDLabel = self.ids.load_label

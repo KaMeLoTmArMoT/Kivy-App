@@ -7,7 +7,8 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
-from utils import call_db, extend_key
+from screens.db import DB
+from utils import extend_key
 
 
 class DbViewScreen(Screen, BaseScreen):
@@ -20,6 +21,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.selected_images = []
         self.prev_line_color = None
         self.checkbox_first = None
+        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -39,7 +41,7 @@ class DbViewScreen(Screen, BaseScreen):
         import numpy as np
         from Cryptodome.Cipher import AES
 
-        db_images = call_db("SELECT * FROM images")
+        db_images = self.db.get_images()
         self.grid_1.clear_widgets()
         self.grid_2.clear_widgets()
         self.unselect_all_images()
@@ -193,7 +195,7 @@ class DbViewScreen(Screen, BaseScreen):
 
         for image in self.selected_images:
             key = int(image.source)
-            call_db(f"DELETE FROM images WHERE id={key}")
+            self.db.delete_image(key)
 
         self.unselect_all_images()
         self.show_db_images()

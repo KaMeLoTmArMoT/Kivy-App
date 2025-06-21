@@ -16,7 +16,8 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from utils import call_db, extend_key
+from screens.db import DB
+from utils import extend_key
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -38,6 +39,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.dropdown = None
         self.projects = []
+        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -228,7 +230,7 @@ class ImageViewScreen(Screen, BaseScreen):
                     cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
                     blob_data = cipher.encrypt(blob_data)
 
-                call_db("INSERT INTO images (image) VALUES (?)", [blob_data])
+                self.db.insert_image(blob_data)
         self.unselect_all_images()
         self.ids.selected_images.text = f"Added {num_images}"
 
