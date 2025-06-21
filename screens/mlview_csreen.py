@@ -16,6 +16,7 @@ import torch
 from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
+from kivy.metrics import dp
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -113,6 +114,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.num_predictions = 0
         self.transform = transforms.Compose(
             [
                 transforms.Resize((IMG_SHAPE[0], IMG_SHAPE[1])),
@@ -373,6 +375,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
+
+        # 1) The image button
         img = ImageMDButton(
             source=im_path,
             allow_stretch=True,
@@ -380,45 +384,88 @@ class MLViewScreen(Screen, BaseScreen):
             pos_hint={"center_x": 0.5, "center_y": 0.5},
             nocache=True,
         )
+        img.line_color = (1, 1, 1, 0.2)
+        img.bind(on_press=self.image_click)
 
+        # 2) The checkbox
         checkbox = MDCheckbox(
             size_hint=(None, None),
-            size=("48dp", "48dp"),
-            pos_hint={"center_x": 0.96, "center_y": 0.96},
+            size=(dp(48), dp(48)),
+            pos_hint={"right": 0.98, "top": 0.98},
         )
 
+        # 3) A fixed-height label container at the very bottom
+        label_container = BoxLayout(
+            size_hint=(1, None),
+            height=dp(30),
+            pos_hint={"x": 0, "y": 0},
+            padding=[dp(4), 0],
+            spacing=dp(4),
+        )
+        # Store it for later:
+        img.label_container = label_container
+
+        # Now wrap them all in one FloatLayout tile
         fl = MDFloatLayout()
         fl.add_widget(img)
         fl.add_widget(checkbox)
+        fl.add_widget(label_container)
 
-        img.line_color = (1.0, 1.0, 1.0, 0.2)
-        img.bind(on_press=self.image_click)
         self.ids.image_grid.add_widget(fl)
 
     def unselect_all_images(self):
-        instances = self.selected_images.copy()
-        for instance in instances:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
-            instance.parent.children[0].active = False
+        # Work on a copy since we'll mutate the original list
+        for instance in list(self.selected_images):
+            # Reset the image’s visuals
+            instance.md_bg_color = (1, 1, 1, 0)
+            instance.line_color = (1, 1, 1, 0.2)
+
+            # Find and uncheck its checkbox
+            container = instance.parent
+            checkbox = next(
+                (w for w in container.children if isinstance(w, MDCheckbox)), None
+            )
+            if checkbox:
+                checkbox.active = False
+
+            # Remove from our selection list
             self.selected_images.remove(instance)
+
         self.update_all_button_states()
+
+    def clear_predictions(self):
+        for tile in self.ids.image_grid.children:
+            for child in tile.children:
+                if isinstance(child, ImageMDButton):
+                    child.label_container.clear_widgets()
+        self.num_predictions = 0
+        self.unselect_all_images()
 
     def image_click(self, instance):
         # path = instance.source
+        container = instance.parent  # the MDFloatLayout tile
+
+        # find the checkbox in this tile
+        checkbox = next(
+            (w for w in container.children if isinstance(w, MDCheckbox)), None
+        )
+        if not checkbox:
+            return  # somehow no checkbox here
 
         if instance in self.selected_images:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
+            # Deselect
+            instance.md_bg_color = (1, 1, 1, 0)
+            instance.line_color = (1, 1, 1, 0.2)
             self.selected_images.remove(instance)
 
-            instance.parent.children[0].active = False
+            checkbox.active = False
         else:
-            instance.line_color = (1.0, 1.0, 1.0, 0.6)
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+            # Select
+            instance.md_bg_color = (1, 1, 1, 0.1)
+            instance.line_color = (1, 1, 1, 0.6)
             self.selected_images.append(instance)
 
-            instance.parent.children[0].active = True
+            checkbox.active = True
 
         self.update_all_button_states()
 
@@ -907,28 +954,23 @@ class MLViewScreen(Screen, BaseScreen):
             cls_name = self.classes[pred].replace("train/", "")
             print(f"CLS: |{cls_name}| ID: |{pred}|")
 
-            parent = selected.parent
-            existing_labels = [
-                child for child in parent.children if isinstance(child, MDLabel)
-            ]
-            for lbl in existing_labels:
-                parent.remove_widget(lbl)
-
-            label = MDLabel(
-                size_hint=(None, 0.25),
+            lc = selected.label_container
+            lc.clear_widgets()
+            lbl = MDLabel(
                 text=cls_name,
                 halign="center",
+                valign="middle",
                 theme_text_color="Custom",
                 text_color=(1, 1, 1, 1),
-                pos_hint={"center_x": 0.5, "top": 1.0},
-                font_size="26sp",
-                bold=True,
+                font_size="18sp",
+                size_hint=(1, 1),
                 md_bg_color=(0, 0, 0, 0.6),
-                padding=(6, 4),
             )
-            parent.add_widget(label)
+            lc.add_widget(lbl)
+            self.num_predictions += 1
 
         print()
+        self.update_all_button_states()
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
@@ -1015,6 +1057,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         # Train
         self.ids.train_btn.disabled = not (is_model_loaded and is_model_named)
+
+        self.ids.clear_predictions.disabled = not self.num_predictions
 
         # Image selection info
         self.ids.unselect_all_images.disabled = not has_selection

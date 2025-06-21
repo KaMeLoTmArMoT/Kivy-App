@@ -79,6 +79,15 @@
                     disabled: True
 
                 Button:
+                    id: clear_predictions
+                    text: 'Clear predictions'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.clear_predictions()
+                    disabled: True
+
+                Button:
                     id: open_class
                     text: 'Open class'
                     size_hint_y: 0.1
