@@ -1,62 +1,57 @@
 import configparser
 import os
 
-import tensorflow as tf
+import torch.nn as nn
+import torchvision.models as models
 
 from screens.configs import IMG_SHAPE
 
 
-def get_base_model(model_type):
-    if model_type == "MobileNet":
-        model = tf.keras.applications.MobileNet(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "DenseNet121":
-        model = tf.keras.applications.DenseNet121(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "NASNetMobile":
-        model = tf.keras.applications.NASNetMobile(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetB0":
-        model = tf.keras.applications.EfficientNetB0(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetB1":
-        model = tf.keras.applications.EfficientNetB1(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetV2B0":
-        model = tf.keras.applications.EfficientNetV2B0(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    elif model_type == "EfficientNetV2B1":
-        model = tf.keras.applications.EfficientNetV2B1(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
-    else:  # "MobileNetV2"
-        model = tf.keras.applications.MobileNetV2(
-            input_shape=IMG_SHAPE, include_top=False, weights="imagenet"
-        )
+def get_base_model(model_type: str, num_classes: int, no_weights=False):
+    # Weights handling
+    pretrained = not no_weights
+    weights = None  # For newer versions, if needed
+
+    model_type = model_type.lower()
+
+    if model_type == "mobilenetv2":
+        weights = models.MobileNet_V2_Weights.DEFAULT if not no_weights else None
+        model = models.mobilenet_v2(weights=weights)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+
+    elif model_type == "mobilenetv3":
+        weights = models.MobileNet_V3_Large_Weights.DEFAULT if not no_weights else None
+        model = models.mobilenet_v3_large(weights=weights)
+        model.classifier[3] = nn.Linear(model.classifier[3].in_features, num_classes)
+
+    elif model_type == "resnet":
+        model = models.resnet18(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    elif model_type == "resnext":
+        model = models.resnext50_32x4d(pretrained=pretrained)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    elif model_type == "efficientnet":
+        model = models.efficientnet_b0(pretrained=pretrained)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+
+    elif model_type == "efficientnetv2":
+        model = models.efficientnet_v2_s(pretrained=pretrained)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+
+    elif model_type == "alexnet":
+        model = models.alexnet(pretrained=pretrained)
+        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
+
+    elif model_type == "vgg":
+        model = models.vgg11(pretrained=pretrained)
+        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
+
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
 
     return model
-
-
-def get_model_preprocess(model_type):
-    if model_type in ["DenseNet121"]:
-        preprocess = tf.keras.layers.Rescaling(1.0 / 255)
-    elif model_type in [
-        "EfficientNetB0",
-        "EfficientNetB1",
-        "EfficientNetV2B0",
-        "EfficientNetV2B1",
-    ]:
-        preprocess = tf.keras.layers.Rescaling(1.0)
-    else:  # "MobileNet" "MobileNetV2" "NASNetMobile"
-        preprocess = tf.keras.layers.Rescaling(1.0 / 127.5, offset=-1)
-
-    return preprocess
 
 
 def create_config_file(model_name, model_type, num_classes, classes, config_dir):

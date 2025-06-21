@@ -47,22 +47,26 @@
 
             Button:
                 id: choose_image
-                size_hint_x: 0.3
-                text: 'Choose image'
+                size_hint_x: 0.4
+                text: 'Choose image source'
                 background_color: (1, 1, 1, .5)
                 on_press: root.file_chooser_popup()
 
             Button:
+                id: to_db_simple_btn
                 size_hint_x: 0.3
                 text: 'To DB (simple)'
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_db(enc=False)
+                disabled: True
 
             Button:
+                id: to_db_protect_btn
                 size_hint_x: 0.3
                 text: 'To DB (protect)'
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_db(enc=True)
+                disabled: True
 
             Button:
                 id: to_ml_btn
@@ -70,6 +74,7 @@
                 text: 'To ML'
                 background_color: (1, 1, 1, .5)
                 on_press: root.save_img_to_ml()
+                disabled: True
 
             Button:
                 id: select_unselect_action_button

@@ -42,3 +42,14 @@ def extend_key(text):
         while len(text) < 16:
             text += text
     return text[:16].encode("utf-8")
+
+
+def get_system_type():
+    if sys.platform == "win32":
+        return "Windows"
+    elif sys.platform == "darwin":
+        return "MacOS"
+    elif sys.platform == "linux":
+        return "Linux"
+    else:
+        return "Unknown"

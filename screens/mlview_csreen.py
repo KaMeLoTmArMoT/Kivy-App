@@ -1,17 +1,22 @@
 import datetime
+import gc
 import io
 import os
+import platform
 import shutil
+import sys
 import time
 import webbrowser
+from collections import deque
 from math import ceil
 from threading import Thread
 
 import numpy as np
-import tensorflow as tf
+import torch
 from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
+from kivy.metrics import dp
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -23,17 +28,20 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
+from PIL import Image
 from tensorboard import program
+from torch import nn, optim
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, chrome_path
-from screens.ml import (
-    create_config_file,
-    get_base_model,
-    get_model_preprocess,
-    read_config_file,
-)
+from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, MEAN, STD, chrome_path
+from screens.ml import create_config_file, get_base_model, read_config_file
 from utils import extend_key
 
 
@@ -45,28 +53,34 @@ class MLViewScreen(Screen, BaseScreen):
         BaseScreen.__init__(self)
         self.key = ""
         self.selected_dir = None
+        self.selected_dir_full = None
         self.selected_images = []
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.touch_time = time.time()
         self.train_active = False
+        self.terminate_training = False
         self.load_event = None
         self.page = 1
         self.total_pages = None
 
         self.selected_model = None
-        self.model = None
-        self.base_model = None
-        self.model_preprocess = None
+        self.model: nn.Module = None
         self.model_name = None
+        self.criterion = None
+        self.optimizer = None
+        self.writer = None
+        self.total_steps = None
+        self.processed_steps = None
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
         self.num_classes = 0
         self.classes = None
         self.tensorboard = None
+        self.tensorboard_url = None
 
-        self.data = None
+        self.data_iter = None
         self.eval_event = None
         self.acc = None
         self.loss = None
@@ -91,11 +105,23 @@ class MLViewScreen(Screen, BaseScreen):
         self.tensorboard_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
+        os.makedirs(self.images_path, exist_ok=True)
 
         self.dropdown = None
         self.projects = []
         self.popup = None
         self.main_button = self.ids.project_label
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.num_predictions = 0
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((IMG_SHAPE[0], IMG_SHAPE[1])),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN, std=STD),
+            ]
+        )
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -112,6 +138,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.exit_screen = False
         self.main_button.text = self.active_project
 
+        self.ids.class_input.bind(text=self.on_text_input_class)
+        self.ids.model_input.bind(text=self.on_text_input_model)
+
+        print(f"USING DEVICE {self.device}")
+
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
         self.active_project_folder = os.path.join(
@@ -126,10 +157,17 @@ class MLViewScreen(Screen, BaseScreen):
             self.active_project_folder, "tensorboard"
         )
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Using device:", self.device)
+
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
 
-        btn = MDLabelBtn(text="all")
+        btn = MDLabelBtn(
+            text="all",
+            theme_text_color="Custom",
+            text_color="red",
+        )
         btn.bind(on_press=self.select_label_btn)
         self.ids.class_grid.add_widget(btn)
 
@@ -140,25 +178,33 @@ class MLViewScreen(Screen, BaseScreen):
         for file in os.listdir(self.ml_train_folder):
             path = os.path.join(self.ml_train_folder, file)
             if os.path.isdir(path):
-                btn = MDLabelBtn(text="train\\" + file)
+                btn = MDLabelBtn(
+                    text="train/" + file,
+                    theme_text_color="Custom",
+                    text_color="white",
+                )
                 btn.bind(on_press=self.select_label_btn)
                 self.ids.class_grid.add_widget(btn)
 
     def select_label_btn(self, instance):
         print(f"The label button <{instance.text}> is being pressed")
-        if self.selected_dir:
-            if instance.uid == self.selected_dir.uid:
-                # custom double touch event
-                self.unselect_label_btn()
 
-                if time.time() - self.touch_time < 0.2:
-                    if self.ids.open.disabled:
-                        return
+        current_time = time.time()
+        double_click_threshold = 0.3
+        is_same_button = self.selected_dir and instance.uid == self.selected_dir.uid
+        time_diff = current_time - getattr(self, "touch_time", 0)
 
+        # TODO: fix if already selected
+        if is_same_button:
+            if time_diff < double_click_threshold:
+                if not self.ids.open_class.disabled:
                     path = os.path.join(self.active_project_folder, instance.text)
-                    print(instance.text)
-                    print(path)
+                    print("Double-click: opening", path)
                     self.show_folder_images(path, new=True)
+                return
+            else:
+                print("Single-click: deselect")
+                self.unselect_label_btn()
                 return
 
         # reset selection
@@ -168,12 +214,27 @@ class MLViewScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected_dir = instance
-        self.touch_time = time.time()
+        self.selected_dir_full = (
+            os.path.join(self.active_project_folder, self.selected_dir.text)
+            if self.selected_dir
+            else None
+        )
+        self.touch_time = current_time
+
+        self.ids.delete_class.disabled = instance.text == "all"
+        self.ids.open_class.disabled = self.selected_dir_full == self.cur_dir
+
+        self.update_all_button_states()
 
     def unselect_label_btn(self):
         self.selected_dir = None
+        self.selected_dir_full = None
         for btn in self.ids.class_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        self.ids.delete_class.disabled = True
+        self.ids.open_class.disabled = True
+        self.update_all_button_states()
 
     def add_class(self):
         name = self.ids.class_input.text
@@ -213,20 +274,21 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Can`t delete main dir!")
             return
 
-        path = os.path.join(self.active_project_folder, self.selected_dir.text)
-        print("!!!!!", path)
-        shutil.rmtree(path)
+        try:
+            shutil.rmtree(self.selected_dir_full)
+        except FileNotFoundError as e:
+            print("No such file or directory, skipping", e)
 
         self.unselect_label_btn()
         self.load_classes()
 
+        # TODO: if delete cur dataset - switch to all tab
+
     def disable_switch_buttons(self):
-        self.ids.open.disabled = True
         self.ids.prev_page.disabled = True
         self.ids.next_page.disabled = True
 
     def enable_switch_buttons(self):
-        self.ids.open.disabled = False
         self.ids.prev_page.disabled = False
         self.ids.next_page.disabled = False
 
@@ -245,8 +307,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.toggle_load_label("on")
         if path is None:  # TODO: re-check if we call without path
-            path = os.path.join(self.active_project_folder, self.selected_dir.text)
-            print(path)
+            path = self.selected_dir_full
 
         if os.path.isdir(path):
             files = os.listdir(path)
@@ -264,6 +325,10 @@ class MLViewScreen(Screen, BaseScreen):
             self.page = 1
             print("reset page")
 
+            for btn in self.ids.class_grid.children:
+                btn.text_color = "white"
+            self.selected_dir.text_color = "red"
+
         self.disable_switch_buttons()  # disable load button
         self.cur_dir = path
 
@@ -275,6 +340,7 @@ class MLViewScreen(Screen, BaseScreen):
         n_images = len(self.images_to_load)
         self.total_pages = ceil(n_images / MAX_IMAGES_PER_PAGE)
         self.toggle_switch_buttons()
+        self.ids.open_class.disabled = True
 
         self.update_page_counter()
         if n_images > MAX_IMAGES_PER_PAGE:
@@ -309,6 +375,8 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
+
+        # 1) The image button
         img = ImageMDButton(
             source=im_path,
             allow_stretch=True,
@@ -316,69 +384,119 @@ class MLViewScreen(Screen, BaseScreen):
             pos_hint={"center_x": 0.5, "center_y": 0.5},
             nocache=True,
         )
+        img.line_color = (1, 1, 1, 0.2)
+        img.bind(on_press=self.image_click)
 
+        # 2) The checkbox
         checkbox = MDCheckbox(
             size_hint=(None, None),
-            size=("48dp", "48dp"),
-            pos_hint={"center_x": 0.96, "center_y": 0.96},
+            size=(dp(48), dp(48)),
+            pos_hint={"right": 0.98, "top": 0.98},
         )
 
+        # 3) A fixed-height label container at the very bottom
+        label_container = BoxLayout(
+            size_hint=(1, None),
+            height=dp(30),
+            pos_hint={"x": 0, "y": 0},
+            padding=[dp(4), 0],
+            spacing=dp(4),
+        )
+        # Store it for later:
+        img.label_container = label_container
+
+        # Now wrap them all in one FloatLayout tile
         fl = MDFloatLayout()
         fl.add_widget(img)
         fl.add_widget(checkbox)
+        fl.add_widget(label_container)
 
-        img.line_color = (1.0, 1.0, 1.0, 0.2)
-        img.bind(on_press=self.image_click)
         self.ids.image_grid.add_widget(fl)
 
     def unselect_all_images(self):
-        instances = self.selected_images.copy()
-        for instance in instances:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
-            instance.parent.children[0].active = False
+        # Work on a copy since we'll mutate the original list
+        for instance in list(self.selected_images):
+            # Reset the image’s visuals
+            instance.md_bg_color = (1, 1, 1, 0)
+            instance.line_color = (1, 1, 1, 0.2)
+
+            # Find and uncheck its checkbox
+            container = instance.parent
+            checkbox = next(
+                (w for w in container.children if isinstance(w, MDCheckbox)), None
+            )
+            if checkbox:
+                checkbox.active = False
+
+            # Remove from our selection list
             self.selected_images.remove(instance)
+
+        self.update_all_button_states()
+
+    def clear_predictions(self):
+        for tile in self.ids.image_grid.children:
+            for child in tile.children:
+                if isinstance(child, ImageMDButton):
+                    child.label_container.clear_widgets()
+        self.num_predictions = 0
+        self.unselect_all_images()
 
     def image_click(self, instance):
-        path = instance.source
+        # path = instance.source
+        container = instance.parent  # the MDFloatLayout tile
+
+        # find the checkbox in this tile
+        checkbox = next(
+            (w for w in container.children if isinstance(w, MDCheckbox)), None
+        )
+        if not checkbox:
+            return  # somehow no checkbox here
 
         if instance in self.selected_images:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
+            # Deselect
+            instance.md_bg_color = (1, 1, 1, 0)
+            instance.line_color = (1, 1, 1, 0.2)
             self.selected_images.remove(instance)
 
-            instance.parent.children[0].active = False
+            checkbox.active = False
         else:
-            instance.line_color = (1.0, 1.0, 1.0, 0.6)
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+            # Select
+            instance.md_bg_color = (1, 1, 1, 0.1)
+            instance.line_color = (1, 1, 1, 0.6)
             self.selected_images.append(instance)
 
-            instance.parent.children[0].active = True
+            checkbox.active = True
+
+        self.update_all_button_states()
 
     def transfer_images(self):
         if len(self.selected_images) == 0 or self.selected_dir is None:
             self.error_popup_clock("Select images and dir!")
             return
 
-        in_dir = self.cur_dir
-        out_dir = os.path.join(self.active_project_folder, self.selected_dir.text)
+        print(self.cur_dir)
+        print(self.selected_dir_full)
 
-        print(in_dir)
-        print(out_dir)
-
-        if in_dir == out_dir:
+        if self.cur_dir == self.selected_dir_full:
             self.error_popup_clock("Can`t paste to same dir!")
             return
 
         for image in self.selected_images:
-            out_img = image.source.replace(in_dir, out_dir)
+            out_img = image.source.replace(self.cur_dir, self.selected_dir_full)
             shutil.move(image.source, out_img)
 
         self.unselect_all_images()
         self.unselect_label_btn()
-        self.show_folder_images(in_dir)
+        self.show_folder_images(self.cur_dir)
 
     def trigger_training(self):
+        if self.train_active:
+            print("Training termination requested")
+            self.terminate_training = True
+            self.ids.train_btn.text = "Train"
+            self.ids.train_btn.disabled = True  # Temporarily disable until cleanup
+            return
+
         if self.model is None:
             if self.selected_model:
                 self.load_model()
@@ -387,7 +505,10 @@ class MLViewScreen(Screen, BaseScreen):
                 return
 
         self.train_active = True
-        self.ids.train.disabled = True
+        self.terminate_training = False
+        self.ids.train_btn.text = "Stop"
+        self.ids.train_btn.disabled = False
+        self.update_all_button_states()
         self.error_popup_clock("Open tensorboard to get status.", 5)
         Thread(target=self.train_model).start()
 
@@ -407,44 +528,111 @@ class MLViewScreen(Screen, BaseScreen):
             self.page += 1
             self.show_folder_images(self.cur_dir)
 
-    def prepare_dataset(self, batch_size=8):
-        img_height, img_width = 224, 224
-
-        train_ds = tf.keras.utils.image_dataset_from_directory(
-            self.ml_train_folder,
-            image_size=(img_height, img_width),
-            batch_size=batch_size,
+    def prepare_dataset(self, batch_size=8, shuffle=True):
+        print(f"load dataset from {self.ml_train_folder}")
+        test_dataset = ImageFolder(root=self.ml_train_folder, transform=self.transform)
+        testloader = DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=4
         )
 
-        # class_names = train_ds.class_names
-        # num_classes = len(class_names)
-
-        normalized_ds = train_ds.map(lambda x, y: (self.model_preprocess(x), y))
-        return normalized_ds
+        return testloader
 
     def train_model(self):
-        normalized_ds = self.prepare_dataset()
+        epochs_s1 = 5
+        epochs_s2 = 5
 
-        self.model.compile(
-            optimizer="adam",
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=["accuracy"],
-        )
+        lr_s1 = 1e-4
+        lr_s2 = 1e-5
+
+        normalized_ds = self.prepare_dataset(shuffle=True)
+        self.model.train()
 
         log_dir = os.path.join(
             self.tensorboard_folder,
             datetime.datetime.now().strftime("%Y_%m_%d-%H_%M") + f"_{self.model_name}",
         )
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=log_dir, histogram_freq=1
-        )
 
-        self.model.fit(normalized_ds, epochs=5, callbacks=[tensorboard_callback])
+        self.writer = SummaryWriter(log_dir=log_dir)
+        self.criterion = nn.CrossEntropyLoss()
 
-        # self.evaluate_model(normalized_ds)
-        self.train_active = False
-        self.ids.train.disabled = False
-        self.save_model()
+        try:
+            print("\n--- Stage 1: Fine-tuning the classifier ---")
+            for p in self.model.features.parameters():
+                p.requires_grad = False
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s1)
+            self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
+
+            print("\n--- Stage 2: Unfreeze all layers ---")
+            for p in self.model.parameters():
+                p.requires_grad = True
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s2)
+            self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
+
+        finally:
+            # self.evaluate_model(normalized_ds)
+            self.train_active = False
+            self.terminate_training = False
+            self.ids.train_btn.text = "Train"
+            self.ids.train_btn.disabled = False
+            self.update_all_button_states()
+            self.save_model()
+            if self.writer:
+                self.writer.close()
+
+    def train_cycle(self, epochs, dataset, start_epoch=0):
+        smooth_window = 100
+        total_epochs = start_epoch + epochs
+
+        for epoch_idx in range(epochs):
+            if self.terminate_training:
+                print("Training terminated by user")
+                return
+
+            epoch = start_epoch + epoch_idx
+            running_loss = 0.0
+            correct, total = 0, 0
+            loss_window = deque(maxlen=smooth_window)
+
+            progress_bar = tqdm(
+                dataset,
+                desc=f"Epoch {epoch + 1}/{total_epochs}",
+                file=sys.stdout,
+            )
+
+            for images, labels in progress_bar:
+                if self.terminate_training:
+                    print("Early termination inside batch")
+                    return
+
+                images, labels = images.to(self.device), labels.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                loss_value = loss.item()
+                running_loss += loss_value
+
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+                loss_window.append(loss_value)
+                smoothed_loss = np.mean(loss_window)
+                progress_bar.set_postfix(loss=f"{smoothed_loss:.4f}")
+
+            avg_loss = running_loss / len(dataset)
+            accuracy = 100 * correct / total
+
+            self.writer.add_scalar("Loss/train", avg_loss, epoch)
+            self.writer.add_scalar("Accuracy/train", accuracy, epoch)
+
+            print(
+                f"Epoch [{epoch + 1}/{total_epochs}], "
+                f"Loss: {avg_loss:.4f}, "
+                f"Accuracy: {accuracy:.2f}%\n"
+            )
 
     def select_model_type(self):
         popup = Popup(
@@ -463,14 +651,14 @@ class MLViewScreen(Screen, BaseScreen):
         box_inner.add_widget(lbl2_2)
 
         model_types = [
-            ["MobileNet", 4.3, 70.4],
-            ["MobileNetV2", 3.5, 71.3],
-            ["DenseNet121", 8.1, 75.0],
-            ["NASNetMobile", 5.3, 74.4],
-            ["EfficientNetB0", 5.3, 77.1],
-            ["EfficientNetB1", 7.9, 79.1],
-            ["EfficientNetV2B0", 7.2, 78.7],
-            ["EfficientNetV2B1", 8.2, 79.8],
+            ["MobileNetV2", 3.5, 72.15],  # TODO v2
+            ["MobileNetV3", 5.5, 75.27],  # TODO large one, v2
+            ["ResNet", 11.7, 69.76],  # TODO 18
+            ["ResNeXt", 25.0, 81.20],  # TODO 50_32x4d, v2
+            ["EfficientNet", 5.3, 77.69],  # TODO b0
+            ["EfficientNetV2", 21.5, 84.23],  # TODO s
+            ["AlexNet", 61.1, 56.52],  # TODO
+            ["VGG", 132.9, 69.02],  # TODO 11
         ]
 
         grid = GridLayout(cols=2)
@@ -534,48 +722,82 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.model_name = self.selected_model.text
-        self.model = tf.keras.models.load_model(
-            os.path.join(self.ml_models_folder, self.model_name)
-        )
+        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
+        save_path = os.path.join(model_dir, self.model_name + ".pth")
+        print("load model:", save_path)
 
         config_path = os.path.join(self.ml_configs_folder, self.model_name + ".conf")
         print("load model config path", config_path)
         if os.path.exists(config_path):
-            model_type, num_classes, img_shape, classes = read_config_file(config_path)
-            self.classes = classes
-            print(model_type, num_classes, img_shape)
-            # TODO: use config, not just load
+            (
+                self.model_type,
+                self.num_classes,
+                self.img_shape,
+                self.classes,
+            ) = read_config_file(config_path)
+            print(self.model_type, self.num_classes, self.img_shape, self.classes)
+            print(
+                f"type: {self.model_type}\n"
+                f"shape: {self.img_shape}\n"
+                f"classes: {self.classes}\n"
+            )
+
+        print(f"create base with {self.model_type=}, {self.num_classes=}")
+        self.model = get_base_model(
+            self.model_type,
+            num_classes=self.num_classes,
+            no_weights=True,
+        )
+        state_dict = torch.load(save_path, map_location=self.device)
+        self.model.load_state_dict(state_dict)
+        self.model.to(self.device)
 
         self.model_type = self.model_name.split("_")[-2]
-        self.model_preprocess = get_model_preprocess(self.model_type)
 
         self.ids.model_label.text = self.model_type
 
         print("load complete")
-        self.model.summary()
+        print(self.model)
+        self.update_all_button_states()
+
+    def log_gpu(self, tag, summary=False):
+        print(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
+        print(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB")
+        if summary:
+            print(torch.cuda.memory_summary())
 
     def unload_model(self):
+        self.log_gpu("--- Before")
+
         if self.model is None:
             return
 
-        self.model_name = None
+        self.model.to("cpu")
+        del self.model
         self.model = None
-        self.base_model = None
-        self.model_preprocess = None
+        self.model_name = None
 
-        tf.keras.backend.clear_session()
+        torch.cuda.empty_cache()
+        gc.collect()
 
         self.unselect_model_btn()
-        print("unload complete")
+        print("Unload complete. GPU memory should be freed.")
+        self.log_gpu("--- After unload")
 
     def save_model(self):
         if self.model is None:
+            print("No model to save.")
             return
 
         # TODO: if change ach and save - have wrong name, test it.
-        path = os.path.join(self.active_project_folder, "models", self.model_name)
-        self.model.save(path)
+        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
+        os.makedirs(model_dir, exist_ok=True)
+
+        save_path = os.path.join(model_dir, self.model_name + ".pth")
+
+        torch.save(self.model.state_dict(), save_path)
         print("save complete")
+        self.update_all_button_states()
 
     def evaluate_model(self, data=None):
         if self.eval_event is not None:
@@ -592,46 +814,61 @@ class MLViewScreen(Screen, BaseScreen):
                 self.error_popup_clock("Select/Load model first!")
                 return
             else:
+                # in case model selected but not loaded
                 self.load_model()
 
+        self.model.eval()
         if data is None:
-            data = self.prepare_dataset(32)
+            data = self.prepare_dataset(batch_size=32, shuffle=False)
 
-        self.data = list(data)
+        self.loss = None
+        self.acc = None
+        self.total_steps = len(data)
+        self.processed_steps = 0
+
+        # Convert DataLoader into list of batches
+        self.data_iter = iter(data)
         self.toggle_error_popup("on", "Start eval...")
+
+        self.criterion = torch.nn.CrossEntropyLoss()
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
 
     def async_eval_cycle(self):
-        iters = len(self.data)
-        if iters % 100 == 0:
-            print(len(self.data))
-            self.toggle_error_popup(
-                "on",
-                f"iters: {iters} "
-                f"loss: {round(self.loss, 3)} "
-                f"acc: {round(self.acc, 3)}",
-            )
-
-        if iters == 0:
+        try:
+            images, labels = next(self.data_iter)
+            self.processed_steps += 1
+        except StopIteration:
             Clock.unschedule(self.eval_event)
             self.eval_event = None
             self.toggle_error_popup("off")
-            print(f"Eval loss: {self.loss}, acc: {self.acc}")
+            print(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
             self.ids.evaluate_btn.text = "Evaluate"
             return
 
-        batch = self.data.pop()
-        print("batch len")
-        print(len(batch))
-        print(len(batch[0]))
-        loss, acc = self.model.evaluate(batch[0], batch[1], verbose=0)
+        images = images.to(self.device)
+        labels = labels.to(self.device)
 
-        if self.loss is None and self.acc is None:
-            self.loss, self.acc = loss, acc
+        with torch.no_grad():
+            outputs = self.model(images)
+            loss = self.criterion(outputs, labels)
+            _, predicted = torch.max(outputs, 1)
+            correct = (predicted == labels).sum().item()
+            accuracy = correct / labels.size(0)
+
+        # Sliding window averaging
+        if self.loss is None or self.acc is None:
+            self.loss, self.acc = loss.item(), accuracy
         else:
-            self.loss, self.acc = (self.loss + loss) / 2, (self.acc + acc) / 2
+            self.loss = self.loss * 0.9 + loss.item() * 0.1
+            self.acc = self.acc * 0.9 + accuracy * 0.1
+
+        self.toggle_error_popup(
+            "on",
+            f"[{self.processed_steps}/{self.total_steps}] "
+            f"Loss: {round(self.loss, 4)} | Acc: {round(self.acc, 4)}",
+        )
 
     def create_model(self, name):
         if name == "":
@@ -648,39 +885,17 @@ class MLViewScreen(Screen, BaseScreen):
 
         print("creating", self.model_name)
 
-        self.base_model = get_base_model(self.model_type)
-        self.model_preprocess = get_model_preprocess(self.model_type)
-        self.base_model.trainable = False
-
-        inputs = tf.keras.Input(shape=IMG_SHAPE)
-        x = self.base_model(inputs, training=False)
-        x = tf.keras.layers.GlobalAveragePooling2D()(x)
-        outputs = tf.keras.layers.Dense(self.num_classes)(x)
-        self.model = tf.keras.Model(inputs, outputs)
-        print("create complete")
-        print(self.model.summary())
-
-        # print('trainable 1: ', len(self.model.trainable_variables))
-
-        # layers = len(self.base_model.layers)
-        # print("Number of layers in the base model: ", layers)
-
-        # self.base_model.trainable = True
-
-        # fine_tune_from = int(layers / 4 * 3)
-        # print("fine_tune_from: ", fine_tune_from)
-
-        # for layer in self.base_model.layers[:fine_tune_from]:
-        #     layer.trainable = False
-
-        # print(self.model.summary())
-        # print('trainable 2: ', len(self.model.trainable_variables))
-
-        self.model.compile(
-            optimizer="adam",
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=["accuracy"],
+        self.model = get_base_model(
+            self.model_type,
+            num_classes=self.num_classes,
         )
+        self.model.to(device=self.device)
+
+        for param in self.model.features.parameters():
+            param.requires_grad = False
+
+        print("create complete")
+        print(self.model)
 
         self.classes = sorted(
             [
@@ -710,6 +925,7 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         path = os.path.join(self.ml_models_folder, self.selected_model.text)
+        print("delete model from:", path)
         shutil.rmtree(path)
         config_path = os.path.join(
             self.ml_configs_folder, self.selected_model.text + ".conf"
@@ -720,21 +936,43 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
-        # TODO: check if model is loaded
         if self.selected_images is None or self.model is None:
             self.error_popup_clock("Select model and images!")
             return
 
+        self.model.eval()
+
         for selected in self.selected_images:
             path = selected.source
-            image = tf.keras.preprocessing.image.load_img(path, target_size=IMG_SHAPE)
-            image = self.model_preprocess(image)
-            image = np.expand_dims(image, axis=0)
-            pred = self.model.predict(image)
-            pred = np.argmax(pred, axis=1)[0]
-            print(pred, self.classes)
-            print(self.classes[pred], pred, end=", ")
+            image = Image.open(path).convert("RGB")
+            image = (
+                self.transform(image).unsqueeze(0).to(self.device)
+            )  # Add batch dim and move to device
+
+            with torch.no_grad():
+                output = self.model(image)
+                pred = torch.argmax(output, dim=1).item()
+
+            cls_name = self.classes[pred].replace("train/", "")
+            print(f"CLS: |{cls_name}| ID: |{pred}|")
+
+            lc = selected.label_container
+            lc.clear_widgets()
+            lbl = MDLabel(
+                text=cls_name,
+                halign="center",
+                valign="middle",
+                theme_text_color="Custom",
+                text_color=(1, 1, 1, 1),
+                font_size="18sp",
+                size_hint=(1, 1),
+                md_bg_color=(0, 0, 0, 0.6),
+            )
+            lc.add_widget(lbl)
+            self.num_predictions += 1
+
         print()
+        self.update_all_button_states()
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
@@ -745,8 +983,13 @@ class MLViewScreen(Screen, BaseScreen):
 
         for file in os.listdir(self.ml_models_folder):
             path = os.path.join(self.ml_models_folder, file)
+            print("------", path)
             if os.path.isdir(path):
-                btn = MDLabelBtn(text=file)
+                btn = MDLabelBtn(
+                    text=file,
+                    theme_text_color="Custom",
+                    text_color="white",
+                )
                 btn.bind(on_press=self.select_model_btn)
                 self.ids.model_grid.add_widget(btn)
 
@@ -765,11 +1008,75 @@ class MLViewScreen(Screen, BaseScreen):
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
         self.selected_model = instance
+        self.update_all_button_states()
+
+    def update_all_button_states(self):
+        has_selection = bool(self.selected_images)
+        can_transfer = (
+            has_selection
+            and self.selected_dir
+            and self.cur_dir != self.selected_dir_full
+        )
+        is_model_selected = bool(self.selected_model)
+        is_model_loaded = bool(self.model)
+        is_model_named = bool(self.model_name)
+        model_name_differs = (
+            is_model_selected and self.selected_model.text != self.model_name
+        )
+
+        # Transfer button
+        self.ids.transfer_image.disabled = not can_transfer
+
+        # Rotate buttons
+        self.ids.rotate_right.disabled = not has_selection
+        self.ids.rotate_left.disabled = not has_selection
+
+        # Model control buttons
+        self.ids.model_load.disabled = not (is_model_selected and not is_model_named)
+        self.ids.model_delete.disabled = not model_name_differs
+
+        # Highlight active model
+        for btn in self.ids.model_grid.children:
+            btn.text_color = "red" if btn.text == self.model_name else "white"
+
+        self.ids.model_unload.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
+        self.ids.evaluate_btn.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
+        self.ids.save_btn.disabled = not (
+            is_model_loaded and is_model_named and not self.train_active
+        )
+
+        # Predict
+        self.ids.predict_btn.disabled = not (
+            is_model_loaded
+            and is_model_named
+            and has_selection
+            and not self.train_active
+        )
+
+        # Train
+        self.ids.train_btn.disabled = not (is_model_loaded and is_model_named)
+
+        self.ids.clear_predictions.disabled = not self.num_predictions
+
+        # Image selection info
+        self.ids.unselect_all_images.disabled = not has_selection
+        self.ids.num_selected_images.text = (
+            f"{len(self.selected_images)}" if has_selection else ""
+        )
+
+        tb_folder_exists = os.path.isdir(self.tensorboard_folder)
+        empty_tb_folder = len(os.listdir(self.tensorboard_folder)) != 0
+        self.ids.tensorboard_btn.disabled = not (tb_folder_exists and empty_tb_folder)
 
     def unselect_model_btn(self):
         self.selected_model = None
         for btn in self.ids.model_grid.children:
             btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+        self.update_all_button_states()
 
     def launch_tensorboard(self):
         if not os.path.isdir(self.tensorboard_folder):
@@ -780,13 +1087,29 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("No data to show TB!")
             return
         # TODO: check freeze issue here.
+
         if self.tensorboard is None:
             self.tensorboard = program.TensorBoard()
             self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
-            url = self.tensorboard.launch()
-            print(f"{url=}")
+            self.tensorboard_url = self.tensorboard.launch()
+            print(f"{self.tensorboard_url=}")
 
-        webbrowser.get(chrome_path).open(url)
+        system_platform = platform.system()
+
+        if system_platform == "Windows":
+            webbrowser.get(chrome_path).open(self.tensorboard_url)
+        elif system_platform == "Linux":
+            for browser in ["google-chrome", "chromium", "xdg-open"]:
+                if shutil.which(browser):
+                    webbrowser.get(browser).open(self.tensorboard_url)
+                    break
+            else:
+                print("No known browser found. Please install chrome or use xdg-open.")
+        else:
+            print("Unknown operating system.")
+            webbrowser.open(self.tensorboard_url)
+
+        self.update_all_button_states()
 
     def rotate(self, side):
         import cv2
@@ -914,7 +1237,6 @@ class MLViewScreen(Screen, BaseScreen):
                 self.dropdown.add_widget(btn)
 
             btn_new = Button(text="New project", size_hint_y=None, height=44)
-            # TODO: grab new project name from popup
             btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
             btn_new.background_color = 0.5, 0.9, 0.5, 1
             self.dropdown.add_widget(btn_new)
@@ -926,3 +1248,19 @@ class MLViewScreen(Screen, BaseScreen):
             self.projects = projects
         else:
             print("use bind")
+
+    def on_text_input_class(self, instance, value):
+        text = self.ids.class_input.text
+
+        if len(text) > 0:
+            self.ids.add_class.disabled = False
+        else:
+            self.ids.add_class.disabled = True
+
+    def on_text_input_model(self, instance, value):
+        text = self.ids.model_input.text
+
+        if len(text) > 0:
+            self.ids.create_model.disabled = False
+        else:
+            self.ids.create_model.disabled = True

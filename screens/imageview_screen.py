@@ -13,7 +13,6 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
@@ -32,7 +31,10 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
         self.loaded_hash = ""
-        self.path = "G://Downloads//photo"  # TODO:remove static path
+        self.path = os.path.join(os.getcwd(), "data")
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path, exist_ok=True)
 
         self.dropdown = None
         self.projects = []
@@ -191,7 +193,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.grid.add_widget(fl)
 
     def image_click(self, instance):
-        path = instance.source
+        # path = instance.source
 
         if instance in self.selected_images:
             instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
@@ -207,6 +209,7 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.parent.children[0].active = True
 
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def save_img_to_db(self, enc):
         from Cryptodome.Cipher import AES
@@ -225,7 +228,7 @@ class ImageViewScreen(Screen, BaseScreen):
                     cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
                     blob_data = cipher.encrypt(blob_data)
 
-                call_db(f"INSERT INTO images (image) VALUES (?)", [blob_data])
+                call_db("INSERT INTO images (image) VALUES (?)", [blob_data])
         self.unselect_all_images()
         self.ids.selected_images.text = f"Added {num_images}"
 
@@ -305,6 +308,7 @@ class ImageViewScreen(Screen, BaseScreen):
             instance.parent.children[0].active = False
             self.selected_images.remove(instance)
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def select_all_images(self):
         for float_layout in self.grid.children:
@@ -317,6 +321,7 @@ class ImageViewScreen(Screen, BaseScreen):
             self.selected_images.append(image)
 
         self.selected_counter_update()
+        self.update_buttons_state()
 
     def selected_counter_update(self, schedule=False):
         self.ids.selected_images.text = f"Selected: {len(self.selected_images)}"
@@ -329,3 +334,13 @@ class ImageViewScreen(Screen, BaseScreen):
         if schedule:
             self.lock_schedule = False
             print("release")
+
+    def update_buttons_state(self):
+        if len(self.selected_images) > 0:
+            self.ids.to_db_simple_btn.disabled = False
+            self.ids.to_db_protect_btn.disabled = False
+            self.ids.to_ml_btn.disabled = False
+        else:
+            self.ids.to_db_simple_btn.disabled = True
+            self.ids.to_db_protect_btn.disabled = True
+            self.ids.to_ml_btn.disabled = True

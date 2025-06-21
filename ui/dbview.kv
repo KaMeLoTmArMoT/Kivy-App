@@ -81,11 +81,15 @@
             height: 40
 
             Button:
+                id: preview
                 text: 'Preview'
                 background_color: (1, 1, 1, .5)
                 on_press: root.preview_img()
+                disabled: True
 
             Button:
+                id: delete
                 text: 'Delete'
                 background_color: (1, 1, 1, .5)
                 on_press: root.delete_from_db()
+                disabled: True

@@ -69,7 +69,13 @@ class BaseScreen:
 
     def select_direction(self, screen_name):
         self.exit_screen = True
-        translations = {"main": 0, "imageview": 1, "dbview": 2, "mlview": 3}
+        translations = {
+            "main": 0,
+            "imageview": 1,
+            "dbview": 2,
+            "mlview": 3,
+            "detectionview": 4,
+        }
 
         old = translations[self.manager.current]
         new = translations[screen_name]
@@ -127,6 +133,9 @@ class BaseScreen:
 
     def goto_ml(self):
         self.select_direction("mlview")
+
+    def goto_detection(self):
+        self.select_direction("detectionview")
 
 
 class Header(MDBoxLayout, BaseScreen):
