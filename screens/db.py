@@ -66,7 +66,9 @@ class DB:
 
     @staticmethod
     def get_latest_detection_project():
-        return call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
+        return call_db(
+            "SELECT value FROM configs WHERE name='latest_detection_project'"
+        )
 
     @staticmethod
     def set_latest_detection_project(active_project):

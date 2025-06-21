@@ -73,7 +73,7 @@ Includes:
   ```bash
   yolo settings runs_dir=/path/to/runs
   ```
-  
+
 ### 📌 TODO
 
 - Improve UI/UX for multi-project workflows

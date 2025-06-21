@@ -9,7 +9,6 @@ from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
-from screens.db import DB
 from utils import extend_key
 
 
@@ -23,7 +22,6 @@ class MainScreen(Screen, BaseScreen):
         self.update_btn = self.ids.text_update
         self.url_btn = self.ids.url_open
         self.submit_btn = self.ids.text_submit
-        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1

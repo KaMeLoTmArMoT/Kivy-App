@@ -18,7 +18,6 @@ class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
 
         self.allow_hover = False
         self.saved_color = None
-        self.db = DB()
 
     def on_enter(self):
         if self.allow_hover:
@@ -52,6 +51,7 @@ class ImageMDButton(
 class BaseScreen:
     def __init__(self):
         self.exit_screen = False
+        self.db = DB()
 
     def label_out(self, text: str):
         """Put string message to the label"""

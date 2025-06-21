@@ -1,14 +1,12 @@
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen
-from screens.db import DB
 from utils import get_sha
 
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.db = DB()
         self.passwords = ""
         self.key = ""
 

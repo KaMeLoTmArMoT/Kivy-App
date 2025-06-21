@@ -7,7 +7,6 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
-from screens.db import DB
 from utils import extend_key
 
 
@@ -21,7 +20,6 @@ class DbViewScreen(Screen, BaseScreen):
         self.selected_images = []
         self.prev_line_color = None
         self.checkbox_first = None
-        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1

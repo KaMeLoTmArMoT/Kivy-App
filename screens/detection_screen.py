@@ -24,7 +24,6 @@ from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.configs import chrome_path
-from screens.db import DB
 from utils import get_system_type
 
 """
@@ -109,7 +108,6 @@ class DetectionScreen(Screen, BaseScreen):
         self.selected_model = None
 
         self.yolo_generation = 11
-        self.db = DB()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
