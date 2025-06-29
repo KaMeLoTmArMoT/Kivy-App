@@ -40,10 +40,15 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.configs import IMG_SHAPE, MAX_IMAGES_PER_PAGE, MEAN, STD, chrome_path
+from screens.db import DB
 from screens.ml import create_config_file, get_base_model, read_config_file
 from utils import extend_key
 
+IMG_SHAPE = DB().get_config_typed("IMG_SHAPE")
+MAX_IMAGES_PER_PAGE = DB().get_config_typed("MAX_IMAGES_PER_PAGE")
+MEAN = DB().get_config_typed("MEAN")
+STD = DB().get_config_typed("STD")
+chrome_path = DB().get_config_typed("chrome_path")
 
 class MLViewScreen(Screen, BaseScreen):
     rgba = ListProperty([1, 1, 0, 0])  # error message popup color
@@ -126,7 +131,6 @@ class MLViewScreen(Screen, BaseScreen):
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.key = extend_key(self.manager.get_screen("login").key)
-        self.create_db_and_check()
         self.load_classes()
         self.load_model_names()
 

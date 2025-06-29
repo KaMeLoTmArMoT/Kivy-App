@@ -26,7 +26,6 @@ class DbViewScreen(Screen, BaseScreen):
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
-        self.create_db_and_check()
         # TODO: update property and add smth like hash check to reload if db images updated
         #       and probably reload only updated grid, but not all images
         # if not self.loaded:

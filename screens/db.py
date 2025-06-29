@@ -1,9 +1,28 @@
+import ast
+
 from utils import call_db
+
+DEFAULT_CONFIGS = {
+    "MAX_IMAGES_PER_PAGE": "50",
+    "IMG_SHAPE": "(224, 224, 3)",
+    "MEAN": "[0.485, 0.456, 0.406]",
+    "STD": "[0.229, 0.224, 0.225]",
+    "chrome_path": "C:/Program Files/Google/Chrome/Application/chrome.exe %s",
+}
 
 
 class DB:
     def __init__(self):
-        pass
+        super().__init__()
+        self.create_db_and_check()
+
+    def create_db_and_check(self):
+        self.create_images_table()
+        self.create_passwords_table()
+        self.create_customers_table()
+
+        self.create_configs_table()
+        self.init_default_configs()
 
     @staticmethod
     def create_customers_table():
@@ -63,6 +82,39 @@ class DB:
             value text
         ) """
         )
+
+    @staticmethod
+    def get_config(conf_name):
+        return call_db(f"SELECT value FROM configs WHERE name='{conf_name}'")
+
+    @staticmethod
+    def get_config_typed(conf_name):
+        result = call_db("SELECT value FROM configs WHERE name=?", [conf_name])
+
+        if result:
+            value = result[0][0]
+
+            try:
+                return ast.literal_eval(value)
+
+            except (ValueError, SyntaxError) as e:
+                print(f"[get_config_typed] Error: {value} {e}")
+                return value
+
+        print("Return nothing.")
+        return None
+
+    @staticmethod
+    def init_default_configs():
+        for key, value in DEFAULT_CONFIGS.items():
+            call_db(
+                "INSERT OR IGNORE INTO configs (name, value) VALUES (?, ?)",
+                [key, value],
+            )
+
+    @staticmethod
+    def set_config(conf_name, value):
+        call_db(f"INSERT OR REPLACE INTO configs VALUES " f"('{conf_name}', '{value}')")
 
     @staticmethod
     def get_latest_detection_project():

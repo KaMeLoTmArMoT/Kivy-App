@@ -23,8 +23,11 @@ from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
-from screens.configs import chrome_path
+from screens.db import DB
 from utils import get_system_type
+
+chrome_path = DB().get_config_typed("chrome_path")
+
 
 """
 Detection projects structure:
@@ -111,7 +114,6 @@ class DetectionScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
-        self.create_db_and_check()
 
         self.projects = self.get_projects()
         latest_active_project = self.db_get_last_active_project()
@@ -131,9 +133,6 @@ class DetectionScreen(Screen, BaseScreen):
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
-
-    def create_db_and_check(self):
-        self.db.create_configs_table()
 
     def db_get_last_active_project(self):
         val = self.db.get_latest_detection_project()

@@ -76,6 +76,7 @@ class BaseScreen:
             "dbview": 2,
             "mlview": 3,
             "detectionview": 4,
+            "settingsview": 5,
         }
 
         old = translations[self.manager.current]
@@ -87,9 +88,6 @@ class BaseScreen:
             self.manager.transition.direction = "right"
 
         self.manager.current = screen_name
-
-    def create_db_and_check(self):
-        self.db.create_images_table()
 
     def toggle_load_label(self, mode):
         lbl: MDLabel = self.ids.load_label
@@ -131,6 +129,8 @@ class BaseScreen:
     def goto_detection(self):
         self.select_direction("detectionview")
 
+    def goto_settings(self):
+        self.select_direction("settingsview")
 
 class Header(MDBoxLayout, BaseScreen):
     def __int__(self, **kwargs):

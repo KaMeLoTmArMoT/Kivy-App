@@ -16,7 +16,6 @@ class LoginScreen(Screen, BaseScreen):
         self.ids.word_input.focus = True
 
     def create_db_and_check(self):
-        self.db.create_passwords_table()
         self.passwords = self.db.get_login_password()
 
         if len(self.passwords) == 0:

@@ -8,8 +8,10 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen, MDLabelBtn
-from screens.configs import chrome_path
+from screens.db import DB
 from utils import extend_key
+
+chrome_path = DB().get_config_typed("chrome_path")
 
 
 class MainScreen(Screen, BaseScreen):
@@ -27,15 +29,10 @@ class MainScreen(Screen, BaseScreen):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
-        self.create_db_and_check()
 
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
-
-    def create_db_and_check(self):
-        # Create a table
-        self.db.create_customers_table()
 
     def submit(self):
         text = self.get_input()
