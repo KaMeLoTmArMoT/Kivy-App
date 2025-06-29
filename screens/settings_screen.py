@@ -1,5 +1,6 @@
 from kivy.uix.screenmanager import Screen
-from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
+
+from screens.additional import BaseScreen
 
 
 class SettingsViewScreen(Screen, BaseScreen):

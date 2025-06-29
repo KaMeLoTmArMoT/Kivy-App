@@ -50,6 +50,7 @@ MEAN = DB().get_config_typed("MEAN")
 STD = DB().get_config_typed("STD")
 chrome_path = DB().get_config_typed("chrome_path")
 
+
 class MLViewScreen(Screen, BaseScreen):
     rgba = ListProperty([1, 1, 0, 0])  # error message popup color
 

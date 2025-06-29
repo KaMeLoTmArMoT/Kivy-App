@@ -132,6 +132,7 @@ class BaseScreen:
     def goto_settings(self):
         self.select_direction("settingsview")
 
+
 class Header(MDBoxLayout, BaseScreen):
     def __int__(self, **kwargs):
         super().__init__(**kwargs)
