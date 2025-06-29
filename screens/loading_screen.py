@@ -27,7 +27,7 @@ class LoadingScreen(Screen, BaseScreen):
         super().__init__(**kwargs)
         self.loader: Thread = Thread(target=self.load_all)
         self.ids.pbar.value = 0
-        self.ids.pbar.max = 6
+        self.ids.pbar.max = 7
         self.init_time = time.time()
 
     def on_enter(self, *args):
@@ -45,6 +45,7 @@ class LoadingScreen(Screen, BaseScreen):
             self.load_imageview,
             self.load_dbview,
             self.load_mlview,
+            self.load_settings,
             self.load_detection,
         ]
 
@@ -105,6 +106,17 @@ class LoadingScreen(Screen, BaseScreen):
 
         self.ids.status.text = "mlview loaded"
         print("mlview done")
+        self.increment_pbar()
+
+    @log_exec_time
+    def load_settings(self, tm):
+        from screens.settings_screen import SettingsViewScreen
+
+        Builder.load_file("ui/settingsview.kv")
+        self.manager.add_widget(SettingsViewScreen(name="settingsview"))
+
+        self.ids.status.text = "settingsview loaded"
+        print("settingsview done")
         self.increment_pbar()
 
     @log_exec_time

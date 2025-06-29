@@ -4,7 +4,9 @@ import os
 import torch.nn as nn
 import torchvision.models as models
 
-from screens.configs import IMG_SHAPE
+from screens.db import DB
+
+IMG_SHAPE = DB().get_config_typed("IMG_SHAPE")
 
 
 def get_base_model(model_type: str, num_classes: int, no_weights=False):
