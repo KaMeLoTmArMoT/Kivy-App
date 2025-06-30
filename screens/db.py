@@ -108,10 +108,15 @@ class DB:
         return None
 
     @staticmethod
-    def init_default_configs():
+    def init_default_configs(force=False):
+        if force:
+            mode = "REPLACE"
+        else:
+            mode = "IGNORE"
+
         for key, value in DEFAULT_CONFIGS.items():
             call_db(
-                "INSERT OR IGNORE INTO configs (name, value) VALUES (?, ?)",
+                f"INSERT OR {mode} INTO configs (name, value) VALUES (?, ?)",
                 [key, value],
             )
 

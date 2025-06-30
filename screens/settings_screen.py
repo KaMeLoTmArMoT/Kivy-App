@@ -1,10 +1,10 @@
 import ast
 
-from kivy.uix.screenmanager import Screen
 from kivy.uix.label import Label
+from kivy.uix.screenmanager import Screen
 from kivymd.uix.textfield import MDTextField
 
-from screens.additional import BaseScreen, MDLabelBtn
+from screens.additional import BaseScreen
 from screens.db import DB
 
 
@@ -17,10 +17,9 @@ class SettingsViewScreen(Screen, BaseScreen):
         self.show_settings()
 
     def show_settings(self):
-        # self.grid.clear_widgets()
-
+        self.grid.clear_widgets()
         a = self.db.get_config("*")
-        print("* values from db", a)
+        # print("* values from db", a)
 
         for config, value in a:
             try:
@@ -30,9 +29,37 @@ class SettingsViewScreen(Screen, BaseScreen):
                 print(f"[get_config_typed] Error: {value} {e}")
                 val = value
 
-            print("-----", config, val, type(val))
+            # print("-----", config, val, type(val))
 
             lbl = Label(text=config)
             self.grid.add_widget(lbl)
             txt = MDTextField(text=str(val))
             self.grid.add_widget(txt)
+
+    def apply_changes(self):
+        children = self.grid.children[::-1]
+        for i in range(0, len(children), 2):
+            key_widget = (
+                children[i] if isinstance(children[i], Label) else children[i + 1]
+            )
+            val_widget = (
+                children[i + 1]
+                if isinstance(children[i + 1], MDTextField)
+                else children[i]
+            )
+
+            if isinstance(key_widget, Label) and isinstance(val_widget, MDTextField):
+                key = key_widget.text
+                value = val_widget.text
+                print(f"apply: key={key}, value={value}")
+                self.db.set_config(key, value)
+
+        print("Applying changes")
+        self.show_settings()
+
+    def reload_records(self):
+        self.show_settings()
+
+    def reset_settings(self):
+        self.db.init_default_configs(force=True)
+        self.show_settings()

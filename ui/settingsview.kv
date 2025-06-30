@@ -1,6 +1,6 @@
 <SettingsViewScreen>
     MDBoxLayout:
-        orientation:'vertical'
+        orientation: 'vertical'
 
         Header:
             id: header
@@ -30,12 +30,25 @@
                     width: self.parent.width
                     row_default_height: 40
 
-                    Label:
-                        text: "Setting Name 1"
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                    MDTextField:
-                        hint_text: "Value 1"
-                        mode: "rectangle"
-                        size_hint_y: None
-                        height: 50
+            MDBoxLayout:
+                orientation:'horizontal'
+                size_hint_y: None
+                height: 40
+
+                Button:
+                    text: "Apply"
+                    size_hint_x: 0.3
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.apply_changes()
+
+                Button:
+                    text: "Reload"
+                    size_hint_x: 0.3
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.reload_records()
+
+                Button:
+                    text: "Reset"
+                    size_hint_x: 0.3
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.reset_settings()
