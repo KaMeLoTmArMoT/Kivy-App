@@ -85,6 +85,9 @@ class DB:
 
     @staticmethod
     def get_config(conf_name):
+        if conf_name == "*":
+            return call_db("SELECT * FROM configs")
+
         return call_db(f"SELECT value FROM configs WHERE name='{conf_name}'")
 
     @staticmethod
