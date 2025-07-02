@@ -13,7 +13,6 @@ from screens.db import DB
 from utils import extend_key
 
 logger = get_logger(__name__)
-chrome_path = DB().get_config_typed("chrome_path")  # TODO: check after changes
 
 
 class MainScreen(Screen, BaseScreen):
@@ -27,14 +26,19 @@ class MainScreen(Screen, BaseScreen):
         self.url_btn = self.ids.url_open
         self.submit_btn = self.ids.text_submit
 
+        self.chrome_path = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
 
+        self.chrome_path = DB().get_config_typed("chrome_path")
+
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
+        logger.exception(f"{self.chrome_path}")
 
     def submit(self):
         text = self.get_input()
@@ -170,7 +174,7 @@ class MainScreen(Screen, BaseScreen):
         if os.name == "posix":
             webbrowser.open(url)
         else:
-            webbrowser.get(chrome_path + " --incognito").open(url)
+            webbrowser.get(self.chrome_path + " --incognito").open(url)
 
     def on_text_input(self, instance, value):
         text = self.get_input()

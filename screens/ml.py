@@ -6,8 +6,6 @@ import torchvision.models as models
 
 from screens.db import DB
 
-IMG_SHAPE = DB().get_config_typed("IMG_SHAPE")
-
 
 def get_base_model(model_type: str, num_classes: int, no_weights=False):
     # Weights handling
@@ -57,15 +55,17 @@ def get_base_model(model_type: str, num_classes: int, no_weights=False):
 
 
 def create_config_file(model_name, model_type, num_classes, classes, config_dir):
+    img_shape = DB().get_config_typed("IMG_SHAPE")
+
     config = configparser.ConfigParser()
     config["Model"] = {
         "model_name": model_name,
         "model_type": model_type,
         "num_classes": num_classes,
         "classes": "-".join(sorted(classes)),
-        "width": IMG_SHAPE[0],
-        "height": IMG_SHAPE[1],
-        "channels": IMG_SHAPE[2],
+        "width": img_shape[0],
+        "height": img_shape[1],
+        "channels": img_shape[2],
     }
     os.makedirs(config_dir, exist_ok=True)
     config_path = os.path.join(config_dir, model_name + ".conf")

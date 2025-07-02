@@ -28,8 +28,6 @@ from screens.db import DB
 from utils import get_system_type
 
 logger = get_logger(__name__)
-chrome_path = DB().get_config_typed("chrome_path")
-
 
 """
 Detection projects structure:
@@ -114,6 +112,8 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.yolo_generation = 11
 
+        self.chrome_path = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
@@ -131,6 +131,8 @@ class DetectionScreen(Screen, BaseScreen):
             self.active_project = self.projects[0]
         self.db_set_last_active_project()
         logger.info(f"active project: {self.active_project}")
+
+        self.chrome_path = DB().get_config_typed("chrome_path")
 
         self.update_project_paths()
         self.display_camera_paused()
@@ -440,7 +442,7 @@ class DetectionScreen(Screen, BaseScreen):
             url = self.tensorboard.launch()
             logger.info(f"{url=}")
 
-        webbrowser.get(chrome_path).open(url)
+        webbrowser.get(self.chrome_path).open(url)
 
     def update_project_paths(self):
         self.active_project_folder = os.path.join(

@@ -47,12 +47,6 @@ from utils import extend_key
 
 logger = get_logger(__name__)
 
-IMG_SHAPE = DB().get_config_typed("IMG_SHAPE")
-MAX_IMAGES_PER_PAGE = DB().get_config_typed("MAX_IMAGES_PER_PAGE")
-MEAN = DB().get_config_typed("MEAN")
-STD = DB().get_config_typed("STD")
-chrome_path = DB().get_config_typed("chrome_path")
-
 
 class MLViewScreen(Screen, BaseScreen):
     rgba = ListProperty([1, 1, 0, 0])  # error message popup color
@@ -123,14 +117,14 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.img_shape = None
+        self.max_images_per_page = None
+        self.mean = None
+        self.std = None
+        self.chrome_path = None
+
         self.num_predictions = 0
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((IMG_SHAPE[0], IMG_SHAPE[1])),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=MEAN, std=STD),
-            ]
-        )
+        self.transform = None
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -140,6 +134,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         dir_hash = dirhash(self.images_path, "sha1")
 
+        self.max_images_per_page = DB().get_config_typed("MAX_IMAGES_PER_PAGE")
         if self.loaded_hash != dir_hash:
             self.show_folder_images(path=self.images_path)
 
@@ -148,6 +143,19 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
+
+        self.img_shape = DB().get_config_typed("IMG_SHAPE")
+        self.mean = DB().get_config_typed("MEAN")
+        self.std = DB().get_config_typed("STD")
+        self.chrome_path = DB().get_config_typed("chrome_path")
+
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((self.img_shape[0], self.img_shape[1])),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.mean, std=self.std),
+            ]
+        )
 
         logger.warning(f"USING DEVICE {self.device}")
 
@@ -346,14 +354,16 @@ class MLViewScreen(Screen, BaseScreen):
                 self.images_to_load.append(im_path)
 
         n_images = len(self.images_to_load)
-        self.total_pages = ceil(n_images / MAX_IMAGES_PER_PAGE)
+        self.total_pages = ceil(n_images / self.max_images_per_page)
         self.toggle_switch_buttons()
         self.ids.open_class.disabled = True
 
         self.update_page_counter()
-        if n_images > MAX_IMAGES_PER_PAGE:
+        if n_images > self.max_images_per_page:
             self.images_to_load = self.images_to_load[
-                self.page * MAX_IMAGES_PER_PAGE : (self.page + 1) * MAX_IMAGES_PER_PAGE
+                self.page
+                * self.max_images_per_page : (self.page + 1)
+                * self.max_images_per_page
             ]
 
         self.progress_bar.value = 1
@@ -1109,7 +1119,7 @@ class MLViewScreen(Screen, BaseScreen):
         system_platform = platform.system()
 
         if system_platform == "Windows":
-            webbrowser.get(chrome_path).open(self.tensorboard_url)
+            webbrowser.get(self.chrome_path).open(self.tensorboard_url)
         elif system_platform == "Linux":
             for browser in ["google-chrome", "chromium", "xdg-open"]:
                 if shutil.which(browser):
