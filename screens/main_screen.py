@@ -38,7 +38,6 @@ class MainScreen(Screen, BaseScreen):
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
-        logger.exception(f"{self.chrome_path}")
 
     def submit(self):
         text = self.get_input()

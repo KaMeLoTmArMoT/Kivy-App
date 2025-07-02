@@ -1,4 +1,5 @@
 import ast
+from typing import Any
 
 from screens.custom_logging import get_logger
 from utils import call_db
@@ -19,7 +20,7 @@ class DB:
         super().__init__()
         self.create_db_and_check()
 
-    def create_db_and_check(self):
+    def create_db_and_check(self) -> None:
         self.create_images_table()
         self.create_passwords_table()
         self.create_customers_table()
@@ -28,7 +29,7 @@ class DB:
         self.init_default_configs()
 
     @staticmethod
-    def create_customers_table():
+    def create_customers_table() -> None:
         call_db(
             """
         CREATE TABLE IF NOT EXISTS customers (
@@ -37,25 +38,25 @@ class DB:
         )
 
     @staticmethod
-    def insert_customer(b_encoded_text):
+    def insert_customer(b_encoded_text: str) -> None:
         call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
 
     @staticmethod
-    def get_customers():
+    def get_customers() -> list:
         return call_db("SELECT * FROM customers")
 
     @staticmethod
-    def delete_customer(b_encoded_text):
+    def delete_customer(b_encoded_text: str) -> None:
         call_db(f"DELETE FROM customers WHERE name='{b_encoded_text}'")
 
     @staticmethod
-    def update_customer(new_encrypted, old_encrypted):
+    def update_customer(new_encrypted: str, old_encrypted: str) -> None:
         call_db(
             f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'"
         )
 
     @staticmethod
-    def create_images_table():
+    def create_images_table() -> None:
         call_db(
             """
         CREATE TABLE IF NOT EXISTS images (
@@ -65,19 +66,19 @@ class DB:
         )
 
     @staticmethod
-    def insert_image(blob_data):
+    def insert_image(blob_data) -> None:
         call_db("INSERT INTO images (image) VALUES (?)", [blob_data])
 
     @staticmethod
-    def get_images():
+    def get_images() -> list:
         return call_db("SELECT * FROM images")
 
     @staticmethod
-    def delete_image(key):
+    def delete_image(key: int) -> None:
         call_db(f"DELETE FROM images WHERE id={key}")
 
     @staticmethod
-    def create_configs_table():
+    def create_configs_table() -> None:
         call_db(
             """
         CREATE TABLE IF NOT EXISTS configs (
@@ -87,14 +88,14 @@ class DB:
         )
 
     @staticmethod
-    def get_config(conf_name):
+    def get_config(conf_name: str) -> list:
         if conf_name == "*":
             return call_db("SELECT * FROM configs")
 
         return call_db(f"SELECT value FROM configs WHERE name='{conf_name}'")
 
     @staticmethod
-    def get_config_typed(conf_name):
+    def get_config_typed(conf_name: str) -> Any:
         result = call_db("SELECT value FROM configs WHERE name=?", [conf_name])
 
         if result:
@@ -111,7 +112,7 @@ class DB:
         return None
 
     @staticmethod
-    def init_default_configs(force=False):
+    def init_default_configs(force: bool = False) -> None:
         if force:
             mode = "REPLACE"
         else:
@@ -124,24 +125,24 @@ class DB:
             )
 
     @staticmethod
-    def set_config(conf_name, value):
+    def set_config(conf_name: str, value: str) -> None:
         call_db(f"INSERT OR REPLACE INTO configs VALUES " f"('{conf_name}', '{value}')")
 
     @staticmethod
-    def get_latest_detection_project():
+    def get_latest_detection_project() -> list:
         return call_db(
             "SELECT value FROM configs WHERE name='latest_detection_project'"
         )
 
     @staticmethod
-    def set_latest_detection_project(active_project):
+    def set_latest_detection_project(active_project: str) -> None:
         call_db(
             f"INSERT OR REPLACE INTO configs VALUES "
             f"('latest_detection_project', '{active_project}')"
         )
 
     @staticmethod
-    def create_passwords_table():
+    def create_passwords_table() -> None:
         call_db(
             """
         CREATE TABLE IF NOT EXISTS passwords (
@@ -151,9 +152,9 @@ class DB:
         )
 
     @staticmethod
-    def get_login_password():
+    def get_login_password() -> str:
         return call_db("SELECT * FROM passwords WHERE destination='login'")
 
     @staticmethod
-    def set_login_password(enc_pass):
+    def set_login_password(enc_pass: str) -> None:
         call_db(f"INSERT INTO passwords VALUES ('login', '{enc_pass}')")

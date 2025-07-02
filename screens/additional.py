@@ -1,4 +1,5 @@
 from base64 import b64encode
+from typing import Tuple
 
 from kivy.clock import Clock
 from kivy.uix.behaviors.button import ButtonBehavior
@@ -57,10 +58,10 @@ class BaseScreen:
         """Put string message to the label"""
         self.ids.word_label.text = text
 
-    def get_input(self):
+    def get_input(self) -> str:
         return self.ids.word_input.text
 
-    def encrypt(self, text):
+    def encrypt(self, text: str) -> str:
         from Cryptodome.Cipher import AES
 
         cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
@@ -68,7 +69,7 @@ class BaseScreen:
         b_encoded_text = b64encode(encoded_text).decode("utf-8")
         return b_encoded_text
 
-    def select_direction(self, screen_name):
+    def select_direction(self, screen_name: str):
         self.exit_screen = True
         translations = {
             "main": 0,
@@ -89,11 +90,15 @@ class BaseScreen:
 
         self.manager.current = screen_name
 
-    def toggle_load_label(self, mode):
+    def toggle_load_label(self, mode: str):
         lbl: MDLabel = self.ids.load_label
 
         def lbl_prop(
-            text="", lbl_hint_y=0.1, color=(1, 1, 1, 1), pbar_hint_y=0.1, opacity=1
+            text: str = "",
+            lbl_hint_y: float = 0.1,
+            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            pbar_hint_y: float = 0.1,
+            opacity: float = 1,
         ):
             lbl.text = text
             lbl.size_hint_y = lbl_hint_y
@@ -134,5 +139,5 @@ class BaseScreen:
 
 
 class Header(MDBoxLayout, BaseScreen):
-    def __int__(self, **kwargs):
+    def __init__(self, **kwargs):  # TODO: check
         super().__init__(**kwargs)
