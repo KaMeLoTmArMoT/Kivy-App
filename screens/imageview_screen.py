@@ -16,7 +16,10 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from screens.custom_logging import get_logger
 from utils import extend_key
+
+logger = get_logger(__name__)
 
 
 class ImageViewScreen(Screen, BaseScreen):
@@ -159,7 +162,7 @@ class ImageViewScreen(Screen, BaseScreen):
             stop = True
 
         if self.exit_screen:
-            print("terminate loading")
+            logger.warning("terminate loading")
             stop = True
 
         if stop:
@@ -232,12 +235,12 @@ class ImageViewScreen(Screen, BaseScreen):
         self.ids.selected_images.text = f"Added {num_images}"
 
     def transfer_images(self, projects_folder, project):
-        print(projects_folder, project)
+        logger.info(f"{projects_folder}, {project}")
 
         num_images = len(self.selected_images)
 
         target_path = os.path.join(projects_folder, project, "all")
-        print("target path", target_path)
+        logger.info(f"target path {target_path}")
         if not os.path.isdir(target_path):
             os.makedirs(target_path)
         for path in self.selected_images:
@@ -265,10 +268,10 @@ class ImageViewScreen(Screen, BaseScreen):
         # If projects folders changed or dropdown was not created
         if projects != self.projects or self.dropdown is None:
             if self.dropdown is not None:
-                print("clear bind")
+                logger.debug("clear bind")
                 to_ml_btn.unbind(on_release=self.dropdown.open)
 
-            print("create bind")
+            logger.debug("create bind")
             self.dropdown = DropDown()
             for folder in projects:
                 btn = Button(text=folder, size_hint_y=None, height=44)
@@ -282,12 +285,13 @@ class ImageViewScreen(Screen, BaseScreen):
                 )
             )
             self.projects = projects
+
         else:
-            print("use bind")
+            logger.debug("use bind")
 
     def schedule_counter_update(self):
         if not self.lock_schedule:  # to trigger schedule only once at a time
-            print("lock")
+            logger.debug("lock")
             self.lock_schedule = True
             Clock.schedule_once(
                 lambda dt: self.selected_counter_update(schedule=True), 1
@@ -332,7 +336,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         if schedule:
             self.lock_schedule = False
-            print("release")
+            logger.debug("release")
 
     def update_buttons_state(self):
         if len(self.selected_images) > 0:

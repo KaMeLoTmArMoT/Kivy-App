@@ -23,9 +23,11 @@ from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
+from screens.custom_logging import get_logger
 from screens.db import DB
 from utils import get_system_type
 
+logger = get_logger(__name__)
 chrome_path = DB().get_config_typed("chrome_path")
 
 
@@ -119,16 +121,16 @@ class DetectionScreen(Screen, BaseScreen):
         latest_active_project = self.db_get_last_active_project()
 
         if len(latest_active_project) != 0:
-            print("check latest from db")
+            logger.debug("check latest from db")
             latest_active_project = latest_active_project[0][0]
             if latest_active_project in self.projects:
-                print("use latest from db")
+                logger.debug("use latest from db")
                 self.active_project = latest_active_project
 
         if self.active_project is None:
             self.active_project = self.projects[0]
         self.db_set_last_active_project()
-        print("active project:", self.active_project)
+        logger.info(f"active project: {self.active_project}")
 
         self.update_project_paths()
         self.display_camera_paused()
@@ -136,7 +138,7 @@ class DetectionScreen(Screen, BaseScreen):
 
     def db_get_last_active_project(self):
         val = self.db.get_latest_detection_project()
-        print("db get:", val, type(val))
+        logger.info(f"db get: {val} {type(val)}")
         return val
 
     def db_set_last_active_project(self):
@@ -154,7 +156,7 @@ class DetectionScreen(Screen, BaseScreen):
             os.makedirs(default_path, exist_ok=True)
             projects.append(default_project)
 
-        print(f"projects: {projects}")
+        logger.debug(f"projects: {projects}")
         return projects
 
     def init_camera(self) -> None:
@@ -167,7 +169,7 @@ class DetectionScreen(Screen, BaseScreen):
             self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
         if not self.camara.isOpened():
-            print("Error: Unable to open camera")
+            logger.warning("Error: Unable to open camera")
             return
 
         self.camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -182,18 +184,18 @@ class DetectionScreen(Screen, BaseScreen):
 
     def display_start(self):
         self.show_frames = True
-        print("init")
+        logger.debug("init")
         self.init_camera()
-        print("start thread")
+        logger.debug("start thread")
         # TODO: make sure only 1 thread is alive (probably by self.show_frames)
         threading.Thread(target=self.display_thread, daemon=True).start()
-        print("after thread")
+        logger.debug("after thread")
 
     def display_thread(self):
         while self.show_frames:
             ret, frame = self.camara.read()
             if not ret:
-                print("Warning: Unable to read frame from camera")
+                logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 self.release_camera_and_windows()
                 time.sleep(0.25)
@@ -289,15 +291,15 @@ class DetectionScreen(Screen, BaseScreen):
                 self.app_folder, "runs\\detect\\train3\\weights\\best.pt"
             )
 
-        print(f"{model_path=}")
+        logger.info(f"{model_path=}")
         self.model = YOLO(model_path)
         self.model.fuse()
         self.model.overrides["verbose"] = False
-        print("model initialised")
+        logger.debug("model initialised")
 
         # model warmup
         self.model(np.ones((500, 500, 3)))
-        print("warmup done")
+        logger.debug("warmup done")
 
         if last_display_mode:
             self.display_start()
@@ -309,7 +311,7 @@ class DetectionScreen(Screen, BaseScreen):
         results = self.model(cv2_frame, conf=self.confidence)
 
         if len(results) > 1:
-            print("yolo_inference: more results")
+            logger.debug("yolo_inference: more results")
 
         res_plotted = results[0].plot()
         res_plotted = res_plotted[:, :, ::-1]
@@ -327,7 +329,7 @@ class DetectionScreen(Screen, BaseScreen):
     def update_confidence(self):
         # TODO: check why double call happens
         self.confidence = self.ids.slider.value
-        print(self.confidence)
+        logger.info(f"{self.confidence}")
 
     def select_project_button(self):
         projects = self.get_projects()
@@ -335,10 +337,10 @@ class DetectionScreen(Screen, BaseScreen):
         # If projects folders changed or dropdown was not created
         if projects != self.projects or self.dropdown is None:
             if self.dropdown is not None:
-                print("clear bind")
+                logger.debug("clear bind")
                 self.main_button.unbind(on_release=self.dropdown.open)
 
-            print("create bind")
+            logger.debug("create bind")
             self.dropdown = DropDown()
             for folder in projects:
                 btn = Button(text=f"{folder}", size_hint_y=None, height=44)
@@ -356,10 +358,10 @@ class DetectionScreen(Screen, BaseScreen):
             )
             self.projects = projects
         else:
-            print("use bind")
+            logger.debug("use bind")
 
     def open_project_folder(self, project_name):
-        print("project_name", project_name)
+        logger.info(f"project_name {project_name}")
         if project_name == "":
             return
 
@@ -425,7 +427,7 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: move to base and define different ports for projects
 
         if not os.path.isdir(self.tensorboard_folder):
-            print("No tensorboard folder")
+            logger.warning("No tensorboard folder")
             return
 
         if len(os.listdir(self.tensorboard_folder)) == 0:
@@ -436,7 +438,7 @@ class DetectionScreen(Screen, BaseScreen):
             self.tensorboard = program.TensorBoard()
             self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
             url = self.tensorboard.launch()
-            print(f"{url=}")
+            logger.info(f"{url=}")
 
         webbrowser.get(chrome_path).open(url)
 
@@ -469,7 +471,7 @@ class DetectionScreen(Screen, BaseScreen):
             pass  # TODO parse models at runs folder or exported ones
 
     def select_model_btn(self, instance):
-        print(f"The model button <{instance.text}> is being pressed")
+        logger.debug(f"The model button <{instance.text}> is being pressed")
         if self.selected_model:
             if instance.uid == self.selected_model.uid:
                 # custom double touch event
@@ -505,12 +507,12 @@ class DetectionScreen(Screen, BaseScreen):
         pth_images = os.path.join(
             self.projects_folder, self.active_project, "dataset\\raw\\images"
         )
-        print(f"{pth_annotations=}, {pth_images=}")
+        logger.info(f"{pth_annotations=}, {pth_images=}")
 
         annotations = os.listdir(pth_annotations)
         annotations.remove("classes.txt")
         images = os.listdir(pth_images)
-        print(f"all: {len(annotations)=}, {len(images)=}")
+        logger.info(f"all: {len(annotations)=}, {len(images)=}")
 
         # select images only with annotations
         selected_images = []
@@ -522,12 +524,12 @@ class DetectionScreen(Screen, BaseScreen):
             if name in images:
                 selected_images.append(name)
 
-        print(f"clear: {len(annotations)=}, {len(selected_images)=}")
+        logger.info(f"clear: {len(annotations)=}, {len(selected_images)=}")
 
         X_train, X_test, y_train, y_test = train_test_split(
             selected_images, annotations, test_size=0.2
         )
-        print(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
+        logger.info(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
 
         # TODO: create target dirs
 
@@ -564,11 +566,11 @@ class DetectionScreen(Screen, BaseScreen):
             )
 
         class_file = os.path.join(pth_annotations, "classes.txt")
-        print(class_file)
+        logger.debug(f"{class_file}")
         with open(class_file, "r") as f:
             classes = f.read().split("\n")
             classes.remove("")
-            print(f"{classes=}, {len(classes)=}")
+            logger.debug(f"{classes=}, {len(classes)=}")
 
         yaml_file = os.path.join(
             self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml"
@@ -598,4 +600,4 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
-        print(train_process)
+        logger.debug(f"{train_process}")

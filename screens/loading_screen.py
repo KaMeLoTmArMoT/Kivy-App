@@ -7,6 +7,9 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen
+from screens.custom_logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def log_exec_time(func):
@@ -16,7 +19,7 @@ def log_exec_time(func):
         result = func(*args, **kwargs)
         end_time = time.time()
         exec_time = end_time - start_time
-        print(f"Function {func.__name__} executed in {exec_time:.4f} seconds")
+        logger.debug(f"Function {func.__name__} executed in {exec_time:.4f} seconds")
         return result
 
     return wrapper
@@ -61,7 +64,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(LoginScreen(name="login"))
 
         self.ids.status.text = "login loaded"
-        print("login done")
+        logger.debug("login done")
         self.increment_pbar()
 
     @log_exec_time
@@ -72,7 +75,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(MainScreen(name="main"))
 
         self.ids.status.text = "main loaded"
-        print("main done")
+        logger.debug("main done")
         self.increment_pbar()
 
     @log_exec_time
@@ -83,7 +86,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(ImageViewScreen(name="imageview"))
 
         self.ids.status.text = "imageview loaded"
-        print("imageview done")
+        logger.debug("imageview done")
         self.increment_pbar()
 
     @log_exec_time
@@ -94,7 +97,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(DbViewScreen(name="dbview"))
 
         self.ids.status.text = "dbview loaded"
-        print("dbview done")
+        logger.debug("dbview done")
         self.increment_pbar()
 
     @log_exec_time
@@ -105,7 +108,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(MLViewScreen(name="mlview"))
 
         self.ids.status.text = "mlview loaded"
-        print("mlview done")
+        logger.debug("mlview done")
         self.increment_pbar()
 
     @log_exec_time
@@ -116,7 +119,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(SettingsViewScreen(name="settingsview"))
 
         self.ids.status.text = "settingsview loaded"
-        print("settingsview done")
+        logger.debug("settingsview done")
         self.increment_pbar()
 
     @log_exec_time
@@ -127,12 +130,12 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.add_widget(DetectionScreen(name="detectionview"))
 
         self.ids.status.text = "detectionview loaded"
-        print("detectionview done")
+        logger.debug("detectionview done")
         self.increment_pbar()
 
         Clock.schedule_once(self.next_screen, 0.2)
 
     def next_screen(self, tm):
-        print(f"Loading complete in {round(time.time() - self.init_time, 2)}")
+        logger.info(f"Loading complete in {round(time.time() - self.init_time, 2)}")
         self.manager.transition.direction = "left"
         self.manager.current = "login"

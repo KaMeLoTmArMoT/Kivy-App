@@ -5,7 +5,10 @@ from kivy.uix.screenmanager import Screen
 from kivymd.uix.textfield import MDTextField
 
 from screens.additional import BaseScreen
+from screens.custom_logging import get_logger
 from screens.db import DB
+
+logger = get_logger(__name__)
 
 
 class SettingsViewScreen(Screen, BaseScreen):
@@ -19,17 +22,14 @@ class SettingsViewScreen(Screen, BaseScreen):
     def show_settings(self):
         self.grid.clear_widgets()
         a = self.db.get_config("*")
-        # print("* values from db", a)
 
         for config, value in a:
             try:
                 val = ast.literal_eval(value)
 
             except (ValueError, SyntaxError) as e:
-                print(f"[get_config_typed] Error: {value} {e}")
+                logger.warning(f"[get_config_typed] Error: {value} {e}")
                 val = value
-
-            # print("-----", config, val, type(val))
 
             lbl = Label(text=config)
             self.grid.add_widget(lbl)
@@ -51,10 +51,10 @@ class SettingsViewScreen(Screen, BaseScreen):
             if isinstance(key_widget, Label) and isinstance(val_widget, MDTextField):
                 key = key_widget.text
                 value = val_widget.text
-                print(f"apply: key={key}, value={value}")
+                logger.info(f"apply: key={key}, value={value}")
                 self.db.set_config(key, value)
 
-        print("Applying changes")
+        logger.debug("Applying changes")
         self.show_settings()
 
     def reload_records(self):

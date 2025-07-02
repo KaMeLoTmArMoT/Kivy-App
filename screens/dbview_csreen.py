@@ -7,7 +7,10 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
+from screens.custom_logging import get_logger
 from utils import extend_key
+
+logger = get_logger(__name__)
 
 
 class DbViewScreen(Screen, BaseScreen):
@@ -69,7 +72,7 @@ class DbViewScreen(Screen, BaseScreen):
                 grid = self.grid_1
                 simple += 1
             except Exception as e:
-                print(f"fail to load {e}")
+                logger.warning(f"fail to load {e}")
 
             if not success:  # try to decrypt
                 try:
@@ -81,7 +84,7 @@ class DbViewScreen(Screen, BaseScreen):
                     grid = self.grid_2
                     secure += 1
                 except Exception as e:
-                    print(f"fail to decrypt {e}")
+                    logger.warning(f"fail to decrypt {e}")
 
             if not success:  # show cross instead of image
                 img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
@@ -132,7 +135,7 @@ class DbViewScreen(Screen, BaseScreen):
             lbl.size_hint_y = 0
 
     def checkbox_click(self, instance):
-        print(instance)
+        logger.debug(f"{instance}")
         self.checkbox_first = True
         self.update_buttons_state()
 

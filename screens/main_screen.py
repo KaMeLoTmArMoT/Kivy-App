@@ -8,10 +8,12 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen, MDLabelBtn
+from screens.custom_logging import get_logger
 from screens.db import DB
 from utils import extend_key
 
-chrome_path = DB().get_config_typed("chrome_path")
+logger = get_logger(__name__)
+chrome_path = DB().get_config_typed("chrome_path")  # TODO: check after changes
 
 
 class MainScreen(Screen, BaseScreen):
@@ -83,7 +85,7 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("DB instances:")
 
     def select_label_btn(self, instance):
-        print(f"The button <{instance.text}> is being pressed")
+        logger.info(f"The button <{instance.text}> is being pressed")
         if self.selected:
             if instance.uid == self.selected.uid:
                 self.unselect_label_btn()

@@ -1,6 +1,9 @@
 import ast
 
+from screens.custom_logging import get_logger
 from utils import call_db
+
+logger = get_logger(__name__)
 
 DEFAULT_CONFIGS = {
     "MAX_IMAGES_PER_PAGE": "50",
@@ -101,10 +104,10 @@ class DB:
                 return ast.literal_eval(value)
 
             except (ValueError, SyntaxError) as e:
-                print(f"[get_config_typed] Error: {value} {e}")
+                logger.warning(f"[get_config_typed] Error: {value} {e}")
                 return value
 
-        print("Return nothing.")
+        logger.warning("Return nothing.")
         return None
 
     @staticmethod

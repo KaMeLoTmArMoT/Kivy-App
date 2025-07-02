@@ -40,9 +40,12 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from screens.custom_logging import get_logger
 from screens.db import DB
 from screens.ml import create_config_file, get_base_model, read_config_file
 from utils import extend_key
+
+logger = get_logger(__name__)
 
 IMG_SHAPE = DB().get_config_typed("IMG_SHAPE")
 MAX_IMAGES_PER_PAGE = DB().get_config_typed("MAX_IMAGES_PER_PAGE")
@@ -146,7 +149,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
 
-        print(f"USING DEVICE {self.device}")
+        logger.warning(f"USING DEVICE {self.device}")
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
@@ -163,7 +166,7 @@ class MLViewScreen(Screen, BaseScreen):
         )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("Using device:", self.device)
+        logger.warning(f"Using device: {self.device}")
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -177,7 +180,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.class_grid.add_widget(btn)
 
         if not os.path.isdir(self.ml_train_folder):
-            print("No classes folder")
+            logger.warning("No classes folder")
             return
 
         for file in os.listdir(self.ml_train_folder):
@@ -192,7 +195,7 @@ class MLViewScreen(Screen, BaseScreen):
                 self.ids.class_grid.add_widget(btn)
 
     def select_label_btn(self, instance):
-        print(f"The label button <{instance.text}> is being pressed")
+        logger.info(f"The label button <{instance.text}> is being pressed")
 
         current_time = time.time()
         double_click_threshold = 0.3
@@ -204,11 +207,11 @@ class MLViewScreen(Screen, BaseScreen):
             if time_diff < double_click_threshold:
                 if not self.ids.open_class.disabled:
                     path = os.path.join(self.active_project_folder, instance.text)
-                    print("Double-click: opening", path)
+                    logger.info(f"Double-click: opening {path}")
                     self.show_folder_images(path, new=True)
                 return
             else:
-                print("Single-click: deselect")
+                logger.info("Single-click: deselect")
                 self.unselect_label_btn()
                 return
 
@@ -282,7 +285,7 @@ class MLViewScreen(Screen, BaseScreen):
         try:
             shutil.rmtree(self.selected_dir_full)
         except FileNotFoundError as e:
-            print("No such file or directory, skipping", e)
+            logger.warning(f"No such file or directory, skipping {e}")
 
         self.unselect_label_btn()
         self.load_classes()
@@ -328,7 +331,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         if new:
             self.page = 1
-            print("reset page")
+            logger.debug("reset page")
 
             for btn in self.ids.class_grid.children:
                 btn.text_color = "white"
@@ -369,7 +372,7 @@ class MLViewScreen(Screen, BaseScreen):
             stop = True
 
         if self.exit_screen:
-            print("terminate loading")
+            logger.warning("terminate loading")
             stop = True
 
         if stop:
@@ -479,8 +482,8 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Select images and dir!")
             return
 
-        print(self.cur_dir)
-        print(self.selected_dir_full)
+        logger.debug(f"{self.cur_dir}")
+        logger.debug(f"{self.selected_dir_full}")
 
         if self.cur_dir == self.selected_dir_full:
             self.error_popup_clock("Can`t paste to same dir!")
@@ -496,7 +499,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def trigger_training(self):
         if self.train_active:
-            print("Training termination requested")
+            logger.warning("Training termination requested")
             self.terminate_training = True
             self.ids.train_btn.text = "Train"
             self.ids.train_btn.disabled = True  # Temporarily disable until cleanup
@@ -534,7 +537,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(self.cur_dir)
 
     def prepare_dataset(self, batch_size=8, shuffle=True):
-        print(f"load dataset from {self.ml_train_folder}")
+        logger.info(f"load dataset from {self.ml_train_folder}")
         test_dataset = ImageFolder(root=self.ml_train_folder, transform=self.transform)
         testloader = DataLoader(
             test_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=4
@@ -561,13 +564,13 @@ class MLViewScreen(Screen, BaseScreen):
         self.criterion = nn.CrossEntropyLoss()
 
         try:
-            print("\n--- Stage 1: Fine-tuning the classifier ---")
+            logger.info("\n--- Stage 1: Fine-tuning the classifier ---")
             for p in self.model.features.parameters():
                 p.requires_grad = False
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s1)
             self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
 
-            print("\n--- Stage 2: Unfreeze all layers ---")
+            logger.info("\n--- Stage 2: Unfreeze all layers ---")
             for p in self.model.parameters():
                 p.requires_grad = True
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s2)
@@ -590,7 +593,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         for epoch_idx in range(epochs):
             if self.terminate_training:
-                print("Training terminated by user")
+                logger.warning("Training terminated by user")
                 return
 
             epoch = start_epoch + epoch_idx
@@ -606,7 +609,7 @@ class MLViewScreen(Screen, BaseScreen):
 
             for images, labels in progress_bar:
                 if self.terminate_training:
-                    print("Early termination inside batch")
+                    logger.warning("Early termination inside batch")
                     return
 
                 images, labels = images.to(self.device), labels.to(self.device)
@@ -633,7 +636,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.writer.add_scalar("Loss/train", avg_loss, epoch)
             self.writer.add_scalar("Accuracy/train", accuracy, epoch)
 
-            print(
+            logger.info(
                 f"Epoch [{epoch + 1}/{total_epochs}], "
                 f"Loss: {avg_loss:.4f}, "
                 f"Accuracy: {accuracy:.2f}%\n"
@@ -729,10 +732,10 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_name = self.selected_model.text
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
         save_path = os.path.join(model_dir, self.model_name + ".pth")
-        print("load model:", save_path)
+        logger.info(f"load model: {save_path}")
 
         config_path = os.path.join(self.ml_configs_folder, self.model_name + ".conf")
-        print("load model config path", config_path)
+        logger.info(f"load model config path {config_path}")
         if os.path.exists(config_path):
             (
                 self.model_type,
@@ -740,14 +743,14 @@ class MLViewScreen(Screen, BaseScreen):
                 self.img_shape,
                 self.classes,
             ) = read_config_file(config_path)
-            print(self.model_type, self.num_classes, self.img_shape, self.classes)
-            print(
+            logger.info(
                 f"type: {self.model_type}\n"
                 f"shape: {self.img_shape}\n"
+                f"num classes: {self.num_classes}\n"
                 f"classes: {self.classes}\n"
             )
 
-        print(f"create base with {self.model_type=}, {self.num_classes=}")
+        logger.info(f"create base with {self.model_type=}, {self.num_classes=}")
         self.model = get_base_model(
             self.model_type,
             num_classes=self.num_classes,
@@ -761,15 +764,19 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.ids.model_label.text = self.model_type
 
-        print("load complete")
-        print(self.model)
+        logger.debug("load complete")
+        logger.debug(f"{self.model}")
         self.update_all_button_states()
 
     def log_gpu(self, tag, summary=False):
-        print(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
-        print(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB")
+        logger.debug(
+            f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB"
+        )
+        logger.debug(
+            f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB"
+        )
         if summary:
-            print(torch.cuda.memory_summary())
+            logger.debug(f"{torch.cuda.memory_summary()}")
 
     def unload_model(self):
         self.log_gpu("--- Before")
@@ -786,12 +793,12 @@ class MLViewScreen(Screen, BaseScreen):
         gc.collect()
 
         self.unselect_model_btn()
-        print("Unload complete. GPU memory should be freed.")
+        logger.debug("Unload complete. GPU memory should be freed.")
         self.log_gpu("--- After unload")
 
     def save_model(self):
         if self.model is None:
-            print("No model to save.")
+            logger.warning("No model to save.")
             return
 
         # TODO: if change ach and save - have wrong name, test it.
@@ -801,7 +808,7 @@ class MLViewScreen(Screen, BaseScreen):
         save_path = os.path.join(model_dir, self.model_name + ".pth")
 
         torch.save(self.model.state_dict(), save_path)
-        print("save complete")
+        logger.debug("save complete")
         self.update_all_button_states()
 
     def evaluate_model(self, data=None):
@@ -810,7 +817,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.eval_event = None
             self.toggle_error_popup("off")
             self.ids.evaluate_btn.text = "Evaluate"
-            print("Cancel eval process")
+            logger.warning("Cancel eval process")
             return
 
         self.ids.evaluate_btn.text = "Stop eval"
@@ -848,7 +855,7 @@ class MLViewScreen(Screen, BaseScreen):
             Clock.unschedule(self.eval_event)
             self.eval_event = None
             self.toggle_error_popup("off")
-            print(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
+            logger.info(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
             self.ids.evaluate_btn.text = "Evaluate"
             return
 
@@ -888,7 +895,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
 
-        print("creating", self.model_name)
+        logger.debug(f"creating {self.model_name}")
 
         self.model = get_base_model(
             self.model_type,
@@ -899,8 +906,8 @@ class MLViewScreen(Screen, BaseScreen):
         for param in self.model.features.parameters():
             param.requires_grad = False
 
-        print("create complete")
-        print(self.model)
+        logger.debug("create complete")
+        logger.info(f"{self.model}")
 
         self.classes = sorted(
             [
@@ -930,7 +937,7 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         path = os.path.join(self.ml_models_folder, self.selected_model.text)
-        print("delete model from:", path)
+        logger.info(f"delete model from: {path}")
         shutil.rmtree(path)
         config_path = os.path.join(
             self.ml_configs_folder, self.selected_model.text + ".conf"
@@ -959,7 +966,7 @@ class MLViewScreen(Screen, BaseScreen):
                 pred = torch.argmax(output, dim=1).item()
 
             cls_name = self.classes[pred].replace("train/", "")
-            print(f"CLS: |{cls_name}| ID: |{pred}|")
+            logger.info(f"CLS: |{cls_name}| ID: |{pred}|")
 
             lc = selected.label_container
             lc.clear_widgets()
@@ -976,19 +983,19 @@ class MLViewScreen(Screen, BaseScreen):
             lc.add_widget(lbl)
             self.num_predictions += 1
 
-        print()
+        logger.debug("")
         self.update_all_button_states()
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
 
         if not os.path.isdir(self.ml_models_folder):
-            print("No models folder")
+            logger.warning("No models folder")
             return
 
         for file in os.listdir(self.ml_models_folder):
             path = os.path.join(self.ml_models_folder, file)
-            print("------", path)
+            logger.debug(f"------ {path}")
             if os.path.isdir(path):
                 btn = MDLabelBtn(
                     text=file,
@@ -999,7 +1006,7 @@ class MLViewScreen(Screen, BaseScreen):
                 self.ids.model_grid.add_widget(btn)
 
     def select_model_btn(self, instance):
-        print(f"The model button <{instance.text}> is being pressed")
+        logger.info(f"The model button <{instance.text}> is being pressed")
         if self.selected_model:
             if instance.uid == self.selected_model.uid:
                 # custom double touch event
@@ -1085,7 +1092,7 @@ class MLViewScreen(Screen, BaseScreen):
 
     def launch_tensorboard(self):
         if not os.path.isdir(self.tensorboard_folder):
-            print("No tensorboard folder")
+            logger.warning("No tensorboard folder")
             return
 
         if len(os.listdir(self.tensorboard_folder)) == 0:
@@ -1097,7 +1104,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.tensorboard = program.TensorBoard()
             self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
             self.tensorboard_url = self.tensorboard.launch()
-            print(f"{self.tensorboard_url=}")
+            logger.debug(f"{self.tensorboard_url=}")
 
         system_platform = platform.system()
 
@@ -1109,9 +1116,11 @@ class MLViewScreen(Screen, BaseScreen):
                     webbrowser.get(browser).open(self.tensorboard_url)
                     break
             else:
-                print("No known browser found. Please install chrome or use xdg-open.")
+                logger.error(
+                    "No known browser found. Please install chrome or use xdg-open."
+                )
         else:
-            print("Unknown operating system.")
+            logger.error("Unknown operating system.")
             webbrowser.open(self.tensorboard_url)
 
         self.update_all_button_states()
@@ -1182,7 +1191,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.popup.open()
 
     def open_project_folder(self, project_name):
-        print("project_name", project_name)
+        logger.debug(f"project_name, {project_name}")
         if project_name == "":
             return
 
@@ -1231,10 +1240,10 @@ class MLViewScreen(Screen, BaseScreen):
         # If projects folders changed or dropdown was not created
         if projects != self.projects or self.dropdown is None:
             if self.dropdown is not None:
-                print("clear bind")
+                logger.debug("clear bind")
                 self.main_button.unbind(on_release=self.dropdown.open)
 
-            print("create bind")
+            logger.debug("create bind")
             self.dropdown = DropDown()
             for folder in projects:
                 btn = Button(text=f"{folder}", size_hint_y=None, height=44)
@@ -1251,8 +1260,9 @@ class MLViewScreen(Screen, BaseScreen):
                 on_select=lambda instance, project: self.open_project_folder(project)
             )
             self.projects = projects
+
         else:
-            print("use bind")
+            logger.debug("use bind")
 
     def on_text_input_class(self, instance, value):
         text = self.ids.class_input.text
