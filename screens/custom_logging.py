@@ -1,5 +1,7 @@
 import datetime
 import logging
+import os
+from logging.handlers import RotatingFileHandler
 
 
 class CustomFormatter(logging.Formatter):
@@ -46,9 +48,14 @@ def get_logger(name: str = None) -> logging.Logger:
     console_handler.setFormatter(CustomFormatter(fmt))
     logger.addHandler(console_handler)
 
-    # File handler
+    # Rotating file handler up to 10 mb
+    os.makedirs("logs/", exist_ok=True)
     today = datetime.date.today()
-    file_handler = logging.FileHandler(f"my_app_{today:%Y_%m_%d}.log")
+    file_handler = RotatingFileHandler(
+        f"logs/my_app_{today:%Y_%m_%d}.log",
+        maxBytes=1024 * 1024 * 10,
+        backupCount=5,
+    )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter(fmt))
     logger.addHandler(file_handler)

@@ -10,6 +10,7 @@ projects_detection
 tests
 runs
 data
+logs
 
 test/*
 build/*
@@ -18,3 +19,4 @@ datasets/*
 
 *.db
 *.pt
+*.log
