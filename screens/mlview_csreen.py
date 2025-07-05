@@ -32,16 +32,13 @@ from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 from tensorboard import program
 from torch import nn, optim
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchvision import transforms
-from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.custom_logging import get_logger
 from screens.db import DB
-from screens.ml import KModel, create_config_file
+from screens.ml import KModel, create_config_file, prepare_dataset
 from utils import extend_key
 
 logger = get_logger(__name__)
@@ -73,7 +70,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.optimizer = None
         self.writer = None
         self.total_steps = None
-        self.processed_steps = None
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
@@ -84,10 +80,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.k_model = KModel()
 
-        self.data_iter = None
         self.eval_event = None
-        self.acc = None
-        self.loss = None
 
         self.loaded_hash = ""
 
@@ -118,14 +111,10 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.img_shape = None
         self.max_images_per_page = None
-        self.mean = None
-        self.std = None
         self.chrome_path = None
 
         self.num_predictions = 0
-        self.transform = None
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -145,19 +134,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
 
-        self.img_shape = DB().get_config_typed("IMG_SHAPE")
-        self.mean = DB().get_config_typed("MEAN")
-        self.std = DB().get_config_typed("STD")
         self.chrome_path = DB().get_config_typed("chrome_path")
 
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((self.img_shape[0], self.img_shape[1])),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=self.mean, std=self.std),
-            ]
-        )
-
+        self.k_model.update_params()
         logger.warning(f"USING DEVICE {self.device}")
 
     def update_project_paths(self):
@@ -547,15 +526,6 @@ class MLViewScreen(Screen, BaseScreen):
             self.page += 1
             self.show_folder_images(self.cur_dir)
 
-    def prepare_dataset(self, batch_size=8, shuffle=True):
-        logger.info(f"load dataset from {self.ml_train_folder}")
-        test_dataset = ImageFolder(root=self.ml_train_folder, transform=self.transform)
-        testloader = DataLoader(
-            test_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=4
-        )
-
-        return testloader
-
     def train_model(self):
         epochs_s1 = 5
         epochs_s2 = 5
@@ -563,7 +533,7 @@ class MLViewScreen(Screen, BaseScreen):
         lr_s1 = 1e-4
         lr_s2 = 1e-5
 
-        normalized_ds = self.prepare_dataset(shuffle=True)
+        normalized_ds = prepare_dataset(shuffle=True)
         self.model.train()
 
         log_dir = os.path.join(
@@ -757,6 +727,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.update_all_button_states()
 
     def unload_model(self):
+        if self.model is None and self.k_model.model is None:
+            return
+
         self.k_model.unload_model()
         self.model_name = None
         self.unselect_model_btn()
@@ -783,7 +756,7 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.ids.evaluate_btn.text = "Stop eval"
-        if self.model is None:
+        if self.model is None and self.k_model.model is None:
             if self.selected_model is None:
                 self.error_popup_clock("Select/Load model first!")
                 return
@@ -791,19 +764,22 @@ class MLViewScreen(Screen, BaseScreen):
                 # in case model selected but not loaded
                 self.load_model()
 
-        self.k_model.evaluate_model(data)
+        data = prepare_dataset(
+            self.ml_train_folder, self.k_model.transform, batch_size=32, shuffle=False
+        )
+        self.total_steps = len(data)
+        self.k_model.evaluate_model(
+            data,
+        )
         self.toggle_error_popup("on", "Start eval...")
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
 
     def async_eval_cycle(self):
-        state = self.k_model.async_eval_cycle()
+        (state, processed_steps, loss, acc) = self.k_model.async_eval_cycle()
 
-        if state:
-            self.processed_steps += 1
-
-        else:
+        if not state:
             Clock.unschedule(self.eval_event)
             self.eval_event = None
             self.toggle_error_popup("off")
@@ -812,8 +788,17 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.toggle_error_popup(
             "on",
-            f"[{self.processed_steps}/{self.total_steps}] "
-            f"Loss: {round(self.loss, 4)} | Acc: {round(self.acc, 4)}",
+            f"[{processed_steps}/{self.total_steps}] "
+            f"Loss: {round(loss, 4)} | Acc: {round(acc, 4)}",
+        )
+
+    def get_classes(self):
+        return sorted(
+            [
+                btn.text.split("\\")[-1]
+                for btn in self.ids.class_grid.children
+                if btn.text != "all"
+            ]
         )
 
     def create_model(self, name):
@@ -831,13 +816,8 @@ class MLViewScreen(Screen, BaseScreen):
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
         save_path = os.path.join(model_dir, self.model_name + ".pth")
 
-        self.classes = sorted(
-            [
-                btn.text.split("\\")[-1]
-                for btn in self.ids.class_grid.children
-                if btn.text != "all"
-            ]
-        )
+        self.classes = self.get_classes()
+
         self.k_model.create_model(
             self.model_name,
             self.classes,
@@ -856,6 +836,7 @@ class MLViewScreen(Screen, BaseScreen):
 
         self.load_model_names()
         self.ids.model_input.text = ""
+        self.update_all_button_states()
 
     def delete_model(self):
         if self.selected_model is None:
@@ -878,25 +859,16 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
-        if self.selected_images is None or self.model is None:
+        if self.selected_images is None or (
+            self.model is None and self.k_model.model is None
+        ):
             self.error_popup_clock("Select model and images!")
             return
-
-        self.model.eval()
 
         for selected in self.selected_images:
             path = selected.source
             image = Image.open(path).convert("RGB")
-            image = (
-                self.transform(image).unsqueeze(0).to(self.device)
-            )  # Add batch dim and move to device
-
-            with torch.no_grad():
-                output = self.model(image)
-                pred = torch.argmax(output, dim=1).item()
-
-            cls_name = self.classes[pred].replace("train/", "")
-            logger.info(f"CLS: |{cls_name}| ID: |{pred}|")
+            cls_name = self.k_model.model_predict(image)
 
             lc = selected.label_container
             lc.clear_widgets()
@@ -960,7 +932,7 @@ class MLViewScreen(Screen, BaseScreen):
             and self.cur_dir != self.selected_dir_full
         )
         is_model_selected = bool(self.selected_model)
-        is_model_loaded = bool(self.model)
+        is_model_loaded = bool(self.model or self.k_model.model)
         is_model_named = bool(self.model_name)
         model_name_differs = (
             is_model_selected and self.selected_model.text != self.model_name

@@ -5,6 +5,9 @@ import os
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
 
 from screens.custom_logging import get_logger
 from screens.db import DB
@@ -16,47 +19,43 @@ class KModel:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.model_type = None
-        self.num_classes = None
-        self.img_shape = None
+        self.model = None
+
         self.classes = None
 
         self.loss = None
         self.acc = None
-
-        self.total_steps = None
         self.processed_steps = None
-
         self.data_iter = None
         self.criterion = None
 
-        self.model = None
+        self.transform = None
 
     def load_model(self, save_path, config_path):
         logger.info(f"load model: {save_path}")
 
         logger.info(f"Load model config path {config_path}")
-        if os.path.exists(config_path):
-            (
-                self.model_type,
-                self.num_classes,
-                self.img_shape,
-                self.classes,
-            ) = read_config_file(config_path)
-            logger.info(
-                f"Load done:\n"
-                f"- type: {self.model_type}\n"
-                f"- shape: {self.img_shape}\n"
-                f"- num classes: {self.num_classes}\n"
-                f"- classes: {self.classes}\n"
-            )
+        if not os.path.exists(config_path):
+            logger.error("No config")
+            return
 
-        else:
-            logger.warning("No config")
+        (
+            model_type,
+            num_classes,
+            img_shape,
+            self.classes,
+        ) = read_config_file(config_path)
+        logger.info(
+            f"Load done:\n"
+            f"- type: {model_type}\n"
+            f"- shape: {img_shape}\n"
+            f"- num classes: {num_classes}\n"
+            f"- classes: {self.classes}\n"
+        )
 
         self.model = get_base_model(
-            self.model_type,
-            num_classes=self.num_classes,
+            model_type,
+            num_classes=num_classes,
             no_weights=True,
         )
         state_dict = torch.load(save_path, map_location=self.device)
@@ -84,15 +83,12 @@ class KModel:
         torch.save(self.model.state_dict(), save_path)
         logger.debug("save complete")
 
-    def evaluate_model(self, data=None):
+    def evaluate_model(self, data):
         self.model.eval()
-        if data is None:
-            data = self.prepare_dataset(batch_size=32, shuffle=False)  # TODO fix
 
         self.loss = None
         self.acc = None
 
-        self.total_steps = len(data)
         self.processed_steps = 0
 
         self.data_iter = iter(data)  # Convert DataLoader into list of batches
@@ -105,7 +101,7 @@ class KModel:
 
         except StopIteration:
             logger.info(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
-            return False
+            return False, 0, 0, 0
 
         images = images.to(self.device)
         labels = labels.to(self.device)
@@ -124,7 +120,7 @@ class KModel:
             self.loss = self.loss * 0.9 + loss.item() * 0.1
             self.acc = self.acc * 0.9 + accuracy * 0.1
 
-        return True
+        return True, self.processed_steps, self.loss, accuracy
 
     def create_model(
         self,
@@ -135,12 +131,13 @@ class KModel:
         save_path,
     ):
         self.unload_model()
+        self.classes = classes
 
         logger.debug(f"creating {model_name}")
 
         self.model = get_base_model(
             model_type,
-            num_classes=len(classes),
+            num_classes=len(self.classes),
         )
         self.model.to(device=self.device)
 
@@ -152,11 +149,33 @@ class KModel:
 
         self.save_model(model_dir, save_path)
 
-    def update_params(self):
-        pass
+    def model_predict(self, image):
+        self.model.eval()
 
-    def predict(self):
-        pass
+        image = (
+            self.transform(image).unsqueeze(0).to(self.device)
+        )  # Add batch dim and move to device
+
+        with torch.no_grad():
+            output = self.model(image)
+            pred = torch.argmax(output, dim=1).item()
+
+        cls_name = self.classes[pred].replace("train/", "")
+        logger.info(f"CLS: |{cls_name}| ID: |{pred}|")
+        return cls_name
+
+    def update_params(self):
+        img_shape = DB().get_config_typed("IMG_SHAPE")
+        mean = DB().get_config_typed("MEAN")
+        std = DB().get_config_typed("STD")
+
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((img_shape[0], img_shape[1])),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ]
+        )
 
     def train(self):
         pass
@@ -249,3 +268,23 @@ def log_gpu(tag, summary=False):
     logger.debug(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB")
     if summary:
         logger.debug(f"{torch.cuda.memory_summary()}")
+
+
+def prepare_dataset(
+    ml_train_folder,
+    transform,
+    batch_size=8,
+    shuffle=True,
+):
+    test_dataset = ImageFolder(
+        root=ml_train_folder,
+        transform=transform,
+    )
+    testloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=4,
+    )
+
+    return testloader
