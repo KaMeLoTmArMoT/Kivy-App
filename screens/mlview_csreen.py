@@ -1,5 +1,4 @@
 import datetime
-import gc
 import io
 import os
 import platform
@@ -42,7 +41,7 @@ from tqdm import tqdm
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.custom_logging import get_logger
 from screens.db import DB
-from screens.ml import create_config_file, get_base_model, read_config_file
+from screens.ml import KModel, create_config_file
 from utils import extend_key
 
 logger = get_logger(__name__)
@@ -82,6 +81,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.classes = None
         self.tensorboard = None
         self.tensorboard_url = None
+
+        self.k_model = KModel()
 
         self.data_iter = None
         self.eval_event = None
@@ -733,11 +734,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.unload_model()
 
     def load_model(self):
-        self.unload_model()
-
         if self.selected_model is None:
             self.error_popup_clock("Select model!")
             return
+
+        self.unload_model()
 
         self.model_name = self.selected_model.text
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
@@ -745,66 +746,20 @@ class MLViewScreen(Screen, BaseScreen):
         logger.info(f"load model: {save_path}")
 
         config_path = os.path.join(self.ml_configs_folder, self.model_name + ".conf")
-        logger.info(f"load model config path {config_path}")
-        if os.path.exists(config_path):
-            (
-                self.model_type,
-                self.num_classes,
-                self.img_shape,
-                self.classes,
-            ) = read_config_file(config_path)
-            logger.info(
-                f"type: {self.model_type}\n"
-                f"shape: {self.img_shape}\n"
-                f"num classes: {self.num_classes}\n"
-                f"classes: {self.classes}\n"
-            )
-
-        logger.info(f"create base with {self.model_type=}, {self.num_classes=}")
-        self.model = get_base_model(
-            self.model_type,
-            num_classes=self.num_classes,
-            no_weights=True,
-        )
-        state_dict = torch.load(save_path, map_location=self.device)
-        self.model.load_state_dict(state_dict)
-        self.model.to(self.device)
+        self.k_model.load_model(save_path, config_path)
 
         self.model_type = self.model_name.split("_")[-2]
 
         self.ids.model_label.text = self.model_type
 
         logger.debug("load complete")
-        logger.debug(f"{self.model}")
+        # logger.debug(f"{self.model}")
         self.update_all_button_states()
 
-    def log_gpu(self, tag, summary=False):
-        logger.debug(
-            f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB"
-        )
-        logger.debug(
-            f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB"
-        )
-        if summary:
-            logger.debug(f"{torch.cuda.memory_summary()}")
-
     def unload_model(self):
-        self.log_gpu("--- Before")
-
-        if self.model is None:
-            return
-
-        self.model.to("cpu")
-        del self.model
-        self.model = None
+        self.k_model.unload_model()
         self.model_name = None
-
-        torch.cuda.empty_cache()
-        gc.collect()
-
         self.unselect_model_btn()
-        logger.debug("Unload complete. GPU memory should be freed.")
-        self.log_gpu("--- After unload")
 
     def save_model(self):
         if self.model is None:
@@ -813,12 +768,9 @@ class MLViewScreen(Screen, BaseScreen):
 
         # TODO: if change ach and save - have wrong name, test it.
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
-        os.makedirs(model_dir, exist_ok=True)
-
         save_path = os.path.join(model_dir, self.model_name + ".pth")
+        self.k_model.save_model(model_dir, save_path)
 
-        torch.save(self.model.state_dict(), save_path)
-        logger.debug("save complete")
         self.update_all_button_states()
 
     def evaluate_model(self, data=None):
@@ -839,52 +791,24 @@ class MLViewScreen(Screen, BaseScreen):
                 # in case model selected but not loaded
                 self.load_model()
 
-        self.model.eval()
-        if data is None:
-            data = self.prepare_dataset(batch_size=32, shuffle=False)
-
-        self.loss = None
-        self.acc = None
-        self.total_steps = len(data)
-        self.processed_steps = 0
-
-        # Convert DataLoader into list of batches
-        self.data_iter = iter(data)
+        self.k_model.evaluate_model(data)
         self.toggle_error_popup("on", "Start eval...")
-
-        self.criterion = torch.nn.CrossEntropyLoss()
         self.eval_event = Clock.schedule_interval(
             lambda tm: self.async_eval_cycle(), 0.0001
         )
 
     def async_eval_cycle(self):
-        try:
-            images, labels = next(self.data_iter)
+        state = self.k_model.async_eval_cycle()
+
+        if state:
             self.processed_steps += 1
-        except StopIteration:
+
+        else:
             Clock.unschedule(self.eval_event)
             self.eval_event = None
             self.toggle_error_popup("off")
-            logger.info(f"Final Eval loss: {self.loss:.4f}, acc: {self.acc:.4f}")
             self.ids.evaluate_btn.text = "Evaluate"
             return
-
-        images = images.to(self.device)
-        labels = labels.to(self.device)
-
-        with torch.no_grad():
-            outputs = self.model(images)
-            loss = self.criterion(outputs, labels)
-            _, predicted = torch.max(outputs, 1)
-            correct = (predicted == labels).sum().item()
-            accuracy = correct / labels.size(0)
-
-        # Sliding window averaging
-        if self.loss is None or self.acc is None:
-            self.loss, self.acc = loss.item(), accuracy
-        else:
-            self.loss = self.loss * 0.9 + loss.item() * 0.1
-            self.acc = self.acc * 0.9 + accuracy * 0.1
 
         self.toggle_error_popup(
             "on",
@@ -896,28 +820,16 @@ class MLViewScreen(Screen, BaseScreen):
         if name == "":
             self.error_popup_clock("No model name.")
             return
-        self.unload_model()
 
         self.num_classes = len(self.ids.class_grid.children) - 1
-        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
 
         if self.num_classes < 2:
             self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
 
-        logger.debug(f"creating {self.model_name}")
-
-        self.model = get_base_model(
-            self.model_type,
-            num_classes=self.num_classes,
-        )
-        self.model.to(device=self.device)
-
-        for param in self.model.features.parameters():
-            param.requires_grad = False
-
-        logger.debug("create complete")
-        logger.info(f"{self.model}")
+        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
+        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
+        save_path = os.path.join(model_dir, self.model_name + ".pth")
 
         self.classes = sorted(
             [
@@ -926,6 +838,14 @@ class MLViewScreen(Screen, BaseScreen):
                 if btn.text != "all"
             ]
         )
+        self.k_model.create_model(
+            self.model_name,
+            self.classes,
+            self.model_type,
+            model_dir,
+            save_path,
+        )
+
         create_config_file(
             self.model_name,
             self.model_type,
@@ -933,7 +853,7 @@ class MLViewScreen(Screen, BaseScreen):
             self.classes,
             self.ml_configs_folder,
         )
-        self.save_model()
+
         self.load_model_names()
         self.ids.model_input.text = ""
 
