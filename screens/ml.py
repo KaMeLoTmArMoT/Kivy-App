@@ -1,13 +1,19 @@
 import configparser
 import gc
 import os
+import sys
+from collections import deque
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torch import optim
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
+from tqdm import tqdm
 
 from screens.custom_logging import get_logger
 from screens.db import DB
@@ -28,6 +34,9 @@ class KModel:
         self.processed_steps = None
         self.data_iter = None
         self.criterion = None
+        self.writer = None
+        self.optimizer = None
+        self.terminate_training = None
 
         self.transform = None
 
@@ -38,6 +47,8 @@ class KModel:
         if not os.path.exists(config_path):
             logger.error("No config")
             return
+
+        self.unload_model()
 
         (
             model_type,
@@ -177,8 +188,90 @@ class KModel:
             ]
         )
 
-    def train(self):
-        pass
+    def train_model(self, data, log_dir):
+        epochs_s1 = 5
+        epochs_s2 = 5
+
+        lr_s1 = 1e-4
+        lr_s2 = 1e-5
+
+        self.model.train()
+
+        self.writer = SummaryWriter(log_dir=log_dir)
+        self.criterion = nn.CrossEntropyLoss()
+
+        try:
+            logger.info("\n--- Stage 1: Fine-tuning the classifier ---")
+            for p in self.model.features.parameters():
+                p.requires_grad = False
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s1)
+            self.train_cycle(epochs_s1, data, start_epoch=0)
+
+            logger.info("\n--- Stage 2: Unfreeze all layers ---")
+            for p in self.model.parameters():
+                p.requires_grad = True
+            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s2)
+            self.train_cycle(epochs_s2, data, start_epoch=epochs_s1)
+
+        finally:
+            self.terminate_training = False
+            if self.writer:
+                self.writer.close()
+
+    def train_cycle(self, epochs, dataset, start_epoch=0):
+        smooth_window = 100
+        total_epochs = start_epoch + epochs
+
+        for epoch_idx in range(epochs):
+            if self.terminate_training:
+                logger.warning("Training terminated by user")
+                return
+
+            epoch = start_epoch + epoch_idx
+            running_loss = 0.0
+            correct, total = 0, 0
+            loss_window = deque(maxlen=smooth_window)
+
+            progress_bar = tqdm(
+                dataset,
+                desc=f"Epoch {epoch + 1}/{total_epochs}",
+                file=sys.stdout,
+            )
+
+            for images, labels in progress_bar:
+                if self.terminate_training:
+                    logger.warning("Early termination inside batch")
+                    return
+
+                images, labels = images.to(self.device), labels.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                loss_value = loss.item()
+                running_loss += loss_value
+
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+                loss_window.append(loss_value)
+                smoothed_loss = np.mean(loss_window)
+                progress_bar.set_postfix(loss=f"{smoothed_loss:.4f}")
+
+            avg_loss = running_loss / len(dataset)
+            accuracy = 100 * correct / total
+
+            self.writer.add_scalar("Loss/train", avg_loss, epoch)
+            self.writer.add_scalar("Accuracy/train", accuracy, epoch)
+
+            logger.info(
+                f"Epoch [{epoch + 1}/{total_epochs}], "
+                f"Loss: {avg_loss:.4f}, "
+                f"Accuracy: {accuracy:.2f}%\n"
+            )
 
 
 def get_base_model(model_type: str, num_classes: int, no_weights=False):

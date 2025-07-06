@@ -3,15 +3,11 @@ import io
 import os
 import platform
 import shutil
-import sys
 import time
 import webbrowser
-from collections import deque
 from math import ceil
 from threading import Thread
 
-import numpy as np
-import torch
 from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
@@ -31,9 +27,6 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 from tensorboard import program
-from torch import nn, optim
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.custom_logging import get_logger
@@ -58,23 +51,16 @@ class MLViewScreen(Screen, BaseScreen):
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.touch_time = time.time()
         self.train_active = False
-        self.terminate_training = False
         self.load_event = None
         self.page = 1
         self.total_pages = None
 
         self.selected_model = None
-        self.model: nn.Module = None
         self.model_name = None
-        self.criterion = None
-        self.optimizer = None
-        self.writer = None
         self.total_steps = None
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
-        self.num_classes = 0
-        self.classes = None
         self.tensorboard = None
         self.tensorboard_url = None
 
@@ -109,8 +95,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.popup = None
         self.main_button = self.ids.project_label
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.max_images_per_page = None
         self.chrome_path = None
 
@@ -137,7 +121,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.chrome_path = DB().get_config_typed("chrome_path")
 
         self.k_model.update_params()
-        logger.warning(f"USING DEVICE {self.device}")
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
@@ -152,9 +135,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.tensorboard_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.warning(f"Using device: {self.device}")
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -490,12 +470,12 @@ class MLViewScreen(Screen, BaseScreen):
     def trigger_training(self):
         if self.train_active:
             logger.warning("Training termination requested")
-            self.terminate_training = True
+            self.k_model.terminate_training = True
             self.ids.train_btn.text = "Train"
             self.ids.train_btn.disabled = True  # Temporarily disable until cleanup
             return
 
-        if self.model is None:
+        if self.k_model.model is None:
             if self.selected_model:
                 self.load_model()
             else:
@@ -503,7 +483,7 @@ class MLViewScreen(Screen, BaseScreen):
                 return
 
         self.train_active = True
-        self.terminate_training = False
+        self.k_model.terminate_training = False
         self.ids.train_btn.text = "Stop"
         self.ids.train_btn.disabled = False
         self.update_all_button_states()
@@ -527,101 +507,24 @@ class MLViewScreen(Screen, BaseScreen):
             self.show_folder_images(self.cur_dir)
 
     def train_model(self):
-        epochs_s1 = 5
-        epochs_s2 = 5
-
-        lr_s1 = 1e-4
-        lr_s2 = 1e-5
-
-        normalized_ds = prepare_dataset(shuffle=True)
-        self.model.train()
+        data = prepare_dataset(
+            self.ml_train_folder, self.k_model.transform, batch_size=8, shuffle=True
+        )
 
         log_dir = os.path.join(
             self.tensorboard_folder,
             datetime.datetime.now().strftime("%Y_%m_%d-%H_%M") + f"_{self.model_name}",
         )
 
-        self.writer = SummaryWriter(log_dir=log_dir)
-        self.criterion = nn.CrossEntropyLoss()
+        self.k_model.train_model(data, log_dir)
 
-        try:
-            logger.info("\n--- Stage 1: Fine-tuning the classifier ---")
-            for p in self.model.features.parameters():
-                p.requires_grad = False
-            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s1)
-            self.train_cycle(epochs_s1, normalized_ds, start_epoch=0)
-
-            logger.info("\n--- Stage 2: Unfreeze all layers ---")
-            for p in self.model.parameters():
-                p.requires_grad = True
-            self.optimizer = optim.Adam(self.model.parameters(), lr=lr_s2)
-            self.train_cycle(epochs_s2, normalized_ds, start_epoch=epochs_s1)
-
-        finally:
-            # self.evaluate_model(normalized_ds)
-            self.train_active = False
-            self.terminate_training = False
-            self.ids.train_btn.text = "Train"
-            self.ids.train_btn.disabled = False
-            self.update_all_button_states()
-            self.save_model()
-            if self.writer:
-                self.writer.close()
-
-    def train_cycle(self, epochs, dataset, start_epoch=0):
-        smooth_window = 100
-        total_epochs = start_epoch + epochs
-
-        for epoch_idx in range(epochs):
-            if self.terminate_training:
-                logger.warning("Training terminated by user")
-                return
-
-            epoch = start_epoch + epoch_idx
-            running_loss = 0.0
-            correct, total = 0, 0
-            loss_window = deque(maxlen=smooth_window)
-
-            progress_bar = tqdm(
-                dataset,
-                desc=f"Epoch {epoch + 1}/{total_epochs}",
-                file=sys.stdout,
-            )
-
-            for images, labels in progress_bar:
-                if self.terminate_training:
-                    logger.warning("Early termination inside batch")
-                    return
-
-                images, labels = images.to(self.device), labels.to(self.device)
-                self.optimizer.zero_grad()
-                outputs = self.model(images)
-                loss = self.criterion(outputs, labels)
-                loss.backward()
-                self.optimizer.step()
-
-                loss_value = loss.item()
-                running_loss += loss_value
-
-                _, predicted = outputs.max(1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-
-                loss_window.append(loss_value)
-                smoothed_loss = np.mean(loss_window)
-                progress_bar.set_postfix(loss=f"{smoothed_loss:.4f}")
-
-            avg_loss = running_loss / len(dataset)
-            accuracy = 100 * correct / total
-
-            self.writer.add_scalar("Loss/train", avg_loss, epoch)
-            self.writer.add_scalar("Accuracy/train", accuracy, epoch)
-
-            logger.info(
-                f"Epoch [{epoch + 1}/{total_epochs}], "
-                f"Loss: {avg_loss:.4f}, "
-                f"Accuracy: {accuracy:.2f}%\n"
-            )
+        # self.evaluate_model(data)
+        self.train_active = False
+        self.k_model.terminate_training = False
+        self.ids.train_btn.text = "Train"
+        self.ids.train_btn.disabled = False
+        self.update_all_button_states()
+        self.save_model()
 
     def select_model_type(self):
         popup = Popup(
@@ -708,8 +611,6 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("Select model!")
             return
 
-        self.unload_model()
-
         self.model_name = self.selected_model.text
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
         save_path = os.path.join(model_dir, self.model_name + ".pth")
@@ -723,11 +624,11 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.model_label.text = self.model_type
 
         logger.debug("load complete")
-        # logger.debug(f"{self.model}")
+        # logger.debug(f"{self.k_model.model}")
         self.update_all_button_states()
 
     def unload_model(self):
-        if self.model is None and self.k_model.model is None:
+        if self.k_model.model is None:
             return
 
         self.k_model.unload_model()
@@ -735,7 +636,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.unselect_model_btn()
 
     def save_model(self):
-        if self.model is None:
+        if self.k_model.model is None:
             logger.warning("No model to save.")
             return
 
@@ -756,7 +657,7 @@ class MLViewScreen(Screen, BaseScreen):
             return
 
         self.ids.evaluate_btn.text = "Stop eval"
-        if self.model is None and self.k_model.model is None:
+        if self.k_model.model is None:
             if self.selected_model is None:
                 self.error_popup_clock("Select/Load model first!")
                 return
@@ -764,9 +665,13 @@ class MLViewScreen(Screen, BaseScreen):
                 # in case model selected but not loaded
                 self.load_model()
 
-        data = prepare_dataset(
-            self.ml_train_folder, self.k_model.transform, batch_size=32, shuffle=False
-        )
+        if data is None:
+            data = prepare_dataset(
+                self.ml_train_folder,
+                self.k_model.transform,
+                batch_size=32,
+                shuffle=False,
+            )
         self.total_steps = len(data)
         self.k_model.evaluate_model(
             data,
@@ -806,21 +711,21 @@ class MLViewScreen(Screen, BaseScreen):
             self.error_popup_clock("No model name.")
             return
 
-        self.num_classes = len(self.ids.class_grid.children) - 1
+        num_classes = len(self.ids.class_grid.children) - 1
 
-        if self.num_classes < 2:
+        if num_classes < 2:
             self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
 
-        self.model_name = f"{name}_{self.model_type}_{self.num_classes}"
+        self.model_name = f"{name}_{self.model_type}_{num_classes}"
         model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
         save_path = os.path.join(model_dir, self.model_name + ".pth")
 
-        self.classes = self.get_classes()
+        classes = self.get_classes()
 
         self.k_model.create_model(
             self.model_name,
-            self.classes,
+            classes,
             self.model_type,
             model_dir,
             save_path,
@@ -829,8 +734,8 @@ class MLViewScreen(Screen, BaseScreen):
         create_config_file(
             self.model_name,
             self.model_type,
-            self.num_classes,
-            self.classes,
+            num_classes,
+            classes,
             self.ml_configs_folder,
         )
 
@@ -859,9 +764,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.load_model_names()
 
     def model_predict(self):
-        if self.selected_images is None or (
-            self.model is None and self.k_model.model is None
-        ):
+        if self.selected_images is None or self.k_model.model is None:
             self.error_popup_clock("Select model and images!")
             return
 
@@ -932,7 +835,7 @@ class MLViewScreen(Screen, BaseScreen):
             and self.cur_dir != self.selected_dir_full
         )
         is_model_selected = bool(self.selected_model)
-        is_model_loaded = bool(self.model or self.k_model.model)
+        is_model_loaded = bool(self.k_model.model)
         is_model_named = bool(self.model_name)
         model_name_differs = (
             is_model_selected and self.selected_model.text != self.model_name

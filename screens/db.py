@@ -11,6 +11,14 @@ DEFAULT_CONFIGS = {
     "IMG_SHAPE": "(224, 224, 3)",
     "MEAN": "[0.485, 0.456, 0.406]",
     "STD": "[0.229, 0.224, 0.225]",
+    "epochs_s1": "5",
+    "epochs_s2": "5",
+    "lr_s1": "1e-4",
+    "lr_s2": "1e-5",
+    "inference_batch_size": "32",
+    "train_batch_size": "8",
+    "load_reducer": "5",  # artificial sleep for lower CPU/GPU load
+    "criterion": "CrossEntropyLoss",
     "chrome_path": "C:/Program Files/Google/Chrome/Application/chrome.exe %s",
 }
 
