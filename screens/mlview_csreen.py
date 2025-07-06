@@ -508,7 +508,10 @@ class MLViewScreen(Screen, BaseScreen):
 
     def train_model(self):
         data = prepare_dataset(
-            self.ml_train_folder, self.k_model.transform, batch_size=8, shuffle=True
+            self.ml_train_folder,
+            self.k_model.transform,
+            batch_size=DB().get_config_typed("train_batch_size"),
+            shuffle=True,
         )
 
         log_dir = os.path.join(
@@ -669,7 +672,7 @@ class MLViewScreen(Screen, BaseScreen):
             data = prepare_dataset(
                 self.ml_train_folder,
                 self.k_model.transform,
-                batch_size=32,
+                batch_size=DB().get_config_typed("inference_batch_size"),
                 shuffle=False,
             )
         self.total_steps = len(data)

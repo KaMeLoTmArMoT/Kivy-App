@@ -7,10 +7,13 @@ from utils import call_db
 logger = get_logger(__name__)
 
 DEFAULT_CONFIGS = {
+    # view params
     "MAX_IMAGES_PER_PAGE": "50",
+    # data params
     "IMG_SHAPE": "(224, 224, 3)",
     "MEAN": "[0.485, 0.456, 0.406]",
     "STD": "[0.229, 0.224, 0.225]",
+    # train params
     "epochs_s1": "5",
     "epochs_s2": "5",
     "lr_s1": "1e-4",
@@ -19,6 +22,8 @@ DEFAULT_CONFIGS = {
     "train_batch_size": "8",
     "load_reducer": "5",  # artificial sleep for lower CPU/GPU load
     "criterion": "CrossEntropyLoss",
+    "smooth_window": "100",  # window size to show average loss/acc
+    # other path
     "chrome_path": "C:/Program Files/Google/Chrome/Application/chrome.exe %s",
 }
 

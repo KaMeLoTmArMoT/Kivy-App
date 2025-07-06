@@ -189,11 +189,11 @@ class KModel:
         )
 
     def train_model(self, data, log_dir):
-        epochs_s1 = 5
-        epochs_s2 = 5
+        epochs_s1 = DB().get_config_typed("epochs_s1")
+        epochs_s2 = DB().get_config_typed("epochs_s2")
 
-        lr_s1 = 1e-4
-        lr_s2 = 1e-5
+        lr_s1 = DB().get_config_typed("lr_s1")
+        lr_s2 = DB().get_config_typed("lr_s2")
 
         self.model.train()
 
@@ -219,7 +219,7 @@ class KModel:
                 self.writer.close()
 
     def train_cycle(self, epochs, dataset, start_epoch=0):
-        smooth_window = 100
+        smooth_window = DB().get_config_typed("smooth_window")
         total_epochs = start_epoch + epochs
 
         for epoch_idx in range(epochs):
