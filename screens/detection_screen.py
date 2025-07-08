@@ -97,6 +97,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.active_project = None
 
         self.model: YOLO = None
+        self.model_name = None
         self.confidence = 0.5
 
         self.tensorboard = None
@@ -253,8 +254,16 @@ class DetectionScreen(Screen, BaseScreen):
             self.projects_folder, self.active_project, "dataset\\raw\\annotations"
         )
 
+        env = None
+        if get_system_type() == "Linux":
+            env = os.environ.copy()
+            env.pop("QT_PLUGIN_PATH", None)
+            env.pop("QT_QPA_FONTDIR", None)
+            env.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
+
         self.labelimg_process = subprocess.Popen(
-            ["labelImg", pth_images, pth_classes, pth_annotations]
+            ["labelImg", pth_images, pth_classes, pth_annotations],
+            env=env,
         )
 
     def labelimg_status(self) -> bool:
@@ -295,6 +304,7 @@ class DetectionScreen(Screen, BaseScreen):
 
         logger.info(f"{model_path=}")
         self.model = YOLO(model_path)
+        self.model_name = self.selected_model.text
         self.model.fuse()
         self.model.overrides["verbose"] = False
         logger.debug("model initialised")
@@ -303,6 +313,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.model(np.ones((500, 500, 3)))
         logger.debug("warmup done")
 
+        self.update_all_button_states()
         if last_display_mode:
             self.display_start()
 
@@ -323,6 +334,7 @@ class DetectionScreen(Screen, BaseScreen):
     def yolo_terminate(self):
         self.display_stop()
         self.model = None
+        self.model_name = None
         gc.collect()
         self.unselect_model_btn()
         if self.show_frames:
@@ -465,9 +477,13 @@ class DetectionScreen(Screen, BaseScreen):
                 name = "yolo"
 
             for model in models:
-                btn = MDLabelBtn(text=f"{name}{self.yolo_generation}{model}.pt")
+                btn = MDLabelBtn(
+                    text=f"{name}{self.yolo_generation}{model}.pt",
+                    theme_text_color="Custom",
+                    text_color="white",
+                )
                 btn.bind(on_press=self.select_model_btn)
-                btn.allow_hover = True
+                # btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
         else:
             pass  # TODO parse models at runs folder or exported ones
@@ -501,6 +517,8 @@ class DetectionScreen(Screen, BaseScreen):
             self.ids.label_spinner.text = str(new_value)
             self.yolo_generation = new_value
             self.load_model_names()
+
+        self.update_all_button_states()
 
     def split(self):
         pth_annotations = os.path.join(
@@ -603,3 +621,8 @@ class DetectionScreen(Screen, BaseScreen):
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
         logger.debug(f"{train_process}")
+
+    def update_all_button_states(self):
+        # Highlight active model
+        for btn in self.ids.model_grid.children:
+            btn.text_color = "red" if btn.text == self.model_name else "white"

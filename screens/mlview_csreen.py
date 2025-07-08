@@ -811,6 +811,7 @@ class MLViewScreen(Screen, BaseScreen):
                     text_color="white",
                 )
                 btn.bind(on_press=self.select_model_btn)
+                # btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
 
     def select_model_btn(self, instance):
