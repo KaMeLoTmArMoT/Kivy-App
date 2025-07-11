@@ -7,12 +7,10 @@ build_utils/dist
 patches
 projects
 projects_detection
-tests
 runs
 data
 logs
 
-test/*
 build/*
 dist/*
 datasets/*
