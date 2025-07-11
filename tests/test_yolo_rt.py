@@ -11,9 +11,8 @@ def export(model_name="yolo11n"):
     export_model_path = os.path.join(base_pth, f"{model_name}.pt")
 
     model = YOLO(export_model_path)
-    # model.export(format='tensorrt')
     model.export(format="tensorrt", half=True, simplify=True)
-    # model.export(format='openvino', half=True)
+    model.export(format="openvino", half=True)
     print("Model exported successfully to TensorRT/TARGET format!")
 
 
@@ -52,7 +51,7 @@ def benchmark(model_path, dummy_input, log_file, num_runs=500):
         f.write(result_str)
 
 
-def run_test(model_name="yolo11n"):
+def run_test(model_name="yolo11n", num_runs=500):
     log_file = "../screens/speed_benchmark.log"
 
     base_pth = "/home/lv-user187/PycharmProjects/Kivy-App/projects_detection/default"
@@ -60,24 +59,26 @@ def run_test(model_name="yolo11n"):
     pt_model_path = os.path.join(base_pth, f"{model_name}.pt")
     onnx_model_path = os.path.join(base_pth, f"{model_name}.onnx")
     tensorrt_model_path = os.path.join(base_pth, f"{model_name}.engine")
-    # vino_model_path = os.path.join(base_pth, f"{model_name}_openvino_model")
+    vino_model_path = os.path.join(base_pth, f"{model_name}_openvino_model")
 
     input_image = np.random.randint(0, 255, size=(640, 640, 3), dtype=np.uint8)
 
     with open(log_file, "a") as f:
         f.write("\n\n\n")
 
-    benchmark(pt_model_path, input_image, log_file)
-    time.sleep(5)
-    benchmark(onnx_model_path, input_image, log_file)
-    time.sleep(5)
-    benchmark(tensorrt_model_path, input_image, log_file)
-    # time.sleep(5)
-    # benchmark(vino_model_path, input_image, log_file)
+    model_paths = [pt_model_path, onnx_model_path, tensorrt_model_path, vino_model_path]
+    for model_path in model_paths:
+        try:
+            benchmark(model_path, input_image, log_file, num_runs)
+            time.sleep(5)
+        except Exception as e:
+            print(f"Skipping benchmark for model: {model_path}\nwith error: {e}")
 
     print(f"\nBenchmark complete. Results saved to {log_file}")
 
 
 if __name__ == "__main__":
-    # export("yolo11x")
-    run_test("yolo11x")
+    model_mame = "yolo11n"
+
+    # export(model_mame)
+    run_test(model_mame, num_runs=200)
