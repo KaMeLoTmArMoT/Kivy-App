@@ -1,17 +1,21 @@
-Kivy~=2.1.0
-kivymd~=0.104.2
-numpy~=1.26.4
-pycryptodomex~=3.14.1
-opencv-python~=4.7.0.72
-checksumdir~=1.2.0
-ultralytics~=8.3.58
-torch~=2.5.1
-torchvision~=0.20.1
-labelImg~=1.8.6
-scikit-learn~=1.2.2
-pre_commit~=4.0.1
-onnx==1.18.0
-onnxslim==0.1.59
-onnxruntime-gpu==1.22.0
-tensorrt==10.12.0.36
-openvino==2025.2.0
+Kivy==2.1.0
+kivymd==0.104.2
+numpy==1.26.4
+pycryptodomex==3.14.1
+opencv-python==4.7.0.72
+checksumdir==1.2.0
+labelImg==1.8.6
+scikit-learn==1.2.2
+pre_commit==4.0.1
+tensorboard==2.19.0
+onnx==1.18.0  # TODO: check 1.17.0 as for windows
+
+ultralytics~=8.3.58  # TODO: check and freeze
+
+# torch==2.5.1
+# torchvision==0.20.1  # TODO: divide to parts
+
+# onnxslim==0.1.59  # TODO: also separate part
+# onnxruntime-gpu==1.22.0
+# tensorrt==10.12.0.36
+# openvino==2025.2.0
