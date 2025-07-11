@@ -88,6 +88,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.tensorboard_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
+        os.makedirs(self.tensorboard_folder, exist_ok=True)
         os.makedirs(self.images_path, exist_ok=True)
 
         self.dropdown = None
