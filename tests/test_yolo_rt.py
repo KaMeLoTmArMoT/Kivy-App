@@ -2,7 +2,9 @@ import os
 import time
 
 import numpy as np
+from tqdm import tqdm
 from ultralytics import YOLO
+
 
 def export(model_name="yolo11n"):
     base_pth = "/home/lv-user187/PycharmProjects/Kivy-App/projects_detection/default"
@@ -10,8 +12,9 @@ def export(model_name="yolo11n"):
 
     model = YOLO(export_model_path)
     # model.export(format='tensorrt')
-    model.export(format='tensorrt', half=True, simplify=True)
-    print("Model exported successfully to TensorRT format!")
+    model.export(format="tensorrt", half=True, simplify=True)
+    # model.export(format='openvino', half=True)
+    print("Model exported successfully to TensorRT/TARGET format!")
 
 
 def benchmark(model_path, dummy_input, log_file, num_runs=500):
@@ -28,8 +31,9 @@ def benchmark(model_path, dummy_input, log_file, num_runs=500):
     print("Warm-up complete.")
 
     start_time = time.time()
-    for _ in range(num_runs):
+    for _ in tqdm(range(num_runs)):
         model(dummy_input, verbose=False)
+        # model(dummy_input, verbose=False, device="intel:cpu")
     end_time = time.time()
 
     total_time = end_time - start_time
@@ -56,6 +60,7 @@ def run_test(model_name="yolo11n"):
     pt_model_path = os.path.join(base_pth, f"{model_name}.pt")
     onnx_model_path = os.path.join(base_pth, f"{model_name}.onnx")
     tensorrt_model_path = os.path.join(base_pth, f"{model_name}.engine")
+    # vino_model_path = os.path.join(base_pth, f"{model_name}_openvino_model")
 
     input_image = np.random.randint(0, 255, size=(640, 640, 3), dtype=np.uint8)
 
@@ -67,6 +72,8 @@ def run_test(model_name="yolo11n"):
     benchmark(onnx_model_path, input_image, log_file)
     time.sleep(5)
     benchmark(tensorrt_model_path, input_image, log_file)
+    # time.sleep(5)
+    # benchmark(vino_model_path, input_image, log_file)
 
     print(f"\nBenchmark complete. Results saved to {log_file}")
 

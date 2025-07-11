@@ -1,7 +1,7 @@
 import os
 import time
+
 import cv2
-import numpy as np
 from ultralytics import YOLO
 
 
@@ -60,12 +60,21 @@ def benchmark_webcam(model_path, camera_index=0, num_frames_to_average=500):
 
         fps = 1 / inference_time
 
-        cv2.putText(annotated_frame, f"FPS: {fps:.2f}", (20, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(
+            annotated_frame,
+            f"FPS: {fps:.2f}",
+            (20, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2,
+        )
 
-        cv2.imshow(f"Webcam Benchmark - {os.path.basename(model_path)}", annotated_frame)
+        cv2.imshow(
+            f"Webcam Benchmark - {os.path.basename(model_path)}", annotated_frame
+        )
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     if frame_count > 0:
