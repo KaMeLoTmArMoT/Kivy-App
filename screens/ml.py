@@ -1,6 +1,7 @@
 import configparser
 import gc
 import os
+import platform
 import sys
 from collections import deque
 
@@ -14,6 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
+from ultralytics import YOLO
 
 from screens.custom_logging import get_logger
 from screens.db import DB
@@ -381,3 +383,77 @@ def prepare_dataset(
     )
 
     return testloader
+
+
+def get_hardware_acceleration_type() -> str:
+    if torch.cuda.is_available():
+        logger.debug("NVIDIA CUDA device found. Best acceleration: TensorRT")
+        return "TensorRT"
+
+    try:
+        if "intel" in platform.processor().lower():
+            logger.debug("Intel CPU detected. Best acceleration: OpenVINO")
+            return "OpenVINO"
+    except Exception as e:
+        logger.debug(f"{e}")
+
+    logger.warning("No specific hardware acceleration detected.")
+    return "None"
+
+
+def export_to_best_available(pt_model_path, force_export=None, force_skip=None):
+    if not os.path.exists(pt_model_path):
+        logger.error(f"Error: Cannot export. Model not found at {pt_model_path}")
+        return
+
+    accel_type = get_hardware_acceleration_type()
+    model = YOLO(pt_model_path)
+    name = os.path.basename(pt_model_path)
+
+    # always create onnx file
+    logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
+    model.export(format="onnx", half=True, simplify=True)
+    logger.info("Export to ONNX complete.")
+
+    # TODO: add force_skip
+    if accel_type == "TensorRT" or "TensorRT" in force_export:
+        logger.info(f"Exporting '{name}' to TensorRT format...")
+        model.export(format="tensorrt", half=True, simplify=True)
+        logger.info("Export to TensorRT complete.")
+
+    if accel_type == "OpenVINO" or "OpenVINO" in force_export:
+        logger.info(f"Exporting '{name}' to OpenVINO format...")
+        model.export(format="openvino", half=True)
+        logger.info("Export to OpenVINO complete.")
+
+
+def get_best_model_paths(base_dir, model_name):
+    available_models = []
+    logger.info("Searching for best available model to load...")
+
+    tensorrt_path = os.path.join(base_dir, f"{model_name}.engine")
+    if os.path.exists(tensorrt_path):
+        logger.info("Found high-performance TensorRT model.")
+        available_models.append([tensorrt_path, "TensorRT"])
+
+    openvino_path = os.path.join(base_dir, f"{model_name}_openvino_model")
+    if os.path.isdir(openvino_path):
+        logger.info("Found optimized OpenVINO model.")
+        available_models.append([openvino_path, "OpenVINO"])
+
+    onnx_path = os.path.join(base_dir, f"{model_name}.onnx")
+    if os.path.exists(onnx_path):
+        logger.info("Found general-purpose ONNX model.")
+        available_models.append([onnx_path, "ONNX"])
+
+    pt_path = os.path.join(base_dir, f"{model_name}.pt")
+    if os.path.exists(pt_path):
+        logger.info("Found baseline PyTorch model.")
+        available_models.append([pt_path, "PyTorch"])
+
+    if available_models:
+        return available_models
+
+    else:
+        logger.error(f"Error: No model file found for '{model_name}' in '{base_dir}'")
+        return [None, None]

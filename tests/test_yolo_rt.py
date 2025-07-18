@@ -24,6 +24,11 @@ def benchmark(model_path, dummy_input, log_file, num_runs=500):
     print(f"\n--- Benchmarking {os.path.basename(model_path)} ---")
 
     model = YOLO(model_path, task="detect")
+    try:
+        model.fuse()
+        print("Fuse ok")
+    except Exception as e:
+        print(f"Failed to fuse model {model_path}\n{e}")
 
     print("Performing warm-up run...")
     model(dummy_input, verbose=False)

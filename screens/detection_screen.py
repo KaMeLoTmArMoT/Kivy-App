@@ -25,6 +25,7 @@ from ultralytics import YOLO
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.custom_logging import get_logger
 from screens.db import DB
+from screens.ml import export_to_best_available, get_best_model_paths
 from utils import get_system_type
 
 logger = get_logger(__name__)
@@ -114,6 +115,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.yolo_generation = 11
 
         self.chrome_path = None
+        self.is_optimizing = False
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -287,32 +289,50 @@ class DetectionScreen(Screen, BaseScreen):
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
 
     def yolo_init(self, last_display_mode, tm=None):
-        if self.selected_model:
-            if self.active_project == "default":
-                model_path = os.path.join(
-                    self.active_project_folder, self.selected_model.text
+        if not self.selected_model:
+            logger.warning("No model to load")
+            return
+
+        model_name = self.selected_model.text
+
+        # TODO: parse for models at runs folder
+        model_path = os.path.join(self.active_project_folder, model_name)
+        if not os.path.exists(model_path):
+            logger.warning(f"Model not found at {model_path}, downloading...")
+            YOLO(model_path)
+
+        logger.info(f"Original {model_path=}")
+
+        available_models = get_best_model_paths(
+            self.active_project_folder, model_name.split(".")[0]
+        )
+
+        for model_path, model_type in available_models:
+            logger.info(f"Trying to load {model_path=}")
+
+            try:
+                self.model = YOLO(model_path, task="detect")
+                self.model.overrides["verbose"] = False
+
+                if model_type == "PyTorch":
+                    try:
+                        self.model.fuse()
+                        logger.debug("Fuse ok")
+                    except Exception as e:
+                        logger.error(f"Failed to fuse model {model_path}\n{e}")
+
+                warmup_image = np.random.randint(
+                    0, 255, size=(640, 640, 3), dtype=np.uint8
                 )
-            else:
-                # TODO: parse for models at runs folder
-                model_path = os.path.join(
-                    self.active_project_folder, self.selected_model.text
-                )
-        else:
-            model_path = os.path.join(
-                self.app_folder, "runs\\detect\\train3\\weights\\best.pt"
-            )
+                self.model(warmup_image)
+                logger.debug("Warmup done successfully")
+                logger.debug(f"Model {model_name} initialised")
+                break
 
-        logger.info(f"{model_path=}")
-        self.model = YOLO(model_path)
-        self.model_name = self.selected_model.text
-        self.model.fuse()
-        self.model.overrides["verbose"] = False
-        logger.debug("model initialised")
+            except Exception as e:
+                logger.error(f"Failed to load model {model_path}\n{e}")
 
-        # model warmup
-        self.model(np.ones((500, 500, 3)))
-        logger.debug("warmup done")
-
+        self.model_name = model_name
         self.update_all_button_states()
         if last_display_mode:
             self.display_start()
@@ -337,6 +357,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.model_name = None
         gc.collect()
         self.unselect_model_btn()
+        self.update_all_button_states()
         if self.show_frames:
             self.display_start()
 
@@ -626,3 +647,38 @@ class DetectionScreen(Screen, BaseScreen):
         # Highlight active model
         for btn in self.ids.model_grid.children:
             btn.text_color = "red" if btn.text == self.model_name else "white"
+
+    def yolo_optimize(self):
+        if not self.selected_model:
+            logger.error("No model or name")
+            return
+
+        if self.is_optimizing:
+            logger.warning("Optimization is already in progress.")
+            return
+
+        self.is_optimizing = True
+
+        model_path = os.path.join(self.active_project_folder, self.selected_model.text)
+        if not os.path.exists(model_path):
+            logger.warning(f"Model not found at {model_path}, downloading...")
+            YOLO(model_path)
+
+        threading.Thread(
+            target=self._threaded_export_wrapper, args=(model_path,), daemon=True
+        ).start()
+
+    def _threaded_export_wrapper(self, model_path):
+        try:
+            export_to_best_available(model_path, force_export=["OpenVINO"])
+            Clock.schedule_once(partial(self._on_export_complete, success=True))
+        except Exception as e:
+            logger.error(f"Failed to export model {self.model_name}: {e}")
+            Clock.schedule_once(partial(self._on_export_complete, success=False))
+
+    def _on_export_complete(self, dt=None, success=True):
+        if success:
+            logger.info("Model optimization finished successfully.")
+        else:
+            logger.error("Model optimization failed.")
+        self.is_optimizing = False
