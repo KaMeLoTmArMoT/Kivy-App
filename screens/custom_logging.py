@@ -1,7 +1,42 @@
 import datetime
 import logging
 import os
+import time
+from collections import defaultdict
 from logging.handlers import RotatingFileHandler
+
+
+class LazyLogger:
+    def __init__(self, logger: logging.Logger, default_interval: float = 1.0):
+        self.logger = logger
+        self.default_interval = default_interval
+        self.last_log_time_by_key = defaultdict(lambda: 0.0)
+
+    def log(self, level, msg, *, key=None, interval=None, **kwargs):
+        now = time.time()
+        key = key or msg
+        interval = interval or self.default_interval
+
+        if now - self.last_log_time_by_key[key] < interval:
+            return  # too soon
+
+        self.last_log_time_by_key[key] = now
+        self.logger.log(level, msg, **kwargs)
+
+    def debug(self, msg, **kwargs):
+        self.log(logging.DEBUG, msg, **kwargs)
+
+    def info(self, msg, **kwargs):
+        self.log(logging.INFO, msg, **kwargs)
+
+    def warning(self, msg, **kwargs):
+        self.log(logging.WARNING, msg, **kwargs)
+
+    def error(self, msg, **kwargs):
+        self.log(logging.ERROR, msg, **kwargs)
+
+    def critical(self, msg, **kwargs):
+        self.log(logging.CRITICAL, msg, **kwargs)
 
 
 class CustomFormatter(logging.Formatter):

@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 import webbrowser
+from collections import deque
 from functools import partial
 
 import cv2
@@ -23,12 +24,14 @@ from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
-from screens.custom_logging import get_logger
+from screens.custom_logging import LazyLogger, get_logger
 from screens.db import DB
 from screens.ml import export_to_best_available, get_best_model_paths
 from utils import get_system_type
 
 logger = get_logger(__name__)
+lazy_logger = LazyLogger(logger, 2.0)
+
 
 """
 Detection projects structure:
@@ -116,6 +119,11 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.chrome_path = None
         self.is_optimizing = False
+
+        self.display_stats = True
+        self.window_size = 100
+        self.time_stamps = deque(maxlen=self.window_size)
+        self.latencies = deque(maxlen=self.window_size)
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -209,6 +217,24 @@ class DetectionScreen(Screen, BaseScreen):
             Clock.schedule_once(partial(self.display_frame, frame))
         self.display_stop()
 
+    def display_stats_frame(self, model_start_time, model_end_time, frame=None):
+        latency = (model_end_time - model_start_time) * 1000  # мс
+        self.latencies.append(latency)
+        self.time_stamps.append(model_end_time)
+
+        avg_fps = 0.0
+        if len(self.time_stamps) >= 2:
+            time_span = self.time_stamps[-1] - self.time_stamps[0]
+            avg_fps = (len(self.time_stamps) - 1) / time_span if time_span > 0 else 0
+
+        avg_latency = sum(self.latencies) / len(self.latencies)
+
+        display_text = f"FPS: {avg_fps:.1f} | Latency: {avg_latency:.1f} ms"
+        lazy_logger.debug(f"{display_text}", key="fps")
+        if frame:
+            frame = self.draw_text_on_frame(frame, display_text, (10, 30))
+        return frame
+
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
         if self.model is not None:
             frame = self.yolo_inference(frame)
@@ -226,17 +252,32 @@ class DetectionScreen(Screen, BaseScreen):
         self.show_frames = False
         self.display_camera_paused(msg)
 
+    def draw_text_on_frame(
+        self,
+        frame,
+        text: str,
+        position,
+    ):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1
+        color = (255, 255, 255)
+        thickness = 2
+
+        if frame.shape[2] == 3:
+            cv2.putText(
+                frame,
+                text,
+                position,
+                font,
+                font_scale,
+                color,
+                thickness,
+            )
+        return frame
+
     def display_camera_paused(self, msg="Camera paused"):
         frame = np.zeros((720, 1280, 3), dtype=np.float32)
-        cv2.putText(
-            frame,
-            msg,
-            (40, 100),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (255, 255, 255),
-            thickness=2,
-        )
+        self.draw_text_on_frame(frame, "Camera paused", position=(40, 100))
         Clock.schedule_once(partial(self.display_frame, frame), 0.15)
 
     def labelimg_open(self) -> None:
@@ -326,7 +367,7 @@ class DetectionScreen(Screen, BaseScreen):
                 )
                 self.model(warmup_image)
                 logger.debug("Warmup done successfully")
-                logger.debug(f"Model {model_name} initialised")
+                logger.debug(f"Model {model_path} initialised")
                 break
 
             except Exception as e:
@@ -340,8 +381,16 @@ class DetectionScreen(Screen, BaseScreen):
     def yolo_inference(self, cv2_frame):
         cv2_frame = cv2_frame[:, :, ::-1]
 
-        # TODO: confidence from UI
+        model_start_time = time.time()
         results = self.model(cv2_frame, conf=self.confidence)
+        model_end_time = time.time()
+
+        if self.display_stats:
+            cv2_frame = self.display_stats_frame(
+                model_start_time,
+                model_end_time,
+                # TODO: fix. returns None as no frame passed in
+            )
 
         if len(results) > 1:
             logger.debug("yolo_inference: more results")
