@@ -5,7 +5,6 @@ import subprocess
 import threading
 import time
 import webbrowser
-from collections import deque
 from functools import partial
 
 import cv2
@@ -26,6 +25,7 @@ from ultralytics import YOLO
 from screens.additional import BaseScreen, MDLabelBtn
 from screens.custom_logging import LazyLogger, get_logger
 from screens.db import DB
+from screens.detection_utils import PerformanceMonitor
 from screens.ml import export_to_best_available, get_best_model_paths
 from utils import get_system_type
 
@@ -122,10 +122,9 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.display_stats = True
         self.window_size = 100
-        self.time_stamps = deque(maxlen=self.window_size)
-        self.latencies = deque(maxlen=self.window_size)
 
         self.processing_flag = False
+        self.monitor = PerformanceMonitor()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -208,7 +207,15 @@ class DetectionScreen(Screen, BaseScreen):
 
     def display_thread(self):
         while self.show_frames:
-            ret, frame = self.camara.read()  # TODO: free main thread while no input frame
+            loop_start_time = time.perf_counter()
+            frame_wait_start = time.perf_counter()
+            (
+                ret,
+                frame,
+            ) = self.camara.read()  # TODO: free main thread while no input frame
+            cam_read_duration_ms = (time.perf_counter() - frame_wait_start) * 1000  # ms
+            self.monitor.add_time("camera", cam_read_duration_ms)
+
             if not ret:
                 logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
@@ -229,26 +236,12 @@ class DetectionScreen(Screen, BaseScreen):
             # custom semafor or what??
             while self.processing_flag:
                 time.sleep(0.001)
+            lazy_logger.debug("\n" + self.monitor.report(), key="perf")
+
+            total_loop_time_ms = (time.perf_counter() - loop_start_time) * 1000  # ms
+            self.monitor.add_time("global", total_loop_time_ms)
 
         self.display_stop()
-
-    def display_stats_frame(self, model_start_time, model_end_time, frame=None):
-        latency = (model_end_time - model_start_time) * 1000  # мс
-        self.latencies.append(latency)
-        self.time_stamps.append(model_end_time)
-
-        avg_fps = 0.0
-        if len(self.time_stamps) >= 2:
-            time_span = self.time_stamps[-1] - self.time_stamps[0]
-            avg_fps = (len(self.time_stamps) - 1) / time_span if time_span > 0 else 0
-
-        avg_latency = sum(self.latencies) / len(self.latencies)
-
-        display_text = f"FPS: {avg_fps:.1f} | Latency: {avg_latency:.1f} ms"
-        lazy_logger.debug(f"{display_text}", key="fps")
-        if frame:
-            frame = self.draw_text_on_frame(frame, display_text, (10, 30))
-        return frame
 
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
         if self.model is not None:
@@ -391,6 +384,7 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.model_name = model_name
         self.update_all_button_states()
+        self.monitor.clear_timings()
         if last_display_mode:
             self.display_start()
 
@@ -399,14 +393,9 @@ class DetectionScreen(Screen, BaseScreen):
 
         model_start_time = time.time()
         results = self.model(cv2_frame, conf=self.confidence)
-        model_end_time = time.time()
 
-        if self.display_stats:
-            cv2_frame = self.display_stats_frame(
-                model_start_time,
-                model_end_time,
-                # TODO: fix. returns None as no frame passed in
-            )
+        model_duration_ms = (time.time() - model_start_time) * 1000  # ms
+        self.monitor.add_time("model", model_duration_ms)
 
         if len(results) > 1:
             logger.debug("yolo_inference: more results")
@@ -423,6 +412,7 @@ class DetectionScreen(Screen, BaseScreen):
         gc.collect()
         self.unselect_model_btn()
         self.update_all_button_states()
+        self.monitor.clear_timings()
         if self.show_frames:
             self.display_start()
 
