@@ -125,6 +125,8 @@ class DetectionScreen(Screen, BaseScreen):
         self.time_stamps = deque(maxlen=self.window_size)
         self.latencies = deque(maxlen=self.window_size)
 
+        self.processing_flag = False
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
@@ -206,7 +208,7 @@ class DetectionScreen(Screen, BaseScreen):
 
     def display_thread(self):
         while self.show_frames:
-            ret, frame = self.camara.read()
+            ret, frame = self.camara.read()  # TODO: free main thread while no input frame
             if not ret:
                 logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
@@ -214,7 +216,20 @@ class DetectionScreen(Screen, BaseScreen):
                 time.sleep(0.25)
                 self.init_camera()
                 time.sleep(0.25)
+
+            self.processing_flag = True
             Clock.schedule_once(partial(self.display_frame, frame))
+            """
+            TODO: fix
+            When we have processing time > camera wait time then we get schedule_once
+            overflow. We call new - when 1 or N previous are still on work.
+            """
+
+            # TODO: check
+            # custom semafor or what??
+            while self.processing_flag:
+                time.sleep(0.001)
+
         self.display_stop()
 
     def display_stats_frame(self, model_start_time, model_end_time, frame=None):
@@ -247,6 +262,7 @@ class DetectionScreen(Screen, BaseScreen):
         )
         texture.flip_vertical()
         self.ids.image.texture = texture
+        self.processing_flag = False
 
     def display_stop(self, msg="Camera paused"):
         self.show_frames = False
@@ -367,7 +383,7 @@ class DetectionScreen(Screen, BaseScreen):
                 )
                 self.model(warmup_image)
                 logger.debug("Warmup done successfully")
-                logger.debug(f"Model {model_path} initialised")
+                logger.warning(f"Model {model_path} initialised")
                 break
 
             except Exception as e:
