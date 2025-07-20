@@ -27,19 +27,6 @@ def log_exec_time(func):
 class LoadingScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ids.pbar.value = 0
-        self.ids.pbar.max = 7 * 20
-        self.init_time = time.time()
-
-        self.fake_progress = 0
-        self.progress_event = None
-        self.current_module_idx = 0
-        self.modules = []
-        self.module_loaded = False
-
-    def on_enter(self, *args):
-        Builder.load_file("ui/app.kv")
-
         self.modules = [
             self.load_login,
             self.load_main,
@@ -50,13 +37,27 @@ class LoadingScreen(Screen, BaseScreen):
             self.load_detection,
         ]
 
+        self.steps = 20
+        self.ids.pbar.value = 0
+        self.ids.pbar.max = len(self.modules) * self.steps
+        self.init_time = time.time()
+
+        self.fake_progress = 0
+        self.progress_event = None
+        self.current_module_idx = 0
+
+        self.module_loaded = False
+
+    def on_enter(self, *args):
+        Builder.load_file("ui/app.kv")
         self.start_next_module()
 
     def start_next_module(self, *_):
         if self.current_module_idx >= len(self.modules):
-            logger.info("All modules loaded.")
+            total_time = time.time() - self.init_time
+            logger.info(f"All modules loaded in {total_time:.2f} seconds.")
             self.ids.status.text = "Loading complete"
-            Clock.schedule_once(self.next_screen, 0.5)
+            Clock.schedule_once(self.next_screen, 0.1)
             return
 
         self.fake_progress = 0
@@ -65,26 +66,29 @@ class LoadingScreen(Screen, BaseScreen):
         self.progress_event = Clock.schedule_interval(self.smooth_fake_progress, 0.2)
 
         # Launch the module loader after a tiny delay (to let UI update)
-        Clock.schedule_once(self.modules[self.current_module_idx], 0.2)
+        Clock.schedule_once(self.modules[self.current_module_idx], 0.1)
 
     def smooth_fake_progress(self, _):
         if self.fake_progress < 15:
             self.ids.pbar.value += 1
             self.fake_progress += 1
-        elif self.module_loaded:
+
+        if self.fake_progress >= 15 and self.module_loaded:
             self.finish_progress()
 
     def increment_pbar(self):
         self.module_loaded = True
-        if self.fake_progress >= 15:
-            self.finish_progress()
+        if self.fake_progress < 15:
+            self.ids.pbar.value += 15 - self.fake_progress
+            self.fake_progress = 15
+        self.finish_progress()
 
     def finish_progress(self):
         if self.progress_event:
             self.progress_event.cancel()
-        self.ids.pbar.value += (20 - self.fake_progress)
+        self.ids.pbar.value += self.steps - self.fake_progress
         self.current_module_idx += 1
-        Clock.schedule_once(self.start_next_module, 0.2)
+        Clock.schedule_once(self.start_next_module, 0.1)
 
     def next_screen(self, *_):
         self.manager.transition.direction = "left"
