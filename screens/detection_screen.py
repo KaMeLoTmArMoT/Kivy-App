@@ -9,6 +9,7 @@ from functools import partial
 
 import cv2
 import numpy as np
+import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -118,6 +119,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.yolo_generation = 11
 
         self.chrome_path = None
+        self.video_source = None
         self.is_optimizing = False
 
         self.display_stats = True
@@ -125,6 +127,9 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.processing_flag = False
         self.monitor = PerformanceMonitor()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info(f"Using device: {self.device}")
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -145,6 +150,7 @@ class DetectionScreen(Screen, BaseScreen):
         logger.info(f"active project: {self.active_project}")
 
         self.chrome_path = DB().get_config_typed("chrome_path")
+        self.video_source = DB().get_config_typed("video_source")
 
         self.update_project_paths()
         self.display_camera_paused()
@@ -177,18 +183,28 @@ class DetectionScreen(Screen, BaseScreen):
         if self.camara is not None:
             return
 
-        if get_system_type() == "Linux":
-            self.camara = cv2.VideoCapture(-1)
+        if self.video_source == "file":
+            video_source_path = DB().get_config_typed("video_source_path")
+            logger.warning(
+                f"Custom video source: {self.video_source} | {video_source_path}"
+            )
+            # TODO: handle errors
+            self.camara = cv2.VideoCapture(video_source_path)
+
         else:
-            self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            if get_system_type() == "Linux":
+                self.camara = cv2.VideoCapture(-1)
+            else:
+                self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
         if not self.camara.isOpened():
-            logger.warning("Error: Unable to open camera")
+            logger.error("Unable to open camera")
             return
 
         self.camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.camara.set(cv2.CAP_PROP_FPS, 30)
+        # TODO: sync with real video framerate
 
     def release_camera_and_windows(self) -> None:
         cv2.destroyAllWindows()
@@ -197,6 +213,10 @@ class DetectionScreen(Screen, BaseScreen):
             self.camara = None
 
     def display_start(self):
+        if self.show_frames and self.camara is not None:
+            logger.warning("Display already started.")
+            return
+
         self.show_frames = True
         logger.debug("init")
         self.init_camera()
@@ -217,6 +237,11 @@ class DetectionScreen(Screen, BaseScreen):
             self.monitor.add_time("camera", cam_read_duration_ms)
 
             if not ret:
+                if self.video_source == "file":
+                    self.camara.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    logger.info("Starting video from the beginning")
+                    continue
+
                 logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 self.release_camera_and_windows()
@@ -725,7 +750,7 @@ class DetectionScreen(Screen, BaseScreen):
 
     def _threaded_export_wrapper(self, model_path):
         try:
-            export_to_best_available(model_path, force_export=["OpenVINO"])
+            export_to_best_available(model_path, force_export=[])
             Clock.schedule_once(partial(self._on_export_complete, success=True))
         except Exception as e:
             logger.error(f"Failed to export model {self.model_name}: {e}")

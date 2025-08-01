@@ -401,21 +401,19 @@ def get_hardware_acceleration_type() -> str:
     return "None"
 
 
-def export_to_best_available(pt_model_path, force_export=None, force_skip=None):
+def export_to_best_available(pt_model_path, force_export=None):
     if not os.path.exists(pt_model_path):
-        logger.error(f"Error: Cannot export. Model not found at {pt_model_path}")
+        logger.error(f"Cannot export. Model not found at {pt_model_path}")
         return
 
     accel_type = get_hardware_acceleration_type()
     model = YOLO(pt_model_path)
     name = os.path.basename(pt_model_path)
 
-    # always create onnx file
     logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
     model.export(format="onnx", half=True, simplify=True)
     logger.info("Export to ONNX complete.")
 
-    # TODO: add force_skip
     if accel_type == "TensorRT" or "TensorRT" in force_export:
         logger.info(f"Exporting '{name}' to TensorRT format...")
         model.export(format="tensorrt", half=True, simplify=True)
@@ -455,5 +453,5 @@ def get_best_model_paths(base_dir, model_name):
         return available_models
 
     else:
-        logger.error(f"Error: No model file found for '{model_name}' in '{base_dir}'")
+        logger.error(f"No model file found for '{model_name}' in '{base_dir}'")
         return [None, None]

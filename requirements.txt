@@ -13,7 +13,7 @@ tensorboard==2.19.0
 pre_commit==4.0.1
 
 # ==== ONNX and Inference ====
-onnx==1.18.0
+onnx==1.17.0
 onnxruntime-gpu==1.22.0
 onnxslim==0.1.59
 tensorrt==10.12.0.36

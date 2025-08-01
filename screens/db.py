@@ -25,6 +25,9 @@ DEFAULT_CONFIGS = {
     "smooth_window": "100",  # window size to show average loss/acc
     # other path
     "chrome_path": "C:/Program Files/Google/Chrome/Application/chrome.exe %s",
+    # custom run modes
+    "video_source": "webcam",
+    "video_source_path": "path/to/video.mp4",
 }
 
 
@@ -117,8 +120,8 @@ class DB:
             try:
                 return ast.literal_eval(value)
 
-            except (ValueError, SyntaxError) as e:
-                logger.warning(f"[get_config_typed] Error: {value} {e}")
+            except (ValueError, SyntaxError):
+                # logger.warning(f"[get_config_typed] Error: {value} {e}")
                 return value
 
         logger.warning("Return nothing.")

@@ -27,8 +27,8 @@ class SettingsViewScreen(Screen, BaseScreen):
             try:
                 val = ast.literal_eval(value)
 
-            except (ValueError, SyntaxError) as e:
-                logger.warning(f"[get_config_typed] Error: {value} {e}")
+            except (ValueError, SyntaxError):
+                # logger.warning(f"[get_config_typed] Error: {value} {e}")
                 val = value
 
             lbl = Label(text=config)
