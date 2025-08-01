@@ -8,14 +8,16 @@ labelImg==1.8.6
 scikit-learn==1.2.2
 pre_commit==4.0.1
 tensorboard==2.19.0
-onnx==1.18.0  # TODO: check 1.17.0 as for windows
-
-ultralytics~=8.3.58  # TODO: check and freeze
+onnx==1.18.0
 
 # torch==2.5.1
-# torchvision==0.20.1  # TODO: divide to parts
+# torchvision==0.20.1
 
-# onnxslim==0.1.59  # TODO: also separate part
-# onnxruntime-gpu==1.22.0
-# tensorrt==10.12.0.36
+ultralytics==8.3.172
+
+onnxslim==0.1.59
+onnxruntime-gpu==1.22.0
+tensorrt==10.12.0.36
+
+# optional
 # openvino==2025.2.0
