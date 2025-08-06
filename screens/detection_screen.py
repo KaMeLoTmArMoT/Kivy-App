@@ -221,7 +221,6 @@ class DetectionScreen(Screen, BaseScreen):
         logger.debug("init")
         self.init_camera()
         logger.debug("start thread")
-        # TODO: make sure only 1 thread is alive (probably by self.show_frames)
         threading.Thread(target=self.display_thread, daemon=True).start()
         logger.debug("after thread")
 
@@ -233,8 +232,7 @@ class DetectionScreen(Screen, BaseScreen):
                 ret,
                 frame,
             ) = self.camara.read()  # TODO: free main thread while no input frame
-            cam_read_duration_ms = (time.perf_counter() - frame_wait_start) * 1000  # ms
-            self.monitor.add_time("camera", cam_read_duration_ms)
+            self.monitor.record("camera", frame_wait_start)
 
             if not ret:
                 if self.video_source == "file":
@@ -245,26 +243,20 @@ class DetectionScreen(Screen, BaseScreen):
                 logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 self.release_camera_and_windows()
-                time.sleep(0.25)
+                time.sleep(0.2)
                 self.init_camera()
-                time.sleep(0.25)
+                time.sleep(0.2)
 
             self.processing_flag = True
             Clock.schedule_once(partial(self.display_frame, frame))
-            """
-            TODO: fix
-            When we have processing time > camera wait time then we get schedule_once
-            overflow. We call new - when 1 or N previous are still on work.
-            """
 
-            # TODO: check
-            # custom semafor or what??
+            lock_start_time = time.perf_counter()
             while self.processing_flag:
                 time.sleep(0.001)
-            lazy_logger.debug("\n" + self.monitor.report(), key="perf")
 
-            total_loop_time_ms = (time.perf_counter() - loop_start_time) * 1000  # ms
-            self.monitor.add_time("global", total_loop_time_ms)
+            self.monitor.record("lock", lock_start_time)
+            self.monitor.record("global", loop_start_time)
+            lazy_logger.debug("\n" + self.monitor.report(), key="perf")
 
         self.display_stop()
 
@@ -416,11 +408,10 @@ class DetectionScreen(Screen, BaseScreen):
     def yolo_inference(self, cv2_frame):
         cv2_frame = cv2_frame[:, :, ::-1]
 
-        model_start_time = time.time()
+        model_start_time = time.perf_counter()
         results = self.model(cv2_frame, conf=self.confidence)
 
-        model_duration_ms = (time.time() - model_start_time) * 1000  # ms
-        self.monitor.add_time("model", model_duration_ms)
+        self.monitor.record("model", model_start_time)
 
         if len(results) > 1:
             logger.debug("yolo_inference: more results")

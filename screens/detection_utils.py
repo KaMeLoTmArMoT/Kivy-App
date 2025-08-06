@@ -1,3 +1,4 @@
+import time
 from collections import defaultdict, deque
 
 from screens.custom_logging import get_logger
@@ -11,6 +12,13 @@ class PerformanceMonitor:
 
     def add_time(self, key: str, duration_ms: float):
         self.timings[key].append(duration_ms)
+
+    @staticmethod
+    def elapsed_ms(start_time: float) -> float:
+        return (time.perf_counter() - start_time) * 1000
+
+    def record(self, label: str, start_time: float):
+        self.add_time(label, self.elapsed_ms(start_time))
 
     def report(self):
         report_lines = []
