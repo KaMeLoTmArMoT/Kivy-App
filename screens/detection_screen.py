@@ -126,6 +126,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.window_size = 100
 
         self.processing_flag = False
+        self.frame_time = None
         self.monitor = PerformanceMonitor()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -203,8 +204,21 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        self.camara.set(cv2.CAP_PROP_FPS, 30)
-        # TODO: sync with real video framerate
+
+        if self.video_source == "file":
+            fps = self.camara.get(cv2.CAP_PROP_FPS)
+            self.frame_time = 1.0 / fps
+            frame_time_ms = self.frame_time / 1000.0
+
+            logger.error(
+                f"Original camera FPS: {fps} and frame time: "
+                f"{self.frame_time:.3f}s, "
+                f"{frame_time_ms:.3f}ms"
+            )
+
+        else:
+            self.camara.set(cv2.CAP_PROP_FPS, 30)
+            logger.error(f"Set camera FPS to 30")
 
     def release_camera_and_windows(self) -> None:
         cv2.destroyAllWindows()
@@ -253,6 +267,12 @@ class DetectionScreen(Screen, BaseScreen):
             lock_start_time = time.perf_counter()
             while self.processing_flag:
                 time.sleep(0.001)
+            # TODO: manage processing_flag and fps_limiter
+
+            elapsed = time.perf_counter() - loop_start_time
+            time_to_wait = self.frame_time - elapsed
+            if time_to_wait > 0:  # fps limiter
+                time.sleep(time_to_wait)
 
             self.monitor.record("lock", lock_start_time)
             self.monitor.record("global", loop_start_time)
