@@ -1,10 +1,8 @@
 import datetime
 import io
 import os
-import platform
 import shutil
 import time
-import webbrowser
 from math import ceil
 from threading import Thread
 
@@ -26,12 +24,12 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
-from tensorboard import program
 
 from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
 from screens.custom_logging import get_logger
 from screens.db import DB
 from screens.ml import KModel, create_config_file, prepare_dataset
+from screens.tensorboard_utils import TBServer
 from utils import extend_key
 
 logger = get_logger(__name__)
@@ -61,8 +59,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
-        self.tensorboard = None
-        self.tensorboard_url = None
+        self.tb_server = TBServer()
 
         self.k_model = KModel()
 
@@ -85,10 +82,10 @@ class MLViewScreen(Screen, BaseScreen):
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
         self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
         self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tensorboard_folder = os.path.join(
+        self.tb_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
-        os.makedirs(self.tensorboard_folder, exist_ok=True)
+        os.makedirs(self.tb_folder, exist_ok=True)
         os.makedirs(self.images_path, exist_ok=True)
 
         self.dropdown = None
@@ -97,7 +94,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.main_button = self.ids.project_label
 
         self.max_images_per_page = None
-        self.chrome_path = None
 
         self.num_predictions = 0
 
@@ -119,8 +115,6 @@ class MLViewScreen(Screen, BaseScreen):
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
 
-        self.chrome_path = DB().get_config_typed("chrome_path")
-
         self.k_model.update_params()
 
     def update_project_paths(self):
@@ -133,7 +127,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
         self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
         self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tensorboard_folder = os.path.join(
+        self.tb_folder = os.path.join(
             self.active_project_folder, "tensorboard"
         )
 
@@ -516,7 +510,7 @@ class MLViewScreen(Screen, BaseScreen):
         )
 
         log_dir = os.path.join(
-            self.tensorboard_folder,
+            self.tb_folder,
             datetime.datetime.now().strftime("%Y_%m_%d-%H_%M") + f"_{self.model_name}",
         )
 
@@ -890,8 +884,8 @@ class MLViewScreen(Screen, BaseScreen):
             f"{len(self.selected_images)}" if has_selection else ""
         )
 
-        tb_folder_exists = os.path.isdir(self.tensorboard_folder)
-        empty_tb_folder = len(os.listdir(self.tensorboard_folder)) != 0
+        tb_folder_exists = os.path.isdir(self.tb_folder)
+        empty_tb_folder = len(os.listdir(self.tb_folder)) != 0
         self.ids.tensorboard_btn.disabled = not (tb_folder_exists and empty_tb_folder)
 
     def unselect_model_btn(self):
@@ -901,38 +895,8 @@ class MLViewScreen(Screen, BaseScreen):
         self.update_all_button_states()
 
     def launch_tensorboard(self):
-        if not os.path.isdir(self.tensorboard_folder):
-            logger.warning("No tensorboard folder")
-            return
-
-        if len(os.listdir(self.tensorboard_folder)) == 0:
-            self.error_popup_clock("No data to show TB!")
-            return
-        # TODO: check freeze issue here.
-
-        if self.tensorboard is None:
-            self.tensorboard = program.TensorBoard()
-            self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
-            self.tensorboard_url = self.tensorboard.launch()
-            logger.debug(f"{self.tensorboard_url=}")
-
-        system_platform = platform.system()
-
-        if system_platform == "Windows":
-            webbrowser.get(self.chrome_path).open(self.tensorboard_url)
-        elif system_platform == "Linux":
-            for browser in ["google-chrome", "chromium", "xdg-open"]:
-                if shutil.which(browser):
-                    webbrowser.get(browser).open(self.tensorboard_url)
-                    break
-            else:
-                logger.error(
-                    "No known browser found. Please install chrome or use xdg-open."
-                )
-        else:
-            logger.error("Unknown operating system.")
-            webbrowser.open(self.tensorboard_url)
-
+        status = self.tb_server.launch_tensorboard(self.tb_folder)
+        logger.warning(f"{status}")
         self.update_all_button_states()
 
     def rotate(self, side):

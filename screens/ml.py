@@ -379,7 +379,7 @@ def prepare_dataset(
         test_dataset,
         batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=4,
+        num_workers=0,  # TODO: set to >0 if needed and supported
     )
 
     return testloader

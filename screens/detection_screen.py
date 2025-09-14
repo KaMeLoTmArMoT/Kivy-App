@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import threading
 import time
-import webbrowser
 from functools import partial
 
 import cv2
@@ -20,7 +19,6 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
-from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
@@ -28,62 +26,11 @@ from screens.custom_logging import LazyLogger, get_logger
 from screens.db import DB
 from screens.detection_utils import PerformanceMonitor
 from screens.ml import export_to_best_available, get_best_model_paths
+from screens.tensorboard_utils import TBServer
 from utils import get_system_type
 
 logger = get_logger(__name__)
 lazy_logger = LazyLogger(logger, 2.0)
-
-
-"""
-Detection projects structure:
-.../app.py
-├── projects_detection
-│   ├── {project name}
-│   │   ├── dataset
-│   │   │   ├── raw
-│   │   │   │   ├── annotations
-│   │   │   │   │   ├── classes.txt
-│   │   │   │   │   ├── {annotation}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img}.jpg (TODO: check .png support)
-│   │   │   │   │   └── ...
-│   │   │   │   └── out <- temporary save train test split
-│   │   │   │       ├── test
-│   │   │   │       │   ├── {img1}.jpg
-│   │   │   │       │   ├── {img1}.txt
-│   │   │   │       │   └── ...
-│   │   │   │       └── train
-│   │   │   │           ├── {img2}.jpg
-│   │   │   │           ├── {img2}.txt
-│   │   │   │           └── ...
-│   │   │   │
-│   │   │   ├── train
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img1}.jpg
-│   │   │   │   │   └── ...
-│   │   │   │   ├── labels
-│   │   │   │   │   ├── {img1}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   └── labels.cache
-│   │   │   │
-│   │   │   ├── val
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img2}.jpg
-│   │   │   │   │   └── ...
-│   │   │   │   ├── labels
-│   │   │   │   │   ├── {img2}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   │
-│   │   │   │   └── labels.cache
-│   │   │   │
-│   │   │   └── custom_dataset.yaml
-│   │   │
-│   │   └── yolov8{n/s/m/l/x}.pt  <- trained model
-│   │
-│   ├── {project 2 name}
-...
-"""
 
 
 class DetectionScreen(Screen, BaseScreen):
@@ -105,9 +52,8 @@ class DetectionScreen(Screen, BaseScreen):
         self.model_name = None
         self.confidence = 0.5
 
-        self.tensorboard = None
-        self.tensorboard_port = 6006
-        self.tensorboard_folder = os.path.join(self.app_folder, "runs", "detect")
+        self.tb_folder = os.path.join(self.app_folder, "runs", "detect")
+        self.tb_server = TBServer()
 
         self.dropdown = None
         self.main_button = self.ids.project_label
@@ -118,7 +64,6 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.yolo_generation = 11
 
-        self.chrome_path = None
         self.video_source = None
         self.is_optimizing = False
 
@@ -150,7 +95,6 @@ class DetectionScreen(Screen, BaseScreen):
         self.db_set_last_active_project()
         logger.info(f"active project: {self.active_project}")
 
-        self.chrome_path = DB().get_config_typed("chrome_path")
         self.video_source = DB().get_config_typed("video_source")
 
         self.update_project_paths()
@@ -550,23 +494,8 @@ class DetectionScreen(Screen, BaseScreen):
         self.popup.open()
 
     def launch_tensorboard(self):
-        # TODO: move to base and define different ports for projects
-
-        if not os.path.isdir(self.tensorboard_folder):
-            logger.warning("No tensorboard folder")
-            return
-
-        if len(os.listdir(self.tensorboard_folder)) == 0:
-            self.error_popup_clock("No data to show TB!")
-            return
-        # TODO: check freeze issue here.
-        if self.tensorboard is None:
-            self.tensorboard = program.TensorBoard()
-            self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
-            url = self.tensorboard.launch()
-            logger.info(f"{url=}")
-
-        webbrowser.get(self.chrome_path).open(url)
+        status = self.tb_server.launch_tensorboard(self.tb_folder)
+        logger.warning(f"{status}")
 
     def update_project_paths(self):
         self.active_project_folder = os.path.join(
