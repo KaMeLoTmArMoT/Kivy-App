@@ -82,9 +82,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
         self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
         self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tb_folder = os.path.join(
-            self.active_project_folder, "tensorboard"
-        )
+        self.tb_folder = os.path.join(self.active_project_folder, "tensorboard")
         os.makedirs(self.tb_folder, exist_ok=True)
         os.makedirs(self.images_path, exist_ok=True)
 
@@ -127,9 +125,7 @@ class MLViewScreen(Screen, BaseScreen):
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
         self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
         self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tb_folder = os.path.join(
-            self.active_project_folder, "tensorboard"
-        )
+        self.tb_folder = os.path.join(self.active_project_folder, "tensorboard")
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()

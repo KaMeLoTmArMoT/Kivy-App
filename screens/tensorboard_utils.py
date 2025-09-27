@@ -5,10 +5,11 @@ import webbrowser
 
 from tensorboard import program
 
-from screens.db import DB
 from screens.custom_logging import get_logger
+from screens.db import DB
 
 logger = get_logger(__name__)
+
 
 class TBServer:
     def __init__(self):

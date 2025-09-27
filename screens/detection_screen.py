@@ -162,7 +162,7 @@ class DetectionScreen(Screen, BaseScreen):
 
         else:
             self.camara.set(cv2.CAP_PROP_FPS, 30)
-            logger.error(f"Set camera FPS to 30")
+            logger.error("Set camera FPS to 30")
 
     def release_camera_and_windows(self) -> None:
         cv2.destroyAllWindows()
