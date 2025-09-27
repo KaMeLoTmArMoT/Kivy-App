@@ -7,10 +7,10 @@ from kivy.clock import Clock
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
-from screens.additional import BaseScreen, MDLabelBtn
-from screens.custom_logging import get_logger
-from screens.db import DB
-from utils import extend_key
+from app.screens.utils.additional import BaseScreen, MDLabelBtn
+from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.db import DB
+from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
 

@@ -21,13 +21,13 @@ from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
 from ultralytics import YOLO
 
-from screens.additional import BaseScreen, MDLabelBtn
-from screens.custom_logging import LazyLogger, get_logger
-from screens.db import DB
-from screens.detection_utils import PerformanceMonitor
-from screens.ml import export_to_best_available, get_best_model_paths
-from screens.tensorboard_utils import TBServer
-from utils import get_system_type
+from app.screens.utils.additional import BaseScreen, MDLabelBtn
+from app.screens.utils.custom_logging import LazyLogger, get_logger
+from app.screens.utils.db import DB
+from app.screens.utils.detection_utils import PerformanceMonitor
+from app.screens.utils.ml import export_to_best_available, get_best_model_paths
+from app.screens.utils.tensorboard_utils import TBServer
+from app.screens.utils.utils import get_system_type
 
 logger = get_logger(__name__)
 lazy_logger = LazyLogger(logger, 2.0)

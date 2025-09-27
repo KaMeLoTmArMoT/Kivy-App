@@ -10,7 +10,7 @@ def call_db(call, data=None):
         path = join(sys._MEIPASS + "app.db")
         conn = connect(path)
     else:
-        conn = connect("app.db")
+        conn = connect("../../../app.db")
 
     # Create cursor
     c = conn.cursor()

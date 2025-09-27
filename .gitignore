@@ -1,8 +1,8 @@
 .idea
 venv
 
-build_utils/build
-build_utils/dist
+scripts/build/build
+scripts/build/dist
 
 patches
 projects

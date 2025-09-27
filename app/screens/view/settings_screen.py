@@ -4,9 +4,9 @@ from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivymd.uix.textfield import MDTextField
 
-from screens.additional import BaseScreen
-from screens.custom_logging import get_logger
-from screens.db import DB
+from app.screens.utils.additional import BaseScreen
+from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.db import DB
 
 logger = get_logger(__name__)
 

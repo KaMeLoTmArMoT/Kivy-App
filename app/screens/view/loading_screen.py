@@ -5,8 +5,8 @@ from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 
-from screens.additional import BaseScreen
-from screens.custom_logging import get_logger
+from app.screens.utils.additional import BaseScreen
+from app.screens.utils.custom_logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -96,7 +96,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_login(self, _):
-        from screens.login_screen import LoginScreen
+        from app.screens.view.login_screen import LoginScreen
 
         Builder.load_file("ui/login.kv")
         self.manager.add_widget(LoginScreen(name="login"))
@@ -106,7 +106,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_main(self, _):
-        from screens.main_screen import MainScreen
+        from app.screens.view.main_screen import MainScreen
 
         Builder.load_file("ui/main.kv")
         self.manager.add_widget(MainScreen(name="main"))
@@ -116,7 +116,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_imageview(self, _):
-        from screens.imageview_screen import ImageViewScreen
+        from app.screens.view.image_screen import ImageViewScreen
 
         Builder.load_file("ui/imageview.kv")
         self.manager.add_widget(ImageViewScreen(name="imageview"))
@@ -126,7 +126,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_dbview(self, _):
-        from screens.dbview_csreen import DbViewScreen
+        from app.screens.view.db_screen import DbViewScreen
 
         Builder.load_file("ui/dbview.kv")
         self.manager.add_widget(DbViewScreen(name="dbview"))
@@ -136,7 +136,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_mlview(self, _):
-        from screens.mlview_csreen import MLViewScreen
+        from app.screens.view.ml_screen import MLViewScreen
 
         Builder.load_file("ui/mlview.kv")
         self.manager.add_widget(MLViewScreen(name="mlview"))
@@ -146,7 +146,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_settings(self, _):
-        from screens.settings_screen import SettingsViewScreen
+        from app.screens.view.settings_screen import SettingsViewScreen
 
         Builder.load_file("ui/settingsview.kv")
         self.manager.add_widget(SettingsViewScreen(name="settingsview"))
@@ -156,7 +156,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     @log_exec_time
     def load_detection(self, _):
-        from screens.detection_screen import DetectionScreen
+        from app.screens.view.detection_screen import DetectionScreen
 
         Builder.load_file("ui/detectionview.kv")
         self.manager.add_widget(DetectionScreen(name="detectionview"))

@@ -17,8 +17,8 @@ from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 from ultralytics import YOLO
 
-from screens.custom_logging import get_logger
-from screens.db import DB
+from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.db import DB
 
 logger = get_logger(__name__)
 

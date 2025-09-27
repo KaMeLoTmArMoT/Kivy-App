@@ -6,9 +6,9 @@ from kivy.uix.screenmanager import Screen
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
-from screens.additional import BaseScreen, ImageMDButton
-from screens.custom_logging import get_logger
-from utils import extend_key
+from app.screens.utils.additional import BaseScreen, ImageMDButton
+from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
 

@@ -8,7 +8,7 @@ from kivy.resources import resource_add_path
 from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
 
-from screens.loading_screen import LoadingScreen
+from app.screens.view.loading_screen import LoadingScreen
 
 Config.set("input", "mouse", "mouse,multitouch_on_demand")
 

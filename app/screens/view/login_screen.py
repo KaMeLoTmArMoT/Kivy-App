@@ -1,19 +1,20 @@
 from kivy.uix.screenmanager import Screen
 
-from screens.additional import BaseScreen
-from utils import get_sha
+from app.screens.utils.additional import BaseScreen
+from app.screens.utils.utils import get_sha
 
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.passwords = ""
-        self.key = ""
+        self.key = "kamelot"
 
     def on_enter(self, *args):
         self.create_db_and_check()
 
         self.ids.word_input.focus = True
+        self.next_screen()
 
     def create_db_and_check(self):
         self.passwords = self.db.get_login_password()

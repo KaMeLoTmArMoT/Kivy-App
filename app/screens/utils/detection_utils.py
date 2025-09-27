@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict, deque
 
-from screens.custom_logging import get_logger
+from app.screens.utils.custom_logging import get_logger
 
 logger = get_logger(__name__)
 

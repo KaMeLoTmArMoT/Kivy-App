@@ -57,7 +57,7 @@ def benchmark(model_path, dummy_input, log_file, num_runs=500):
 
 
 def run_test(model_name="yolo11n", num_runs=500):
-    log_file = "../screens/speed_benchmark.log"
+    log_file = "../app/screens/speed_benchmark.log"
 
     base_pth = "/home/lv-user187/PycharmProjects/Kivy-App/projects_detection/default"
 

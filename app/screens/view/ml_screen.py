@@ -25,12 +25,12 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 
-from screens.additional import BaseScreen, ImageMDButton, MDLabelBtn
-from screens.custom_logging import get_logger
-from screens.db import DB
-from screens.ml import KModel, create_config_file, prepare_dataset
-from screens.tensorboard_utils import TBServer
-from utils import extend_key
+from app.screens.utils.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.db import DB
+from app.screens.utils.ml import KModel, create_config_file, prepare_dataset
+from app.screens.utils.tensorboard_utils import TBServer
+from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
 

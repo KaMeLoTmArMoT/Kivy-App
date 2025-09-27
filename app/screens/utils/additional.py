@@ -10,7 +10,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
 from kivymd.uix.label import MDLabel
 
-from screens.db import DB
+from app.screens.utils.db import DB
 
 
 class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
