@@ -40,7 +40,7 @@ class DetectionScreen(Screen, BaseScreen):
         self.labelimg_process = None
 
         self.app_folder = os.getcwd()
-        self.projects_folder = os.path.join(self.app_folder, "projects_detection")
+        self.projects_folder = os.path.join(self.app_folder, "app/training/detection")
         os.makedirs(self.projects_folder, exist_ok=True)
 
         self.show_frames = False
@@ -52,7 +52,9 @@ class DetectionScreen(Screen, BaseScreen):
         self.model_name = None
         self.confidence = 0.5
 
-        self.tb_folder = os.path.join(self.app_folder, "runs", "detect")
+        self.tb_folder = os.path.join(
+            self.app_folder, "app/training/detection/tensorboard"
+        )
         self.tb_server = TBServer()
 
         self.dropdown = None

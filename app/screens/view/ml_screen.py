@@ -70,7 +70,9 @@ class MLViewScreen(Screen, BaseScreen):
         self.cur_dir = ""
 
         self.app_folder = os.getcwd()
-        self.projects_folder = os.path.join(self.app_folder, "projects")
+        self.projects_folder = os.path.join(
+            self.app_folder, "app/training/classification"
+        )
         os.makedirs(self.projects_folder, exist_ok=True)
 
         self.active_project = "Kivy"

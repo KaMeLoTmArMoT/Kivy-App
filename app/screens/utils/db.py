@@ -1,9 +1,8 @@
 import ast
 from typing import Any
 
-from app.screens.utils.utils import call_db
-
 from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.utils import call_db
 
 logger = get_logger(__name__)
 
