@@ -34,7 +34,8 @@ class ImageViewScreen(Screen, BaseScreen):
         self.load_event = None
 
         self.loaded_hash = ""
-        self.path = os.path.join(os.getcwd(), "data")
+        self.path = os.path.join(os.getcwd(), "app/training/data/example_images")  # TODO: from config
+        # TODO: fix critical freeze if other fyletypes exist in folder (.zip, .mp4, etc)
 
         if not os.path.exists(self.path):
             os.makedirs(self.path, exist_ok=True)

@@ -10,6 +10,8 @@ projects_detection
 runs
 data
 logs
+classification
+detection
 
 build/*
 dist/*
@@ -18,3 +20,10 @@ datasets/*
 *.db
 *.pt
 *.log
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tif
+*.tiff
