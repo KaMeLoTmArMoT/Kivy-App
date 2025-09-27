@@ -1,12 +1,29 @@
-Kivy~=2.1.0
-kivymd~=0.104.2
-numpy~=1.26.4
-pycryptodomex~=3.14.1
-opencv-python~=4.7.0.72
-checksumdir~=1.2.0
-ultralytics~=8.3.58
-torch~=2.5.1
-torchvision~=0.20.1
-labelImg~=1.8.6
-scikit-learn~=1.2.2
-pre_commit~=4.0.1
+# ==== UI ====
+Kivy==2.1.0
+kivymd==0.104.2
+
+# ==== Core Dependencies ====
+numpy==1.26.4
+pycryptodomex==3.19.1
+opencv-python==4.7.0.72
+checksumdir==1.2.0
+labelImg==1.8.6
+scikit-learn==1.5.2
+tensorboard==2.19.0
+pre_commit==4.0.1
+
+# ==== ONNX and Inference ====
+onnx==1.17.0
+onnxruntime-gpu==1.22.0
+onnxslim==0.1.59
+tensorrt==10.12.0.36
+
+# ==== Torch (install manually due to CUDA compatibility) ====
+#   Windows: install_torch_win.bat
+#   Linux:   ./install_torch.sh
+
+# ==== YOLO ====
+ultralytics==8.3.172
+
+# ==== Optional: Intel OpenVINO ====
+# openvino==2025.2.0

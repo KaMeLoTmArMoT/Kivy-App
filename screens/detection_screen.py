@@ -4,11 +4,11 @@ import shutil
 import subprocess
 import threading
 import time
-import webbrowser
 from functools import partial
 
 import cv2
 import numpy as np
+import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.uix.boxlayout import BoxLayout
@@ -19,63 +19,18 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
-from tensorboard import program
 from ultralytics import YOLO
 
 from screens.additional import BaseScreen, MDLabelBtn
-from screens.configs import chrome_path
-from utils import call_db, get_system_type
+from screens.custom_logging import LazyLogger, get_logger
+from screens.db import DB
+from screens.detection_utils import PerformanceMonitor
+from screens.ml import export_to_best_available, get_best_model_paths
+from screens.tensorboard_utils import TBServer
+from utils import get_system_type
 
-"""
-Detection projects structure:
-.../app.py
-├── projects_detection
-│   ├── {project name}
-│   │   ├── dataset
-│   │   │   ├── raw
-│   │   │   │   ├── annotations
-│   │   │   │   │   ├── classes.txt
-│   │   │   │   │   ├── {annotation}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img}.jpg (TODO: check .png support)
-│   │   │   │   │   └── ...
-│   │   │   │   └── out <- temporary save train test split
-│   │   │   │       ├── test
-│   │   │   │       │   ├── {img1}.jpg
-│   │   │   │       │   ├── {img1}.txt
-│   │   │   │       │   └── ...
-│   │   │   │       └── train
-│   │   │   │           ├── {img2}.jpg
-│   │   │   │           ├── {img2}.txt
-│   │   │   │           └── ...
-│   │   │   │
-│   │   │   ├── train
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img1}.jpg
-│   │   │   │   │   └── ...
-│   │   │   │   ├── labels
-│   │   │   │   │   ├── {img1}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   └── labels.cache
-│   │   │   │
-│   │   │   ├── val
-│   │   │   │   ├── images
-│   │   │   │   │   ├── {img2}.jpg
-│   │   │   │   │   └── ...
-│   │   │   │   ├── labels
-│   │   │   │   │   ├── {img2}.txt
-│   │   │   │   │   └── ...
-│   │   │   │   │
-│   │   │   │   └── labels.cache
-│   │   │   │
-│   │   │   └── custom_dataset.yaml
-│   │   │
-│   │   └── yolov8{n/s/m/l/x}.pt  <- trained model
-│   │
-│   ├── {project 2 name}
-...
-"""
+logger = get_logger(__name__)
+lazy_logger = LazyLogger(logger, 2.0)
 
 
 class DetectionScreen(Screen, BaseScreen):
@@ -94,11 +49,11 @@ class DetectionScreen(Screen, BaseScreen):
         self.active_project = None
 
         self.model: YOLO = None
+        self.model_name = None
         self.confidence = 0.5
 
-        self.tensorboard = None
-        self.tensorboard_port = 6006
-        self.tensorboard_folder = os.path.join(self.app_folder, "runs", "detect")
+        self.tb_folder = os.path.join(self.app_folder, "runs", "detect")
+        self.tb_server = TBServer()
 
         self.dropdown = None
         self.main_button = self.ids.project_label
@@ -109,49 +64,50 @@ class DetectionScreen(Screen, BaseScreen):
 
         self.yolo_generation = 11
 
+        self.video_source = None
+        self.is_optimizing = False
+
+        self.display_stats = True
+        self.window_size = 100
+
+        self.processing_flag = False
+        self.frame_time = None
+        self.monitor = PerformanceMonitor()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info(f"Using device: {self.device}")
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
-        self.create_db_and_check()
 
         self.projects = self.get_projects()
         latest_active_project = self.db_get_last_active_project()
 
         if len(latest_active_project) != 0:
-            print("check latest from db")
+            logger.debug("check latest from db")
             latest_active_project = latest_active_project[0][0]
             if latest_active_project in self.projects:
-                print("use latest from db")
+                logger.debug("use latest from db")
                 self.active_project = latest_active_project
 
         if self.active_project is None:
             self.active_project = self.projects[0]
         self.db_set_last_active_project()
-        print("active project:", self.active_project)
+        logger.info(f"active project: {self.active_project}")
+
+        self.video_source = DB().get_config_typed("video_source")
 
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
 
-    def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS configs (
-            name text unique,
-            value text
-        ) """
-        )
-
     def db_get_last_active_project(self):
-        val = call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
-        print("db get:", val, type(val))
+        val = self.db.get_latest_detection_project()
+        logger.info(f"db get: {val} {type(val)}")
         return val
 
     def db_set_last_active_project(self):
-        call_db(
-            f"INSERT OR REPLACE INTO configs VALUES "
-            f"('latest_detection_project', '{self.active_project}')"
-        )
+        self.db.set_latest_detection_project(self.active_project)
 
     def get_projects(self) -> list:
         projects = []
@@ -165,25 +121,48 @@ class DetectionScreen(Screen, BaseScreen):
             os.makedirs(default_path, exist_ok=True)
             projects.append(default_project)
 
-        print(f"projects: {projects}")
+        logger.debug(f"projects: {projects}")
         return projects
 
     def init_camera(self) -> None:
         if self.camara is not None:
             return
 
-        if get_system_type() == "Linux":
-            self.camara = cv2.VideoCapture(-1)
+        if self.video_source == "file":
+            video_source_path = DB().get_config_typed("video_source_path")
+            logger.warning(
+                f"Custom video source: {self.video_source} | {video_source_path}"
+            )
+            # TODO: handle errors
+            self.camara = cv2.VideoCapture(video_source_path)
+
         else:
-            self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            if get_system_type() == "Linux":
+                self.camara = cv2.VideoCapture(-1)
+            else:
+                self.camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
         if not self.camara.isOpened():
-            print("Error: Unable to open camera")
+            logger.error("Unable to open camera")
             return
 
         self.camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        self.camara.set(cv2.CAP_PROP_FPS, 30)
+
+        if self.video_source == "file":
+            fps = self.camara.get(cv2.CAP_PROP_FPS)
+            self.frame_time = 1.0 / fps
+            frame_time_ms = self.frame_time / 1000.0
+
+            logger.error(
+                f"Original camera FPS: {fps} and frame time: "
+                f"{self.frame_time:.3f}s, "
+                f"{frame_time_ms:.3f}ms"
+            )
+
+        else:
+            self.camara.set(cv2.CAP_PROP_FPS, 30)
+            logger.error("Set camera FPS to 30")
 
     def release_camera_and_windows(self) -> None:
         cv2.destroyAllWindows()
@@ -192,25 +171,57 @@ class DetectionScreen(Screen, BaseScreen):
             self.camara = None
 
     def display_start(self):
+        if self.show_frames and self.camara is not None:
+            logger.warning("Display already started.")
+            return
+
         self.show_frames = True
-        print("init")
+        logger.debug("init")
         self.init_camera()
-        print("start thread")
-        # TODO: make sure only 1 thread is alive (probably by self.show_frames)
+        logger.debug("start thread")
         threading.Thread(target=self.display_thread, daemon=True).start()
-        print("after thread")
+        logger.debug("after thread")
 
     def display_thread(self):
         while self.show_frames:
-            ret, frame = self.camara.read()
+            loop_start_time = time.perf_counter()
+            frame_wait_start = time.perf_counter()
+            (
+                ret,
+                frame,
+            ) = self.camara.read()  # TODO: free main thread while no input frame
+            self.monitor.record("camera", frame_wait_start)
+
             if not ret:
-                print("Warning: Unable to read frame from camera")
+                if self.video_source == "file":
+                    self.camara.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    logger.info("Starting video from the beginning")
+                    continue
+
+                logger.warning("Warning: Unable to read frame from camera")
                 frame = np.zeros((720, 1280, 3), dtype=np.uint8)
                 self.release_camera_and_windows()
-                time.sleep(0.25)
+                time.sleep(0.2)
                 self.init_camera()
-                time.sleep(0.25)
+                time.sleep(0.2)
+
+            self.processing_flag = True
             Clock.schedule_once(partial(self.display_frame, frame))
+
+            lock_start_time = time.perf_counter()
+            while self.processing_flag:
+                time.sleep(0.001)
+            # TODO: manage processing_flag and fps_limiter
+
+            elapsed = time.perf_counter() - loop_start_time
+            time_to_wait = self.frame_time - elapsed
+            if time_to_wait > 0:  # fps limiter
+                time.sleep(time_to_wait)
+
+            self.monitor.record("lock", lock_start_time)
+            self.monitor.record("global", loop_start_time)
+            lazy_logger.debug("\n" + self.monitor.report(), key="perf")
+
         self.display_stop()
 
     def display_frame(self, frame, tm=None, colorfmt="bgr"):
@@ -225,22 +236,38 @@ class DetectionScreen(Screen, BaseScreen):
         )
         texture.flip_vertical()
         self.ids.image.texture = texture
+        self.processing_flag = False
 
     def display_stop(self, msg="Camera paused"):
         self.show_frames = False
         self.display_camera_paused(msg)
 
+    def draw_text_on_frame(
+        self,
+        frame,
+        text: str,
+        position,
+    ):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1
+        color = (255, 255, 255)
+        thickness = 2
+
+        if frame.shape[2] == 3:
+            cv2.putText(
+                frame,
+                text,
+                position,
+                font,
+                font_scale,
+                color,
+                thickness,
+            )
+        return frame
+
     def display_camera_paused(self, msg="Camera paused"):
         frame = np.zeros((720, 1280, 3), dtype=np.float32)
-        cv2.putText(
-            frame,
-            msg,
-            (40, 100),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (255, 255, 255),
-            thickness=2,
-        )
+        self.draw_text_on_frame(frame, "Camera paused", position=(40, 100))
         Clock.schedule_once(partial(self.display_frame, frame), 0.15)
 
     def labelimg_open(self) -> None:
@@ -260,8 +287,16 @@ class DetectionScreen(Screen, BaseScreen):
             self.projects_folder, self.active_project, "dataset\\raw\\annotations"
         )
 
+        env = None
+        if get_system_type() == "Linux":
+            env = os.environ.copy()
+            env.pop("QT_PLUGIN_PATH", None)
+            env.pop("QT_QPA_FONTDIR", None)
+            env.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
+
         self.labelimg_process = subprocess.Popen(
-            ["labelImg", pth_images, pth_classes, pth_annotations]
+            ["labelImg", pth_images, pth_classes, pth_annotations],
+            env=env,
         )
 
     def labelimg_status(self) -> bool:
@@ -285,42 +320,65 @@ class DetectionScreen(Screen, BaseScreen):
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
 
     def yolo_init(self, last_display_mode, tm=None):
-        if self.selected_model:
-            if self.active_project == "default":
-                model_path = os.path.join(
-                    self.active_project_folder, self.selected_model.text
+        if not self.selected_model:
+            logger.warning("No model to load")
+            return
+
+        model_name = self.selected_model.text
+
+        # TODO: parse for models at runs folder
+        model_path = os.path.join(self.active_project_folder, model_name)
+        if not os.path.exists(model_path):
+            logger.warning(f"Model not found at {model_path}, downloading...")
+            YOLO(model_path)
+
+        logger.info(f"Original {model_path=}")
+
+        available_models = get_best_model_paths(
+            self.active_project_folder, model_name.split(".")[0]
+        )
+
+        for model_path, model_type in available_models:
+            logger.info(f"Trying to load {model_path=}")
+
+            try:
+                self.model = YOLO(model_path, task="detect")
+                self.model.overrides["verbose"] = False
+
+                if model_type == "PyTorch":
+                    try:
+                        self.model.fuse()
+                        logger.debug("Fuse ok")
+                    except Exception as e:
+                        logger.error(f"Failed to fuse model {model_path}\n{e}")
+
+                warmup_image = np.random.randint(
+                    0, 255, size=(640, 640, 3), dtype=np.uint8
                 )
-            else:
-                # TODO: parse for models at runs folder
-                model_path = os.path.join(
-                    self.active_project_folder, self.selected_model.text
-                )
-        else:
-            model_path = os.path.join(
-                self.app_folder, "runs\\detect\\train3\\weights\\best.pt"
-            )
+                self.model(warmup_image)
+                logger.debug("Warmup done successfully")
+                logger.warning(f"Model {model_path} initialised")
+                break
 
-        print(f"{model_path=}")
-        self.model = YOLO(model_path)
-        self.model.fuse()
-        self.model.overrides["verbose"] = False
-        print("model initialised")
+            except Exception as e:
+                logger.error(f"Failed to load model {model_path}\n{e}")
 
-        # model warmup
-        self.model(np.ones((500, 500, 3)))
-        print("warmup done")
-
+        self.model_name = model_name
+        self.update_all_button_states()
+        self.monitor.clear_timings()
         if last_display_mode:
             self.display_start()
 
     def yolo_inference(self, cv2_frame):
         cv2_frame = cv2_frame[:, :, ::-1]
 
-        # TODO: confidence from UI
+        model_start_time = time.perf_counter()
         results = self.model(cv2_frame, conf=self.confidence)
 
+        self.monitor.record("model", model_start_time)
+
         if len(results) > 1:
-            print("yolo_inference: more results")
+            logger.debug("yolo_inference: more results")
 
         res_plotted = results[0].plot()
         res_plotted = res_plotted[:, :, ::-1]
@@ -330,15 +388,18 @@ class DetectionScreen(Screen, BaseScreen):
     def yolo_terminate(self):
         self.display_stop()
         self.model = None
+        self.model_name = None
         gc.collect()
         self.unselect_model_btn()
+        self.update_all_button_states()
+        self.monitor.clear_timings()
         if self.show_frames:
             self.display_start()
 
     def update_confidence(self):
         # TODO: check why double call happens
         self.confidence = self.ids.slider.value
-        print(self.confidence)
+        logger.info(f"{self.confidence}")
 
     def select_project_button(self):
         projects = self.get_projects()
@@ -346,10 +407,10 @@ class DetectionScreen(Screen, BaseScreen):
         # If projects folders changed or dropdown was not created
         if projects != self.projects or self.dropdown is None:
             if self.dropdown is not None:
-                print("clear bind")
+                logger.debug("clear bind")
                 self.main_button.unbind(on_release=self.dropdown.open)
 
-            print("create bind")
+            logger.debug("create bind")
             self.dropdown = DropDown()
             for folder in projects:
                 btn = Button(text=f"{folder}", size_hint_y=None, height=44)
@@ -367,10 +428,10 @@ class DetectionScreen(Screen, BaseScreen):
             )
             self.projects = projects
         else:
-            print("use bind")
+            logger.debug("use bind")
 
     def open_project_folder(self, project_name):
-        print("project_name", project_name)
+        logger.info(f"project_name {project_name}")
         if project_name == "":
             return
 
@@ -433,23 +494,8 @@ class DetectionScreen(Screen, BaseScreen):
         self.popup.open()
 
     def launch_tensorboard(self):
-        # TODO: move to base and define different ports for projects
-
-        if not os.path.isdir(self.tensorboard_folder):
-            print("No tensorboard folder")
-            return
-
-        if len(os.listdir(self.tensorboard_folder)) == 0:
-            self.error_popup_clock("No data to show TB!")
-            return
-        # TODO: check freeze issue here.
-        if self.tensorboard is None:
-            self.tensorboard = program.TensorBoard()
-            self.tensorboard.configure(argv=[None, "--logdir", self.tensorboard_folder])
-            url = self.tensorboard.launch()
-            print(f"{url=}")
-
-        webbrowser.get(chrome_path).open(url)
+        status = self.tb_server.launch_tensorboard(self.tb_folder)
+        logger.warning(f"{status}")
 
     def update_project_paths(self):
         self.active_project_folder = os.path.join(
@@ -472,15 +518,19 @@ class DetectionScreen(Screen, BaseScreen):
                 name = "yolo"
 
             for model in models:
-                btn = MDLabelBtn(text=f"{name}{self.yolo_generation}{model}.pt")
+                btn = MDLabelBtn(
+                    text=f"{name}{self.yolo_generation}{model}.pt",
+                    theme_text_color="Custom",
+                    text_color="white",
+                )
                 btn.bind(on_press=self.select_model_btn)
-                btn.allow_hover = True
+                # btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
         else:
             pass  # TODO parse models at runs folder or exported ones
 
     def select_model_btn(self, instance):
-        print(f"The model button <{instance.text}> is being pressed")
+        logger.debug(f"The model button <{instance.text}> is being pressed")
         if self.selected_model:
             if instance.uid == self.selected_model.uid:
                 # custom double touch event
@@ -509,6 +559,8 @@ class DetectionScreen(Screen, BaseScreen):
             self.yolo_generation = new_value
             self.load_model_names()
 
+        self.update_all_button_states()
+
     def split(self):
         pth_annotations = os.path.join(
             self.projects_folder, self.active_project, "dataset\\raw\\annotations"
@@ -516,12 +568,12 @@ class DetectionScreen(Screen, BaseScreen):
         pth_images = os.path.join(
             self.projects_folder, self.active_project, "dataset\\raw\\images"
         )
-        print(f"{pth_annotations=}, {pth_images=}")
+        logger.info(f"{pth_annotations=}, {pth_images=}")
 
         annotations = os.listdir(pth_annotations)
         annotations.remove("classes.txt")
         images = os.listdir(pth_images)
-        print(f"all: {len(annotations)=}, {len(images)=}")
+        logger.info(f"all: {len(annotations)=}, {len(images)=}")
 
         # select images only with annotations
         selected_images = []
@@ -533,12 +585,12 @@ class DetectionScreen(Screen, BaseScreen):
             if name in images:
                 selected_images.append(name)
 
-        print(f"clear: {len(annotations)=}, {len(selected_images)=}")
+        logger.info(f"clear: {len(annotations)=}, {len(selected_images)=}")
 
         X_train, X_test, y_train, y_test = train_test_split(
             selected_images, annotations, test_size=0.2
         )
-        print(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
+        logger.info(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
 
         # TODO: create target dirs
 
@@ -575,11 +627,11 @@ class DetectionScreen(Screen, BaseScreen):
             )
 
         class_file = os.path.join(pth_annotations, "classes.txt")
-        print(class_file)
+        logger.debug(f"{class_file}")
         with open(class_file, "r") as f:
             classes = f.read().split("\n")
             classes.remove("")
-            print(f"{classes=}, {len(classes)=}")
+            logger.debug(f"{classes=}, {len(classes)=}")
 
         yaml_file = os.path.join(
             self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml"
@@ -609,4 +661,44 @@ class DetectionScreen(Screen, BaseScreen):
         # TODO: use selected model
         cmd = f"yolo detect train data={yaml_file} model=yolov8m.pt epochs=30 imgsz=640"
         train_process = subprocess.Popen(cmd.split(" "))
-        print(train_process)
+        logger.debug(f"{train_process}")
+
+    def update_all_button_states(self):
+        # Highlight active model
+        for btn in self.ids.model_grid.children:
+            btn.text_color = "red" if btn.text == self.model_name else "white"
+
+    def yolo_optimize(self):
+        if not self.selected_model:
+            logger.error("No model or name")
+            return
+
+        if self.is_optimizing:
+            logger.warning("Optimization is already in progress.")
+            return
+
+        self.is_optimizing = True
+
+        model_path = os.path.join(self.active_project_folder, self.selected_model.text)
+        if not os.path.exists(model_path):
+            logger.warning(f"Model not found at {model_path}, downloading...")
+            YOLO(model_path)
+
+        threading.Thread(
+            target=self._threaded_export_wrapper, args=(model_path,), daemon=True
+        ).start()
+
+    def _threaded_export_wrapper(self, model_path):
+        try:
+            export_to_best_available(model_path, force_export=[])
+            Clock.schedule_once(partial(self._on_export_complete, success=True))
+        except Exception as e:
+            logger.error(f"Failed to export model {self.model_name}: {e}")
+            Clock.schedule_once(partial(self._on_export_complete, success=False))
+
+    def _on_export_complete(self, dt=None, success=True):
+        if success:
+            logger.info("Model optimization finished successfully.")
+        else:
+            logger.error("Model optimization failed.")
+        self.is_optimizing = False

@@ -7,7 +7,10 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.selectioncontrol import MDCheckbox
 
 from screens.additional import BaseScreen, ImageMDButton
-from utils import call_db, extend_key
+from screens.custom_logging import get_logger
+from utils import extend_key
+
+logger = get_logger(__name__)
 
 
 class DbViewScreen(Screen, BaseScreen):
@@ -26,7 +29,6 @@ class DbViewScreen(Screen, BaseScreen):
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
-        self.create_db_and_check()
         # TODO: update property and add smth like hash check to reload if db images updated
         #       and probably reload only updated grid, but not all images
         # if not self.loaded:
@@ -39,7 +41,7 @@ class DbViewScreen(Screen, BaseScreen):
         import numpy as np
         from Cryptodome.Cipher import AES
 
-        db_images = call_db("SELECT * FROM images")
+        db_images = self.db.get_images()
         self.grid_1.clear_widgets()
         self.grid_2.clear_widgets()
         self.unselect_all_images()
@@ -70,7 +72,7 @@ class DbViewScreen(Screen, BaseScreen):
                 grid = self.grid_1
                 simple += 1
             except Exception as e:
-                print(f"fail to load {e}")
+                logger.warning(f"fail to load {e}")
 
             if not success:  # try to decrypt
                 try:
@@ -82,7 +84,7 @@ class DbViewScreen(Screen, BaseScreen):
                     grid = self.grid_2
                     secure += 1
                 except Exception as e:
-                    print(f"fail to decrypt {e}")
+                    logger.warning(f"fail to decrypt {e}")
 
             if not success:  # show cross instead of image
                 img = np.zeros((600, 800, 1), dtype=np.float32)  # make multiple crosses
@@ -133,7 +135,7 @@ class DbViewScreen(Screen, BaseScreen):
             lbl.size_hint_y = 0
 
     def checkbox_click(self, instance):
-        print(instance)
+        logger.debug(f"{instance}")
         self.checkbox_first = True
         self.update_buttons_state()
 
@@ -193,7 +195,7 @@ class DbViewScreen(Screen, BaseScreen):
 
         for image in self.selected_images:
             key = int(image.source)
-            call_db(f"DELETE FROM images WHERE id={key}")
+            self.db.delete_image(key)
 
         self.unselect_all_images()
         self.show_db_images()

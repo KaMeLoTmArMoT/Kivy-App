@@ -8,8 +8,11 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen, MDLabelBtn
-from screens.configs import chrome_path
-from utils import call_db, extend_key
+from screens.custom_logging import get_logger
+from screens.db import DB
+from utils import extend_key
+
+logger = get_logger(__name__)
 
 
 class MainScreen(Screen, BaseScreen):
@@ -23,24 +26,18 @@ class MainScreen(Screen, BaseScreen):
         self.url_btn = self.ids.url_open
         self.submit_btn = self.ids.text_submit
 
+        self.chrome_path = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
-        self.create_db_and_check()
+
+        self.chrome_path = DB().get_config_typed("chrome_path")
 
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
-
-    def create_db_and_check(self):
-        # Create a table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS customers (
-            name text
-        ) """
-        )
 
     def submit(self):
         text = self.get_input()
@@ -52,7 +49,7 @@ class MainScreen(Screen, BaseScreen):
             return
 
         b_encoded_text = self.encrypt(text)
-        call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
+        self.db.insert_customer(b_encoded_text)
 
         self.reload_records()
 
@@ -64,7 +61,7 @@ class MainScreen(Screen, BaseScreen):
         self.ids.word_input.text = ""
 
     def reload_records(self):
-        records = call_db("SELECT * FROM customers")
+        records = self.db.get_customers()
 
         layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
         layout.bind(minimum_height=layout.setter("height"))
@@ -91,7 +88,7 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("DB instances:")
 
     def select_label_btn(self, instance):
-        print(f"The button <{instance.text}> is being pressed")
+        logger.info(f"The button <{instance.text}> is being pressed")
         if self.selected:
             if instance.uid == self.selected.uid:
                 self.unselect_label_btn()
@@ -127,6 +124,7 @@ class MainScreen(Screen, BaseScreen):
         self.url_btn.disabled = True
 
     def delete_record(self):
+        # TODO: fix - sometimes deleted 2-3 records instead of 1
         if self.selected is None:
             self.reload_records()
             self.label_out("First select any element")
@@ -134,8 +132,7 @@ class MainScreen(Screen, BaseScreen):
 
         text = self.selected.text
         b_encoded_text = self.encrypt(text)
-
-        call_db(f"DELETE FROM customers WHERE name='{b_encoded_text}'")
+        self.db.delete_customer(b_encoded_text)
 
         self.selected = None
         self.reload_records()
@@ -157,9 +154,7 @@ class MainScreen(Screen, BaseScreen):
         old_encrypted = self.encrypt(old_text)
         new_encrypted = self.encrypt(new_text)
 
-        call_db(
-            f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'"
-        )
+        self.db.update_customer(new_encrypted, old_encrypted)
 
         self.ids.word_input.text = ""
         self.reload_records()
@@ -178,7 +173,7 @@ class MainScreen(Screen, BaseScreen):
         if os.name == "posix":
             webbrowser.open(url)
         else:
-            webbrowser.get(chrome_path + " --incognito").open(url)
+            webbrowser.get(self.chrome_path + " --incognito").open(url)
 
     def on_text_input(self, instance, value):
         text = self.get_input()

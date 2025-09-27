@@ -1,7 +1,7 @@
 from kivy.uix.screenmanager import Screen
 
 from screens.additional import BaseScreen
-from utils import call_db, get_sha
+from utils import get_sha
 
 
 class LoginScreen(Screen, BaseScreen):
@@ -16,17 +16,7 @@ class LoginScreen(Screen, BaseScreen):
         self.ids.word_input.focus = True
 
     def create_db_and_check(self):
-        # Create a password table
-        call_db(
-            """
-        CREATE TABLE IF NOT EXISTS passwords (
-            destination text,
-            password text
-        ) """
-        )
-
-        # Check password
-        self.passwords = call_db("SELECT * FROM passwords WHERE destination='login'")
+        self.passwords = self.db.get_login_password()
 
         if len(self.passwords) == 0:
             self.label_out("Enter a new password")
@@ -58,7 +48,7 @@ class LoginScreen(Screen, BaseScreen):
     def submit_new_password(self, inp_pass):
         enc_pass = get_sha(inp_pass)
 
-        call_db(f"INSERT INTO passwords VALUES ('login', '{enc_pass}')")
+        self.db.set_login_password(enc_pass)
         self.next_screen()
 
     def next_screen(self):
