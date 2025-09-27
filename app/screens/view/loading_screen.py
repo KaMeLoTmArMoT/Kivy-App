@@ -49,7 +49,7 @@ class LoadingScreen(Screen, BaseScreen):
         self.module_loaded = False
 
     def on_enter(self, *args):
-        Builder.load_file("ui/app.kv")
+        Builder.load_file("app/ui/app.kv")
         self.start_next_module()
 
     def start_next_module(self, *_):
@@ -98,7 +98,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_login(self, _):
         from app.screens.view.login_screen import LoginScreen
 
-        Builder.load_file("ui/login.kv")
+        Builder.load_file("app/ui/login.kv")
         self.manager.add_widget(LoginScreen(name="login"))
 
         self.ids.status.text = "login loaded"
@@ -108,7 +108,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_main(self, _):
         from app.screens.view.main_screen import MainScreen
 
-        Builder.load_file("ui/main.kv")
+        Builder.load_file("app/ui/main.kv")
         self.manager.add_widget(MainScreen(name="main"))
 
         self.ids.status.text = "main loaded"
@@ -118,7 +118,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_imageview(self, _):
         from app.screens.view.image_screen import ImageViewScreen
 
-        Builder.load_file("ui/imageview.kv")
+        Builder.load_file("app/ui/imageview.kv")
         self.manager.add_widget(ImageViewScreen(name="imageview"))
 
         self.ids.status.text = "imageview loaded"
@@ -128,7 +128,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_dbview(self, _):
         from app.screens.view.db_screen import DbViewScreen
 
-        Builder.load_file("ui/dbview.kv")
+        Builder.load_file("app/ui/dbview.kv")
         self.manager.add_widget(DbViewScreen(name="dbview"))
 
         self.ids.status.text = "dbview loaded"
@@ -138,7 +138,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_mlview(self, _):
         from app.screens.view.ml_screen import MLViewScreen
 
-        Builder.load_file("ui/mlview.kv")
+        Builder.load_file("app/ui/mlview.kv")
         self.manager.add_widget(MLViewScreen(name="mlview"))
 
         self.ids.status.text = "mlview loaded"
@@ -148,7 +148,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_settings(self, _):
         from app.screens.view.settings_screen import SettingsViewScreen
 
-        Builder.load_file("ui/settingsview.kv")
+        Builder.load_file("app/ui/settingsview.kv")
         self.manager.add_widget(SettingsViewScreen(name="settingsview"))
 
         self.ids.status.text = "settingsview loaded"
@@ -158,7 +158,7 @@ class LoadingScreen(Screen, BaseScreen):
     def load_detection(self, _):
         from app.screens.view.detection_screen import DetectionScreen
 
-        Builder.load_file("ui/detectionview.kv")
+        Builder.load_file("app/ui/detectionview.kv")
         self.manager.add_widget(DetectionScreen(name="detectionview"))
 
         self.ids.status.text = "detectionview loaded"

@@ -1,7 +1,7 @@
 import ast
 from typing import Any
 
-from utils import call_db
+from app.screens.utils.utils import call_db
 
 from app.screens.utils.custom_logging import get_logger
 

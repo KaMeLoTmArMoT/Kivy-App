@@ -38,5 +38,5 @@ if __name__ == "__main__":
     dir_path = os.path.dirname(path)
     resource_add_path(os.path.join(dir_path, "icons"))
 
-    Builder.load_file("ui/loading.kv")
+    Builder.load_file("app/ui/loading.kv")
     MainApp().run()
