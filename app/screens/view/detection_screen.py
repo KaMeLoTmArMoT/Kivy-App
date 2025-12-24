@@ -10,8 +10,10 @@ import cv2
 import numpy as np
 import torch
 from kivy.clock import Clock
+from kivy.factory import Factory
 from kivy.graphics.texture import Texture
 from kivy.uix.screenmanager import Screen
+from kivymd.uix.slider import MDSlider
 from sklearn.model_selection import train_test_split
 from ultralytics import YOLO
 
@@ -25,6 +27,15 @@ from app.screens.utils.utils import get_system_type
 
 logger = get_logger(__name__)
 lazy_logger = LazyLogger(logger, 2.0)
+
+
+class SafeMDSlider(MDSlider):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("value_track_width", 1)  # must be > 0
+        super().__init__(**kwargs)
+
+
+Factory.register("SafeMDSlider", cls=SafeMDSlider)
 
 
 class DetectionScreen(Screen, BaseScreen, MlUiHelper):
