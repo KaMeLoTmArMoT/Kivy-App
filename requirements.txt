@@ -35,3 +35,4 @@ pluggy==1.6.0
 pytest==9.0.2
 pytest-cov==7.0.0
 pytest-kivy==0.1.0.dev2
+python-dotenv==1.2.1

@@ -49,3 +49,8 @@ def advance_clock():
             Clock.tick()
 
     return _advance
+
+@pytest.fixture(scope="session", autouse=True)
+def test_env(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("APP_AUTOLOGIN", "0")

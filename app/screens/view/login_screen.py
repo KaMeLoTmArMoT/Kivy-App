@@ -1,20 +1,31 @@
+import os
+
+from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 
 from app.screens.utils.additional import BaseScreen
 from app.screens.utils.utils import get_sha
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.passwords = ""
-        self.key = "kamelot"
+        self.key = ""
 
     def on_enter(self, *args):
         self.create_db_and_check()
 
         self.ids.word_input.focus = True
-        self.next_screen()
+
+        if os.environ.get("APP_AUTOLOGIN") == "1" and os.environ.get("APP_ENV") == "dev":
+            dev_pass = os.environ.get("APP_DEV_PASSWORD", "")
+            if dev_pass:
+                self.ids.word_input.text = dev_pass
+                Clock.schedule_once(lambda dt: self.submit(), 0.1)
 
     def create_db_and_check(self):
         self.passwords = self.db.get_login_password()
