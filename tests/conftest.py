@@ -1,3 +1,4 @@
+import faulthandler
 import sys
 from pathlib import Path
 
@@ -51,7 +52,15 @@ def advance_clock():
     return _advance
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def test_env(monkeypatch):
     monkeypatch.setenv("APP_ENV", "test")
     monkeypatch.setenv("APP_AUTOLOGIN", "0")
+
+
+@pytest.fixture(autouse=True)
+def dump_stacks_on_hang():
+    out = sys.__stderr__
+    faulthandler.dump_traceback_later(20, repeat=False, file=out)
+    yield
+    faulthandler.cancel_dump_traceback_later()

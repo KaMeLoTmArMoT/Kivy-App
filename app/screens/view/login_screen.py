@@ -21,12 +21,11 @@ class LoginScreen(Screen, BaseScreen):
 
         self.ids.word_input.focus = True
 
-        if (
-            os.environ.get("APP_AUTOLOGIN") == "1"
-            and os.environ.get("APP_ENV") == "dev"
-        ):
+        if os.environ.get("APP_ENV") in ["dev", "test"]:
             dev_pass = os.environ.get("APP_DEV_PASSWORD", "")
             if dev_pass:
+                self.key = dev_pass
+            if dev_pass and os.environ.get("APP_AUTOLOGIN") == "1":
                 self.ids.word_input.text = dev_pass
                 Clock.schedule_once(lambda dt: self.submit(), 0.1)
 
