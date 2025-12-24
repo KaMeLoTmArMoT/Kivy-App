@@ -1,22 +1,22 @@
 import sys
-import pytest
 from pathlib import Path
-from kivy.config import Config
 
-Config.set('graphics', 'width', '400')
-Config.set('graphics', 'height', '600')
-Config.set('graphics', 'window_state', 'hidden')
-Config.set('kivy', 'exit_on_escape', '0')
+import pytest
+from kivy.base import EventLoop
+from kivy.clock import Clock
+from kivy.config import Config
+from kivy.lang import Builder
+
+Config.set("graphics", "width", "400")
+Config.set("graphics", "height", "600")
+Config.set("graphics", "window_state", "hidden")
+Config.set("kivy", "exit_on_escape", "0")
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from kivy.lang import Builder
-from kivy.base import EventLoop
-from kivy.clock import Clock
 
-
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def setup_kivy():
     EventLoop.ensure_window()
 
@@ -28,7 +28,7 @@ def setup_kivy():
     EventLoop.close()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def kivy_app(setup_kivy):
     from main import MainApp
 
@@ -49,6 +49,7 @@ def advance_clock():
             Clock.tick()
 
     return _advance
+
 
 @pytest.fixture(scope="session", autouse=True)
 def test_env(monkeypatch):

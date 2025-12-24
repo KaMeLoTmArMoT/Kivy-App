@@ -2,8 +2,8 @@ import ast
 
 from kivy.clock import Clock
 from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
+from kivy.uix.textinput import TextInput
 
 from app.screens.utils.additional import BaseScreen
 from app.screens.utils.custom_logging import get_logger
@@ -36,12 +36,7 @@ class SettingsViewScreen(Screen, BaseScreen):
             lbl = Label(text=config)
             self.grid.add_widget(lbl)
 
-            txt = TextInput(
-                text=str(val),
-                multiline=False,
-                size_hint_y=None,
-                height=30
-            )
+            txt = TextInput(text=str(val), multiline=False, size_hint_y=None, height=30)
             self.grid.add_widget(txt)
 
     def apply_changes(self):

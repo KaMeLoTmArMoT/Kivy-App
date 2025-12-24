@@ -1,14 +1,14 @@
 import os
 
+from dotenv import load_dotenv
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 
 from app.screens.utils.additional import BaseScreen
 from app.screens.utils.utils import get_sha
 
-from dotenv import load_dotenv
-
 load_dotenv()
+
 
 class LoginScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
@@ -21,7 +21,10 @@ class LoginScreen(Screen, BaseScreen):
 
         self.ids.word_input.focus = True
 
-        if os.environ.get("APP_AUTOLOGIN") == "1" and os.environ.get("APP_ENV") == "dev":
+        if (
+            os.environ.get("APP_AUTOLOGIN") == "1"
+            and os.environ.get("APP_ENV") == "dev"
+        ):
             dev_pass = os.environ.get("APP_DEV_PASSWORD", "")
             if dev_pass:
                 self.ids.word_input.text = dev_pass
