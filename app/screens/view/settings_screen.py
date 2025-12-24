@@ -1,8 +1,9 @@
 import ast
 
+from kivy.clock import Clock
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import Screen
-from kivymd.uix.textfield import MDTextField
 
 from app.screens.utils.additional import BaseScreen
 from app.screens.utils.custom_logging import get_logger
@@ -17,6 +18,9 @@ class SettingsViewScreen(Screen, BaseScreen):
 
         self.db = DB()
         self.grid = self.ids.grid
+        Clock.schedule_once(self._delayed_init, 0)
+
+    def _delayed_init(self, dt):
         self.show_settings()
 
     def show_settings(self):
@@ -26,14 +30,18 @@ class SettingsViewScreen(Screen, BaseScreen):
         for config, value in a:
             try:
                 val = ast.literal_eval(value)
-
             except (ValueError, SyntaxError):
-                # logger.warning(f"[get_config_typed] Error: {value} {e}")
                 val = value
 
             lbl = Label(text=config)
             self.grid.add_widget(lbl)
-            txt = MDTextField(text=str(val))
+
+            txt = TextInput(
+                text=str(val),
+                multiline=False,
+                size_hint_y=None,
+                height=30
+            )
             self.grid.add_widget(txt)
 
     def apply_changes(self):
@@ -44,11 +52,11 @@ class SettingsViewScreen(Screen, BaseScreen):
             )
             val_widget = (
                 children[i + 1]
-                if isinstance(children[i + 1], MDTextField)
+                if isinstance(children[i + 1], TextInput)
                 else children[i]
             )
 
-            if isinstance(key_widget, Label) and isinstance(val_widget, MDTextField):
+            if isinstance(key_widget, Label) and isinstance(val_widget, TextInput):
                 key = key_widget.text
                 value = val_widget.text
                 logger.info(f"apply: key={key}, value={value}")
