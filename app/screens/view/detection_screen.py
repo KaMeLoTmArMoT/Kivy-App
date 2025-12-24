@@ -11,17 +11,11 @@ import numpy as np
 import torch
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.dropdown import DropDown
-from kivy.uix.label import Label
-from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
-from kivy.uix.textinput import TextInput
 from sklearn.model_selection import train_test_split
 from ultralytics import YOLO
 
-from app.screens.utils.additional import BaseScreen, MDLabelBtn
+from app.screens.utils.additional import BaseScreen, MDLabelBtn, MlUiHelper
 from app.screens.utils.custom_logging import LazyLogger, get_logger
 from app.screens.utils.db import DB
 from app.screens.utils.detection_utils import PerformanceMonitor
@@ -33,7 +27,7 @@ logger = get_logger(__name__)
 lazy_logger = LazyLogger(logger, 2.0)
 
 
-class DetectionScreen(Screen, BaseScreen):
+class DetectionScreen(Screen, BaseScreen, MlUiHelper):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.camara: cv2.VideoCapture = None
@@ -82,7 +76,7 @@ class DetectionScreen(Screen, BaseScreen):
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
 
-        self.projects = self.get_projects()
+        self.projects = self.get_all_projects()
         latest_active_project = self.db_get_last_active_project()
 
         if len(latest_active_project) != 0:
@@ -111,19 +105,19 @@ class DetectionScreen(Screen, BaseScreen):
     def db_set_last_active_project(self):
         self.db.set_latest_detection_project(self.active_project)
 
-    def get_projects(self) -> list:
-        projects = []
-        for folder in os.listdir(self.projects_folder):
-            if os.path.isdir(os.path.join(self.projects_folder, folder)):
-                projects.append(folder)
+    def get_all_projects(self) -> list:
+        projects = self.get_projects()
+        projects = self.setup_default_project(projects)
+        logger.debug(f"projects: {projects}")
+        return projects
 
+    def setup_default_project(self, projects):
         default_project = "default"
         if len(projects) == 0 or default_project not in projects:
             default_path = os.path.join(self.projects_folder, default_project)
             os.makedirs(default_path, exist_ok=True)
             projects.append(default_project)
 
-        logger.debug(f"projects: {projects}")
         return projects
 
     def init_camera(self) -> None:
@@ -404,96 +398,18 @@ class DetectionScreen(Screen, BaseScreen):
         logger.info(f"{self.confidence}")
 
     def select_project_button(self):
-        projects = self.get_projects()
+        projects = self.get_all_projects()
+        self.setup_project_dropdown(projects)
 
-        # If projects folders changed or dropdown was not created
-        if projects != self.projects or self.dropdown is None:
-            if self.dropdown is not None:
-                logger.debug("clear bind")
-                self.main_button.unbind(on_release=self.dropdown.open)
-
-            logger.debug("create bind")
-            self.dropdown = DropDown()
-            for folder in projects:
-                btn = Button(text=f"{folder}", size_hint_y=None, height=44)
-                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
-                self.dropdown.add_widget(btn)
-
-            btn_new = Button(text="New project", size_hint_y=None, height=44)
-            btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
-            btn_new.background_color = 0.5, 0.9, 0.5, 1
-            self.dropdown.add_widget(btn_new)
-
-            self.main_button.bind(on_release=self.dropdown.open)
-            self.dropdown.bind(
-                on_select=lambda instance, project: self.open_project_folder(project)
-            )
-            self.projects = projects
-        else:
-            logger.debug("use bind")
-
-    def open_project_folder(self, project_name):
-        logger.info(f"project_name {project_name}")
-        if project_name == "":
-            return
-
-        if self.popup is not None:
-            self.popup.dismiss()
-
-        # trigger popup and then call this method again with correct name
-        if project_name == "New project":
-            self.create_project_name_input_popup()
-            return
-
-        self.main_button.text = project_name
-        cur_project_path = os.path.join(self.projects_folder, project_name)
-        os.makedirs(cur_project_path, exist_ok=True)
-
-        self.active_project = project_name
-        self.restore_project_params(project_name, cur_project_path)
+    def after_project_selection_hook(self, project_name, path):
         self.db_set_last_active_project()
+        logger.debug(f"Database updated for {project_name}")
 
     def restore_project_params(self, project_name, cur_project_path):
         self.update_project_paths()
         self.yolo_terminate()
         self.load_model_names()
         self.unselect_model_btn()
-
-    def create_project_name_input_popup(self):
-        self.popup = Popup(
-            title="New project creation", size_hint=(None, None), size=(400, 150)
-        )
-        box = BoxLayout(orientation="vertical")
-
-        lbl = Label(text="Please enter new name", size_hint_y=0.3)
-
-        name_input = TextInput(
-            text="",
-            hint_text="Project name",
-            size_hint_y=0.4,
-            multiline=False,
-            font_size=16,
-        )
-        name_input.bind(
-            on_text_validate=lambda x: self.open_project_folder(
-                name_input.text,
-            ),
-        )
-
-        submit_btn = MDLabelBtn(text="Create", size_hint_y=0.3)
-        submit_btn.bind(
-            on_release=lambda x: self.open_project_folder(
-                name_input.text,
-            )
-        )
-        submit_btn.allow_hover = True
-
-        box.add_widget(lbl)
-        box.add_widget(name_input)
-        box.add_widget(submit_btn)
-
-        self.popup.content = box
-        self.popup.open()
 
     def launch_tensorboard(self):
         status = self.tb_server.launch_tensorboard(self.tb_folder)
@@ -530,22 +446,6 @@ class DetectionScreen(Screen, BaseScreen):
                 self.ids.model_grid.add_widget(btn)
         else:
             pass  # TODO parse models at runs folder or exported ones
-
-    def select_model_btn(self, instance):
-        logger.debug(f"The model button <{instance.text}> is being pressed")
-        if self.selected_model:
-            if instance.uid == self.selected_model.uid:
-                # custom double touch event
-                self.unselect_model_btn()
-                return
-
-        # reset selection
-        for btn in self.ids.model_grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-
-        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
-        instance.radius = (20, 20, 20, 20)
-        self.selected_model = instance
 
     def unselect_model_btn(self):
         self.selected_model = None

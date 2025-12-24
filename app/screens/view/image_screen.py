@@ -176,6 +176,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
+
         img = ImageMDButton(
             source=im_path,
             allow_stretch=True,
@@ -269,7 +270,9 @@ class ImageViewScreen(Screen, BaseScreen):
                 projects.append(folder)
 
         # If projects folders changed or dropdown was not created
-        if projects != self.projects or self.dropdown is None:
+        if (
+            projects != self.projects or self.dropdown is None
+        ):  # TODO: clear, same as `select_project_button`
             if self.dropdown is not None:
                 logger.debug("clear bind")
                 to_ml_btn.unbind(on_release=self.dropdown.open)
