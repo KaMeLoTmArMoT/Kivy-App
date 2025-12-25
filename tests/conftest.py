@@ -29,7 +29,7 @@ def setup_kivy():
     EventLoop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='module')
 def kivy_app(setup_kivy):
     from main import MainApp
 
