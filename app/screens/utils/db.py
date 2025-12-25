@@ -168,9 +168,9 @@ class DB:
         )
 
     @staticmethod
-    def get_login_password() -> str:
-        return call_db("SELECT * FROM passwords WHERE destination='login'")
+    def get_login_password(destination="login") -> str:
+        return call_db(f"SELECT * FROM passwords WHERE destination='{destination}'")
 
     @staticmethod
-    def set_login_password(enc_pass: str) -> None:
-        call_db(f"INSERT INTO passwords VALUES ('login', '{enc_pass}')")
+    def set_login_password(enc_pass: str, origin="login") -> None:
+        call_db(f"INSERT INTO passwords VALUES ('{origin}', '{enc_pass}')")

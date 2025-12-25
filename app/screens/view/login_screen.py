@@ -15,9 +15,14 @@ class LoginScreen(Screen, BaseScreen):
         super().__init__(**kwargs)
         self.passwords = ""
         self.key = ""
+        self.source_name = ""
 
     def on_enter(self, *args):
         self.create_db_and_check()
+
+        self.source_name = (
+            "login_test" if os.environ.get("APP_ENV") == "test" else "login"
+        )
 
         self.ids.word_input.focus = True
 
@@ -30,7 +35,7 @@ class LoginScreen(Screen, BaseScreen):
                 Clock.schedule_once(lambda dt: self.submit(), 0.1)
 
     def create_db_and_check(self):
-        self.passwords = self.db.get_login_password()
+        self.passwords = self.db.get_login_password(self.source_name)
 
         if len(self.passwords) == 0:
             self.label_out("Enter a new password")
@@ -62,7 +67,7 @@ class LoginScreen(Screen, BaseScreen):
     def submit_new_password(self, inp_pass):
         enc_pass = get_sha(inp_pass)
 
-        self.db.set_login_password(enc_pass)
+        self.db.set_login_password(enc_pass, origin=self.source_name)
         self.next_screen()
 
     def next_screen(self):

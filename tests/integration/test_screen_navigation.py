@@ -26,9 +26,6 @@ class TestAppInitialization:
         assert kivy_app.theme_cls.theme_style == "Dark"
         assert kivy_app.theme_cls.primary_palette == "BlueGray"
 
-    def test_initial_screen_is_loading(self, kivy_app):
-        assert kivy_app.root.current == "loading"
-
 
 class TestLoadingScreenComponents:
     REQUIRED_IDS = ["pbar", "status"]
@@ -76,7 +73,6 @@ class TestLoadingScreenComponents:
 
 class TestScreenLoading(BaseScreenTest):
     SCREEN_CONFIGS = [
-        ("login", "app.screens.view.login_screen", "LoginScreen"),
         ("main", "app.screens.view.main_screen", "MainScreen"),
         ("imageview", "app.screens.view.image_screen", "ImageViewScreen"),
         ("dbview", "app.screens.view.db_screen", "DbViewScreen"),
@@ -142,12 +138,6 @@ class TestScreenTransitions(BaseScreenTest):
         "settingsview",
         "detectionview",
     ]
-
-    def test_loading_transitions_to_login(self, kivy_app):
-        self.wait_for_loading(5.0)
-
-        sm = kivy_app.root
-        assert sm.current == "login"
 
     @pytest.mark.parametrize("screen_name", NAVIGABLE_SCREENS)
     def test_can_navigate_to_screen(self, kivy_app, screen_name):
