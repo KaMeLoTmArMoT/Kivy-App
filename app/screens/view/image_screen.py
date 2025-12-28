@@ -124,6 +124,12 @@ class ImageViewScreen(Screen, BaseScreen):
         if popup is not None:
             popup.dismiss()
 
+        if self.load_event is not None:
+            self.load_event.cancel()
+            self.load_event = None
+
+        self.images_to_load.clear()
+
         self.toggle_load_label("on")
 
         if os.path.isdir(path):
@@ -169,7 +175,10 @@ class ImageViewScreen(Screen, BaseScreen):
             stop = True
 
         if stop:
-            Clock.unschedule(self.load_event)
+            if self.load_event is not None:
+                self.load_event.cancel()
+                self.load_event = None
+
             self.toggle_load_label("success")
             self.ids.choose_image.disabled = False
             return
@@ -261,7 +270,7 @@ class ImageViewScreen(Screen, BaseScreen):
             return
 
         app_folder = os.getcwd()
-        projects_folder = os.path.join(app_folder, "projects")
+        projects_folder = os.path.join(app_folder, "app\\training\\classification\\")
         to_ml_btn = self.ids.to_ml_btn
 
         projects = []
