@@ -3,7 +3,7 @@ import os
 import pytest
 from kivy.clock import Clock
 
-from app.screens.utils.utils import call_db, get_sha
+from app.screens.utils.utils import get_sha
 
 
 @pytest.fixture(autouse=True)
@@ -16,36 +16,6 @@ def auth_test_env(monkeypatch):
     os.environ["APP_ENV"] = "test"
     os.environ["APP_AUTOLOGIN"] = "0"
     os.environ["APP_DEV_PASSWORD"] = ""
-
-
-@pytest.fixture
-def reset_login_state(kivy_app):
-    """Reset login screen to clean state before each test"""
-    sm = kivy_app.root
-
-    if sm.current != "login":
-        sm.current = "login"
-        Clock.tick()
-
-    login_screen = sm.get_screen("login")
-    Clock.tick()
-
-    login_screen.ids.word_input.text = ""
-    login_screen.key = ""
-
-    call_db("DELETE FROM passwords WHERE destination='login_test'")
-
-    test_password = "test_dev_pass_123"
-    test_password_hash = get_sha(test_password)
-    call_db(f"INSERT INTO passwords VALUES ('login_test', '{test_password_hash}')")
-
-    login_screen.passwords = login_screen.db.get_login_password("login_test")
-
-    Clock.tick()
-
-    yield login_screen
-
-    call_db("DELETE FROM passwords WHERE destination='login_test'")
 
 
 class BaseAuthTest:
