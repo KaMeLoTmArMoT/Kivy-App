@@ -39,7 +39,7 @@ class MainScreen(Screen, BaseScreen):
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
-        self.on_enter_done =True
+        self.on_enter_done = True
 
     def submit(self):
         text = self.get_input()

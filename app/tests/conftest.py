@@ -1,14 +1,18 @@
 import faulthandler
+import os
 import sys
 from pathlib import Path
 
 import pytest
-from kivy.base import EventLoop
-from kivy.clock import Clock
-from kivy.config import Config
-from kivy.lang import Builder
 
-from app.screens.utils.utils import call_db, get_sha
+os.environ.setdefault("KCFG_KIVY_LOG_LEVEL", "warning")
+
+from kivy.base import EventLoop  # noqa: E402
+from kivy.clock import Clock  # noqa: E402
+from kivy.config import Config  # noqa: E402
+from kivy.lang import Builder  # noqa: E402
+
+from app.screens.utils.utils import call_db, get_sha  # noqa: E402
 
 Config.set("graphics", "width", "400")
 Config.set("graphics", "height", "600")
@@ -28,7 +32,7 @@ def setup_kivy():
     EventLoop.close()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def kivy_app(setup_kivy):
     from main import MainApp
 

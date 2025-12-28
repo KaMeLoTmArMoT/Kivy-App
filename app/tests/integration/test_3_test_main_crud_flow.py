@@ -1,15 +1,9 @@
-# app/tests/integration/test_3_test_main_crud_flow.py
 import base64
-import os
 import time
 
 import pytest
 from Cryptodome.Cipher import AES
 from kivy.clock import Clock
-
-os.environ.setdefault("KIVY_NO_CONSOLELOG", "1")
-os.environ.setdefault("KIVY_NO_FILELOG", "1")
-os.environ.setdefault("KCFG_KIVY_LOG_LEVEL", "warning")
 
 
 def drain(frames: int = 5) -> None:
@@ -17,7 +11,13 @@ def drain(frames: int = 5) -> None:
         Clock.tick()
 
 
-def wait_until(predicate, *, timeout: float = 5.0, step_frames: int = 2, msg: str = "Condition not met") -> None:
+def wait_until(
+    predicate,
+    *,
+    timeout: float = 5.0,
+    step_frames: int = 2,
+    msg: str = "Condition not met",
+) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         drain(step_frames)
@@ -55,7 +55,11 @@ class TestMainCrudFlow:
 
         # Let loading screen finish its module-loading work (your current behavior).
         # Keep it, but remove fixed sleeps where possible.
-        wait_until(lambda: sm.has_screen("main"), timeout=15, msg="Main screen was not loaded/added")
+        wait_until(
+            lambda: sm.has_screen("main"),
+            timeout=15,
+            msg="Main screen was not loaded/added",
+        )
 
         # Login (as you already do).
         test_password = "test_dev_pass_123"
@@ -64,14 +68,22 @@ class TestMainCrudFlow:
         login.submit()
         drain()
 
-        wait_until(lambda: sm.current == "main", timeout=5, msg="Did not navigate to main after login")
+        wait_until(
+            lambda: sm.current == "main",
+            timeout=5,
+            msg="Did not navigate to main after login",
+        )
 
         main = sm.get_screen("main")
         sm.current = "main"
         drain()
 
         # Critical sync point: wait for on_enter to finish (your on_enter_done flag).
-        wait_until(lambda: getattr(main, "on_enter_done", False), timeout=10, msg="MainScreen.on_enter not finished")
+        wait_until(
+            lambda: getattr(main, "on_enter_done", False),
+            timeout=10,
+            msg="MainScreen.on_enter not finished",
+        )
 
         text1 = "hello integration"
         text2 = "hello updated"

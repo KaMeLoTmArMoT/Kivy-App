@@ -108,7 +108,7 @@ class TestPasswordValidation(BaseAuthTest):
         ],
     )
     def test_password_length_validation(
-            self, kivy_app, password, should_pass, reset_login_state
+        self, kivy_app, password, should_pass, reset_login_state
     ):
         self.wait_for_screen()
 
