@@ -79,6 +79,7 @@ class BaseScreen:
     def encrypt(self, text: str) -> str:
         from Cryptodome.Cipher import AES
 
+        logger.debug(f"[encrypt] {self.key=} {text=}")
         cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
         encoded_text = cipher.encrypt(text.encode("utf-8"))
         b_encoded_text = b64encode(encoded_text).decode("utf-8")

@@ -27,6 +27,7 @@ class MainScreen(Screen, BaseScreen):
         self.submit_btn = self.ids.text_submit
 
         self.chrome_path = None
+        self.on_enter_done = False
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -38,6 +39,7 @@ class MainScreen(Screen, BaseScreen):
         self.key = extend_key(self.manager.get_screen("login").key)
 
         self.reload_records()
+        self.on_enter_done =True
 
     def submit(self):
         text = self.get_input()
@@ -115,9 +117,11 @@ class MainScreen(Screen, BaseScreen):
 
     def unselect_label_btn(self):
         self.selected = None
-        grid = self.ids.scroll.children[0]
-        for btn in grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+
+        if self.ids.scroll.children:
+            grid = self.ids.scroll.children[0]
+            for btn in grid.children:
+                btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         self.delete_btn.disabled = True
         self.update_btn.disabled = True
