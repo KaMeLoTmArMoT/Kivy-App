@@ -56,6 +56,7 @@ class ImageViewScreen(Screen, BaseScreen):
         if self.loaded_hash != dir_hash:
             self.show_folder_images(self.path)
 
+        self.ids.current_folder.text = f"Folder: {os.path.abspath(self.path)}"
         self.exit_screen = False
 
     def file_chooser_popup(self):
@@ -123,6 +124,9 @@ class ImageViewScreen(Screen, BaseScreen):
     def show_folder_images(self, path, selection=None, popup=None):
         if popup is not None:
             popup.dismiss()
+
+        self.path = os.path.abspath(path)
+        self.ids.current_folder.text = f"Folder: {self.path}"
 
         if self.load_event is not None:
             self.load_event.cancel()
