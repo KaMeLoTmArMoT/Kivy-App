@@ -16,6 +16,7 @@ detection
 build/*
 dist/*
 datasets/*
+htmlcov/*
 
 *.db
 *.pt
@@ -27,3 +28,5 @@ datasets/*
 *.gif
 *.tif
 *.tiff
+
+.coverage

@@ -76,6 +76,7 @@ def dump_stacks_on_hang():
 @pytest.fixture
 def reset_login_state(kivy_app):
     """Reset login screen to clean state before each test"""
+    # print(f"11111111111111 --- reset_login_state {kivy_app.root.current=}")
     sm = kivy_app.root
 
     if sm.current != "login":

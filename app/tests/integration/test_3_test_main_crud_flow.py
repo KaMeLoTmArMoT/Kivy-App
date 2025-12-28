@@ -49,40 +49,50 @@ def select_by_text(main_screen, text: str) -> None:
 
 @pytest.mark.integration
 class TestMainCrudFlow:
-    def test_create_update_delete_flow(self, kivy_app, reset_login_state):
+    def test_create_update_delete_flow(self, kivy_app, request):
         sm = kivy_app.root
-        login = reset_login_state
 
-        # Let loading screen finish its module-loading work (your current behavior).
-        # Keep it, but remove fixed sleeps where possible.
         wait_until(
             lambda: sm.has_screen("main"),
             timeout=15,
             msg="Main screen was not loaded/added",
         )
 
-        # Login (as you already do).
-        test_password = "test_dev_pass_123"
-        login.ids.word_input.text = test_password
-        drain()
-        login.submit()
-        drain()
-
-        wait_until(
-            lambda: sm.current == "main",
-            timeout=5,
-            msg="Did not navigate to main after login",
-        )
-
         main = sm.get_screen("main")
+
+        need_login = (sm.current != "main") or (not main.key)
+        # print(f"11111111111111 {sm.current=}, {need_login=}")
+
+        if need_login:
+            if not sm.has_screen("login"):
+                wait_until(
+                    lambda: sm.has_screen("login"),
+                    timeout=10,
+                    msg="Login screen missing",
+                )
+
+            login = request.getfixturevalue("reset_login_state")
+
+            test_password = "test_dev_pass_123"
+            login.ids.word_input.text = test_password
+            drain()
+            login.submit()
+            drain()
+
+            wait_until(
+                lambda: sm.current == "main",
+                timeout=5,
+                msg="Did not navigate to main after login",
+            )
+
         sm.current = "main"
         drain()
 
-        # Critical sync point: wait for on_enter to finish (your on_enter_done flag).
         wait_until(
-            lambda: getattr(main, "on_enter_done", False),
+            lambda: getattr(main, "on_enter_done", False)
+            and getattr(main, "key", None),
             timeout=10,
-            msg="MainScreen.on_enter not finished",
+            msg="MainScreen not ready (on_enter_done/key missing)",
         )
 
         text1 = "hello integration"
