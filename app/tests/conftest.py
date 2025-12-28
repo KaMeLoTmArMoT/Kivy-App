@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from app.screens.utils.db import DB
+
 os.environ.setdefault("KCFG_KIVY_LOG_LEVEL", "warning")
 
 from kivy.base import EventLoop  # noqa: E402
@@ -18,6 +20,8 @@ Config.set("graphics", "width", "400")
 Config.set("graphics", "height", "600")
 Config.set("graphics", "window_state", "hidden")
 Config.set("kivy", "exit_on_escape", "0")
+
+DB_PATH = Path("app_test.db").resolve()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -97,3 +101,15 @@ def reset_login_state(kivy_app):
     yield login_screen
 
     call_db("DELETE FROM passwords WHERE destination='login_test'")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def test_db_session():
+    os.environ["APP_DB_PATH"] = str(DB_PATH)
+
+    DB_PATH.unlink(missing_ok=True)
+    DB().create_db_and_check()
+
+    yield
+
+    DB_PATH.unlink(missing_ok=True)
