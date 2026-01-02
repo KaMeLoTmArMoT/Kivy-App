@@ -79,6 +79,15 @@
                     disabled: True
 
                 Button:
+                    id: select_all_images
+                    text: 'Select all images'
+                    size_hint_y: 0.1
+                    height: 30
+                    background_color: (1, 1, 1, .5)
+                    on_press: root.select_all_images()
+                    disabled: False
+
+                Button:
                     id: clear_predictions
                     text: 'Clear predictions'
                     size_hint_y: 0.1

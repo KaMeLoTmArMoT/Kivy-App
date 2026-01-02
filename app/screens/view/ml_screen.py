@@ -96,7 +96,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.popup = None
         self.main_button = self.ids.project_label
 
-        self.max_images_per_page = None
+        self.max_images_per_page = 20
 
         self.num_predictions = 0
 
@@ -406,6 +406,26 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         self.update_all_button_states()
 
+    def select_all_images(self):
+        # Nothing to select
+        if not self.ids.image_grid.children:
+            self.update_all_button_states()
+            return
+
+        # Each tile is MDFloatLayout containing ImageMDButton + MDCheckbox + labelcontainer
+        for tile in list(self.ids.image_grid.children):
+            img = next(
+                (w for w in tile.children if isinstance(w, ImageMDButton)),
+                None,
+            )
+            if img is None:
+                continue
+            if img in self.selected_images:
+                continue
+            self.image_click(img)
+
+        self.update_all_button_states()
+
     def clear_predictions(self):
         for tile in self.ids.image_grid.children:
             for child in tile.children:
@@ -705,11 +725,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         )
 
     def create_model(self, name):
-        if name == "":
+        if not name:
             self.error_popup_clock("No model name.")
             return
 
-        num_classes = len(self.ids.class_grid.children) - 1
+        classes = self.get_classes()
+        num_classes = len(classes)
 
         if num_classes < 2:
             self.error_popup_clock("Model can`t have 0 or 1 class.")
