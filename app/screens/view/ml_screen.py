@@ -299,7 +299,9 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
             for btn in self.ids.class_grid.children:
                 btn.text_color = "white"
-            self.selected_dir.text_color = "red"
+
+            if self.selected_dir is not None:
+                self.selected_dir.text_color = "red"
 
         self.disable_switch_buttons()  # disable load button
         self.cur_dir = path
