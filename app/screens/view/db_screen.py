@@ -51,6 +51,9 @@ class DbViewScreen(Screen, BaseScreen):
         self.checkbox_first = None
         self.last_match = dict()
 
+        self.autoload_on_enter = True
+        self._autoload_ev = None
+
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.key = extend_key(self.manager.get_screen("login").key)
@@ -59,7 +62,12 @@ class DbViewScreen(Screen, BaseScreen):
         # TODO: update property and add smth like hash check to reload if db images updated
         #       and probably reload only updated grid, but not all images
         # if not self.loaded:
-        Clock.schedule_once(lambda dt: self.show_db_images(), 0)
+        if self._autoload_ev is not None:
+            self._autoload_ev.cancel()
+            self._autoload_ev = None
+
+        if self.autoload_on_enter:
+            self._autoload_ev = Clock.schedule_once(lambda dt: self.show_db_images(), 0)
 
     def show_db_images(self):
         import io

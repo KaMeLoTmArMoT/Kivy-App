@@ -109,6 +109,11 @@ class TestDbImagesSplit:
         drain()
         db = sm.get_screen("dbview")
 
+        db.autoload_on_enter = False
+        if getattr(db, "_autoload_ev", None) is not None:
+            db._autoload_ev.cancel()
+            db._autoload_ev = None
+
         init_dbview_without_on_enter(db, sm.get_screen("login").key)
 
         plain_bytes, secure_plain_bytes = seed_db_2_plain_2_secure(db, db.key)
