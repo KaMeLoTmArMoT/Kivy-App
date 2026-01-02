@@ -244,8 +244,9 @@ class ImageViewScreen(Screen, BaseScreen):
                 blob_data = f.read()
 
                 if enc:
-                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-                    blob_data = cipher.encrypt(blob_data)
+                    cipher = AES.new(self.key, AES.MODE_EAX)
+                    ciphertext, tag = cipher.encrypt_and_digest(blob_data)
+                    blob_data = cipher.nonce + tag + ciphertext
 
                 self.db.insert_image(blob_data)
         self.unselect_all_images()

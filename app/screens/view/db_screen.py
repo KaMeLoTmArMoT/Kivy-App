@@ -1,3 +1,5 @@
+import hashlib
+
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
@@ -13,6 +15,30 @@ from app.screens.utils.utils import extend_key
 logger = get_logger(__name__)
 
 
+def sha256(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
+
+
+def guess_image_ext(data: bytes) -> str | None:
+    # PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+
+    # JPEG signature: FF D8 FF
+    if data.startswith(b"\xff\xd8\xff"):
+        return "jpg"  # Kivy loaders usually treat jpg/jpeg as "jpg"
+
+    # GIF
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "gif"
+
+    # BMP
+    if data.startswith(b"BM"):
+        return "bmp"
+
+    return "png"  # default to png
+
+
 class DbViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -23,6 +49,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.selected_images = []
         self.prev_line_color = None
         self.checkbox_first = None
+        self.last_match = dict()
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -32,7 +59,7 @@ class DbViewScreen(Screen, BaseScreen):
         # TODO: update property and add smth like hash check to reload if db images updated
         #       and probably reload only updated grid, but not all images
         # if not self.loaded:
-        Clock.schedule_once(lambda x: self.show_db_images())
+        Clock.schedule_once(lambda dt: self.show_db_images(), 0)
 
     def show_db_images(self):
         import io
@@ -45,6 +72,13 @@ class DbViewScreen(Screen, BaseScreen):
         self.grid_1.clear_widgets()
         self.grid_2.clear_widgets()
         self.unselect_all_images()
+
+        self.last_match = {
+            "matched_simple": set(),
+            "matched_secure": set(),
+            "simple": 0,
+            "secure": 0,
+        }
 
         if len(db_images) == 0:
             self.toggle_load_label("on", text="No images in DB.")
@@ -65,24 +99,36 @@ class DbViewScreen(Screen, BaseScreen):
             success = False
             grid, texture = None, None
             try:
+                ext = guess_image_ext(b_image)
                 data = io.BytesIO(b_image)
-                texture = CoreImage(data, ext="png").texture
+                texture = CoreImage(data, ext=ext).texture
                 success = True
                 img_button.line_color = (1.0, 0.6, 0.0, 0.5)
                 grid = self.grid_1
                 simple += 1
+                self.last_match["matched_simple"].add(sha256(b_image))
+
             except Exception as e:
                 logger.warning(f"fail to load {e}")
 
             if not success:  # try to decrypt
                 try:
-                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-                    data = io.BytesIO(cipher.decrypt(b_image))
-                    texture = CoreImage(data, ext="png").texture
+                    nonce = b_image[:16]
+                    tag = b_image[16:32]
+                    ciphertext = b_image[32:]
+
+                    cipher = AES.new(self.key, AES.MODE_EAX, nonce=nonce)
+                    plain = cipher.decrypt_and_verify(ciphertext, tag)
+
+                    ext = guess_image_ext(plain)
+                    data = io.BytesIO(plain)
+                    texture = CoreImage(data, ext=ext).texture
                     success = True
                     img_button.line_color = (0.0, 1.0, 0.0, 0.5)
                     grid = self.grid_2
                     secure += 1
+                    self.last_match["matched_secure"].add(sha256(plain))
+
                 except Exception as e:
                     logger.warning(f"fail to decrypt {e}")
 
@@ -116,6 +162,9 @@ class DbViewScreen(Screen, BaseScreen):
             fl.add_widget(checkbox)
 
             grid.add_widget(fl)
+
+        self.last_match["simple"] = simple
+        self.last_match["secure"] = secure
 
         self.update_label_info(simple, secure)
         self.toggle_load_label("off")

@@ -174,3 +174,8 @@ class DB:
     @staticmethod
     def set_login_password(enc_pass: str, origin="login") -> None:
         call_db(f"INSERT INTO passwords VALUES ('{origin}', '{enc_pass}')")
+
+    @staticmethod
+    def delete_all_images():
+        call_db("DELETE FROM images;")
+        call_db("DELETE FROM sqlite_sequence WHERE name='images';")

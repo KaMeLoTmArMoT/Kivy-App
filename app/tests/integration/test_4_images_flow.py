@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 from kivy.clock import Clock
 
-TEST_IMAGES_DIR = Path(r"G:\programming\Kivy-App\app\tests\test_data\example_images").resolve()
+TEST_IMAGES_DIR = Path(
+    r"G:\programming\Kivy-App\app\tests\test_data\example_images"
+).resolve()
 assert TEST_IMAGES_DIR.exists(), f"Missing test folder: {TEST_IMAGES_DIR}"
 
 
@@ -15,11 +17,11 @@ def drain(frames: int = 5) -> None:
 
 
 def wait_until(
-        predicate,
-        *,
-        timeout: float = 5.0,
-        step_frames: int = 2,
-        msg: str = "Condition not met",
+    predicate,
+    *,
+    timeout: float = 5.0,
+    step_frames: int = 2,
+    msg: str = "Condition not met",
 ) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -31,7 +33,7 @@ def wait_until(
 
 def grid_floatlayouts(image_screen):
     # image_screen.grid is GridLayout; children are MDFloatLayout
-    # Kivy stores children in reverse add order [web:293]
+    # Kivy stores children in reverse add order
     return list(reversed(image_screen.grid.children))
 
 
@@ -65,7 +67,7 @@ def ensure_imageview_ready(sm, request):
 
     scr = sm.get_screen("imageview")
 
-    # If on_enter couldn't set key (e.g. not logged in yet), login first and re-enter imageview
+    # If on_enter couldn't set key, login first and re-enter imageview
     if not getattr(scr, "key", ""):
         login = request.getfixturevalue("reset_login_state")
         login.ids.word_input.text = "test_dev_pass_123"
@@ -73,14 +75,26 @@ def ensure_imageview_ready(sm, request):
         login.submit()
         drain()
 
-        wait_until(lambda: sm.current == "main", timeout=5, msg="Did not navigate to main after login")
+        wait_until(
+            lambda: sm.current == "main",
+            timeout=5,
+            msg="Did not navigate to main after login",
+        )
 
         sm.current = "imageview"
         drain()
 
     # Now wait until on_enter effects are visible
-    wait_until(lambda: getattr(scr, "grid", None) is not None, timeout=5, msg="imageview.grid not initialized")
-    wait_until(lambda: bool(getattr(scr, "key", "")), timeout=5, msg="imageview.key not initialized")
+    wait_until(
+        lambda: getattr(scr, "grid", None) is not None,
+        timeout=5,
+        msg="imageview.grid not initialized",
+    )
+    wait_until(
+        lambda: bool(getattr(scr, "key", "")),
+        timeout=5,
+        msg="imageview.key not initialized",
+    )
 
     return scr
 
@@ -130,7 +144,7 @@ class TestImagesFlow:
         assert img.ids.select_unselect_action_button.text == "Select All"
         assert img.ids.selected_images.text == "Selected: 0"
 
-        # We'll use a stable order: first-added .. last-added [web:293]
+        # We'll use a stable order: first-added .. last-added
         images = grid_images(img)
         assert len(images) == 8
 
@@ -164,7 +178,8 @@ class TestImagesFlow:
         assert len(img.selected_images) == 2
         assert img.ids.to_ml_btn.disabled is False
 
-        # save_img_to_ml sets up dropdown + binds; actual copy happens when dropdown.select(project) [web:300]
+        # save_img_to_ml sets up dropdown + binds
+        # actual copy happens when dropdown.select(project)
         img.save_img_to_ml()
         drain()
 
@@ -186,14 +201,20 @@ class TestImagesFlow:
             assert target.exists(), f"Target folder not created: {target}"
             after_set = set(target.glob("*"))
 
-            created = {p for p in (after_set - before_set) if p.suffix.lower() in {".jpg", ".png"}}
-            assert len(created) >= 2, f"Expected at least 2 files copied, got {len(created)}"
+            created = {
+                p
+                for p in (after_set - before_set)
+                if p.suffix.lower() in {".jpg", ".png"}
+            }
+            assert (
+                len(created) >= 2
+            ), f"Expected at least 2 files copied, got {len(created)}"
 
             assert len(img.selected_images) == 0
             assert img.ids.selected_images.text.startswith("Copied ")
 
         finally:
             # delete only files created by this test
-            for p in (set(target.glob("*")) - before_set):
+            for p in set(target.glob("*")) - before_set:
                 if p.is_file():
                     p.unlink(missing_ok=True)
