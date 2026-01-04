@@ -109,10 +109,18 @@ class TestImagesFlow:
         img.show_folder_images(str(TEST_IMAGES_DIR))
         drain()
 
+        num_images = len(list(TEST_IMAGES_DIR.glob("*.[jp][pn]g")))
+
         wait_until(
-            lambda: len(img.grid.children) == 8,
+            lambda: len(img.grid.children) == num_images,
             timeout=20,
-            msg=f"Expected 8 images loaded, got {len(img.grid.children)}",
+            msg=f"Expected {num_images} images loaded, got {len(img.grid.children)}",
+        )
+
+        wait_until(
+            lambda: len(img.grid.children) == num_images,
+            timeout=20,
+            msg=f"Expected {num_images} images loaded, got {len(img.grid.children)}",
         )
 
         # ---------- 0 selected -> buttons disabled ----------
@@ -126,12 +134,12 @@ class TestImagesFlow:
         img.select_or_unselect_button_action()
         drain()
 
-        assert len(img.selected_images) == 8
+        assert len(img.selected_images) == num_images
         assert img.ids.to_db_simple_btn.disabled is False
         assert img.ids.to_db_protect_btn.disabled is False
         assert img.ids.to_ml_btn.disabled is False
         assert img.ids.select_unselect_action_button.text == "Unselect All"
-        assert img.ids.selected_images.text == "Selected: 8"
+        assert img.ids.selected_images.text == f"Selected: {num_images}"
 
         # ---------- Unselect all ----------
         img.select_or_unselect_button_action()
@@ -146,7 +154,7 @@ class TestImagesFlow:
 
         # We'll use a stable order: first-added .. last-added
         images = grid_images(img)
-        assert len(images) == 8
+        assert len(images) == num_images
 
         # ---------- First 2 -> To DB (simple) ----------
         click_images(images[:2])
