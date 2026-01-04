@@ -133,7 +133,8 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
 
     def init_camera(self) -> None:
         if self.camara is not None:
-            return
+            self.release_camera_and_windows()
+            # return
 
         if self.video_source == "file":
             video_source_path = DB().get_config_typed("video_source_path")
@@ -202,7 +203,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
             if not ret:
                 if self.video_source == "file":
                     self.camara.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                    logger.info("Starting video from the beginning")
+                    lazy_logger.info("Starting video from the beginning")
                     continue
 
                 logger.warning("Warning: Unable to read frame from camera")
