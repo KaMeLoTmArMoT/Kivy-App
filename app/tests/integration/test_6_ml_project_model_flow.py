@@ -313,7 +313,8 @@ class TestMlPredictTrainEvaluate:
                 # select class button so selected_dir is set
                 class_btn_text = f"train/{folder.name}"  # folder.name == "cat"/"dog"
                 class_btn = next(
-                    w for w in ml.ids.class_grid.children
+                    w
+                    for w in ml.ids.class_grid.children
                     if getattr(w, "text", None) == class_btn_text
                 )
                 ml.select_label_btn(class_btn)
