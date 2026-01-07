@@ -1,8 +1,8 @@
 .idea
 venv
 
-build_utils/build
-build_utils/dist
+scripts/build/build
+scripts/build/dist
 
 patches
 projects
@@ -10,11 +10,23 @@ projects_detection
 runs
 data
 logs
+classification
+detection
 
 build/*
 dist/*
 datasets/*
+htmlcov/*
 
 *.db
 *.pt
 *.log
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.tif
+*.tiff
+
+.coverage
