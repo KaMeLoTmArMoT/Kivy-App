@@ -19,6 +19,7 @@ from kivymd.uix.label import MDLabel
 
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
+import cv2
 
 logger = get_logger(__name__)
 
