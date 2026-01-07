@@ -1,119 +1,99 @@
-# 🐍 Python Kivy ML App
+<div align="center">
+  <h3 align="center">Python Kivy ML App</h3>
 
-A modular Python-Kivy application combining UI features, cryptographic utilities, and deep learning tools for image and video processing.
+  <p align="center">
+    A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
+    (classification + detection) in one UI.
+    <br />
+    The repo was recently restructured for maintainability and now includes a pytest-driven Kivy integration-test harness.
+    <br /><br />
+    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Request Feature</a>
+  </p>
+</div>
 
----
+## About the project
+This application is designed as a “real app” playground: multiple screens, persistent data, and repeatable workflows
+around images and ML projects, while keeping the codebase modular enough to evolve over time.
 
-## ✨ Features
+It includes common UI flows (navigation, CRUD-like interactions, image browsing) plus ML-focused flows such as project
+selection, dataset preparation, training runs, and evaluation/detection.
 
-- 🔐 **Security**
-  - Custom password hashing & verification
-  - Image and text encryption using PyCryptodome
+<p align="center">
+  <img src="assets/kivy_ui.gif" width="640" />
+</p>
 
-- 🖼️ **UI & UX**
-  - Cross-platform support (Windows/Linux)
-  - Basic image operations (preview, selection, annotation)
-  - Responsive UI using KivyMD
-  - Lazy image loading with pagination
+<table>
+  <tr>
+    <td><img src="assets/01_kivy_load.png" width="320" /></td>
+    <td><img src="assets/02_kivy_login.png" width="320" /></td>
+    <td><img src="assets/03_kivy_main.png" width="320" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/04_kivy_images.png" width="320" /></td>
+    <td><img src="assets/05_kivy_db.png" width="320" /></td>
+    <td><img src="assets/06_kivy_ml.png" width="320" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/07_kivy_det1.png" width="320" /></td>
+    <td><img src="assets/07_kivy_det2.png" width="320" /></td>
+    <td><img src="assets/08_kivy_config.png" width="320" /></td>
+  </tr>
+</table>
 
-- 🤖 **Machine Learning**
-  - Image classification with support for:
-    - MobileNetV2 / V3
-    - ResNet / ResNeXt
-    - EfficientNet / V2
-    - VGG / AlexNet
-  - YOLOv8-11-based object detection with Ultralytics
-  - Custom training pipeline with TensorBoard logging
-  - Manual model selection, fine-tuning, and evaluation
+## Screenshots
+<!-- Put one hero image here (main screen or ML screen). -->
+<!-- Then add a small grid of key screens below (see examples in the next section). -->
 
-- 🎥 **Video**
-  - Live camera preview (OpenCV)
-  - Real-time detection on frames
+## Key features
+- Security: password hashing/verification and encryption utilities for app data.
+- Image workflows: browsing, selection, pagination/lazy loading, and dataset-related operations.
+- ML tooling: classification training pipelines and YOLO-based detection workflows.
+- Projects: project-oriented folder structure under `app/training/` to keep datasets/configs/models grouped.
+- Testing: Kivy-aware pytest fixtures + integration tests that cover navigation/auth/CRUD/images/DB/ML flows.
 
-- 📁 **Project Management**
-  - Multi-project support (datasets, models, configs)
-  - Image copying between projects
-  - Project-based dataset split and model organization
+## Getting started
 
----
-
-## 🧪 Getting Started
-
-### ✅ Requirements
-
-Install from `requirements.txt`:
-
+### Install
 ```bash
 pip install -r requirements.txt
 ```
 
-Includes:
-
-- `kivy`, `kivymd`
-- `torch`, `torchvision`
-- `ultralytics`, `opencv-python`
-- `numpy`, `scikit-learn`, `pycryptodomex`
-- `labelImg`, `pre_commit`
-
----
-
-### 🧠 Torch & Ultralytics Notes
-
-- Ensure Torch and torchvision are installed with correct CUDA or CPU builds for your environment.
-
-- Ultralytics YOLO configuration:
-
-  View current settings:
-
-  ```bash
-  yolo settings
-  ```
-  Modify runs directory path:
-
-  ```bash
-  yolo settings runs_dir=/path/to/runs
-  ```
-
-### 📌 TODO
-
-- Improve UI/UX for multi-project workflows
-- Support `.yaml` config export/import
-- Add face detection and recognition modules
-- Provide Docker image for easier deployment
-- Extend install scripts for both Torch and TensorFlow
-- Full support for model hyperparameter tuning
-
----
-
-### 🧠 Tips
-
-TensorBoard logs are saved per project. Launch from app or CLI:
-
+### Run
 ```bash
-tensorboard --logdir=./runs
-```
-`.exe` builds supported via buildozer or manual packaging (Windows/Linux)
-
----
-
-### 📂 File Structure (Example)
-
-```bash
-projects/
-└── ProjectName/
-    ├── models/
-    ├── train/
-    ├── val/
-    ├── test/
-    └── configs/
+python main.py
 ```
 
----
+### Tests
+Integration tests live under `app/tests/` and include a short guide at `app/tests/README_TESTS.md`.
 
-## 🤝 Contributions
-TODO
+Quick run:
+```powershell
+pytest --timeout 20 -v -s
+pytest --timeout 20 -v -s .\app\tests\integration\
+```
 
----
+## Project layout (current)
+```text
+app/
+  screens/        # UI screens + helpers
+  ui/             # .kv files
+  resources/      # assets (icons/images)
+  training/       # ML projects/datasets/models
+  tests/          # pytest + integration tests
+```
 
-## 📜 License
-TODO
+## Roadmap
+- Improve multi-project UX and config portability (import/export).
+- Packaging/deployment helpers (build scripts, Docker).
+- Expand ML evaluation utilities and make more parameters configurable.
+
+## License
+
+This project is licensed under the MIT License — see [`LICENSE`](https://github.com/KaMeLoTmArMoT/Kivy-App/blob/master/LICENSE).
+
+## Acknowledgments
+
+- README structure inspired by Best-README-Template.
+- Built with assistance from generative AI tools for ideation and code suggestions; all changes were reviewed and tested by the author.
