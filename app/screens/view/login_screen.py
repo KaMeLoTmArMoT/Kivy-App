@@ -18,11 +18,11 @@ class LoginScreen(Screen, BaseScreen):
         self.source_name = ""
 
     def on_enter(self, *args):
-        self.create_db_and_check()
-
         self.source_name = (
             "login_test" if os.environ.get("APP_ENV") == "test" else "login"
         )
+
+        self.create_db_and_check()
 
         self.ids.word_input.focus = True
 
