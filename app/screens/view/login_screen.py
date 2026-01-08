@@ -54,11 +54,11 @@ class LoginScreen(Screen, BaseScreen):
             return
 
         if len(self.passwords) == 0:
-            self.submit_new_password(self.key)
             logger.debug("Create new password")
+            self.submit_new_password(self.key)
         else:
-            self.validate_password(self.key)
             logger.debug("Validate password")
+            self.validate_password(self.key)
 
     def validate_password(self, inp_pass):
         real_value = self.passwords[0][1]
