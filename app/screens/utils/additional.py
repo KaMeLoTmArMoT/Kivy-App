@@ -71,6 +71,10 @@ class BaseScreen:
 
     def label_out(self, text: str):
         """Put string message to the label"""
+        lbl = self.ids.get("word_label")
+        if lbl is None:
+            logger.error("[label_out] No label found in ids")
+            return
         self.ids.word_label.text = text
 
     def get_input(self) -> str:

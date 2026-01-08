@@ -28,6 +28,7 @@ def wait_until(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         drain(step_frames)
+        time.sleep(0.01)
         if predicate():
             return
     raise AssertionError(msg)
@@ -51,7 +52,7 @@ def ensure_logged_in(sm, request):
     login.submit()
     drain()
     wait_until(
-        lambda: sm.current == "main", timeout=10, msg="Login did not navigate to main"
+        lambda: sm.current == "main", timeout=5, msg="Login did not navigate to main"
     )
 
 

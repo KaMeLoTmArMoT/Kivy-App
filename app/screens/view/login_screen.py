@@ -68,8 +68,10 @@ class LoginScreen(Screen, BaseScreen):
         )
 
         if real_value == input_value:
+            logger.debug("Password is valid, transitioning to next screen")
             self.next_screen()
         else:
+            logger.debug("Password is not valid, showing error message")
             self.label_out("Wrong password. Try again.")
 
     def submit_new_password(self, inp_pass):
