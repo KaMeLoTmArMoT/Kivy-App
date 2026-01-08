@@ -1,0 +1,24 @@
+name: tests-minimal
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-minimal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - run: python -m pip install -U pip
+      - run: pip install -r requirements-test.txt
+
+      - run: pytest --timeout 20 -v -s app/tests/integration/test_1_screen_navigation.py app/tests/integration/test_2_auth_flow.py app/tests/integration/test_3_test_main_crud_flow.py app/tests/integration/test_4_images_flow.py app/tests/integration/test_5_db_images_split.py

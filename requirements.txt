@@ -11,6 +11,7 @@ labelImg==1.8.6
 scikit-learn==1.5.2
 tensorboard==2.19.0
 pre_commit==4.0.1
+tqdm==4.66.1
 
 # ==== ONNX and Inference ====
 onnx==1.17.0
@@ -36,3 +37,4 @@ pytest==9.0.2
 pytest-cov==7.0.0
 pytest-kivy==0.1.0.dev2
 python-dotenv==1.2.1
+pytest-timeout==2.4.0

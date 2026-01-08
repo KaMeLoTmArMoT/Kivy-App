@@ -8,14 +8,20 @@ from functools import partial
 
 import cv2
 import numpy as np
-import torch
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.graphics.texture import Texture
 from kivy.uix.screenmanager import Screen
 from kivymd.uix.slider import MDSlider
-from sklearn.model_selection import train_test_split
-from ultralytics import YOLO
+
+try:
+    import torch
+    from sklearn.model_selection import train_test_split
+    from ultralytics import YOLO
+except ImportError:
+    torch = None
+    train_test_split = None
+    YOLO = None
 
 from app.screens.utils.additional import BaseScreen, MDLabelBtn, MlUiHelper
 from app.screens.utils.custom_logging import LazyLogger, get_logger
@@ -80,9 +86,6 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.processing_flag = False
         self.frame_time = None
         self.monitor = PerformanceMonitor()
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info(f"Using device: {self.device}")
 
     def on_enter(self, *args):
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
@@ -328,6 +331,12 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         Clock.schedule_once(partial(self.yolo_init, last_display_mode), 0.25)
 
     def yolo_init(self, last_display_mode, tm=None):
+        if YOLO is None:
+            logger.error(
+                "ultralytics not installed. Install ultralytics to use detection."
+            )
+            return
+
         if not self.selected_model:
             logger.warning("No model to load")
             return
@@ -476,6 +485,12 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.update_all_button_states()
 
     def split(self):
+        if train_test_split is None:
+            logger.error(
+                "scikit-learn not installed. Install scikit-learn to use dataset split."
+            )
+            return
+
         pth_annotations = os.path.join(
             self.projects_folder, self.active_project, "dataset\\raw\\annotations"
         )
@@ -583,6 +598,12 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
             btn.text_color = "red" if btn.text == self.model_name else "white"
 
     def yolo_optimize(self):
+        if YOLO is None:
+            logger.error(
+                "ultralytics not installed. Install ultralytics to use detection."
+            )
+            return
+
         if not self.selected_model:
             logger.error("No model or name")
             return

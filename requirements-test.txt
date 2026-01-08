@@ -1,0 +1,18 @@
+# ==== UI ====
+Kivy==2.1.0
+kivymd==0.104.2
+
+# ==== Core Dependencies ====
+numpy==1.26.4
+pycryptodomex==3.19.1
+opencv-python==4.7.0.72
+checksumdir==1.2.0
+python-dotenv==1.2.1
+tqdm==4.66.1
+
+# ==== Tests ====
+pytest==9.0.2
+pytest-timeout==2.4.0
+pytest-cov==7.0.0
+pytest-kivy==0.1.0.dev2
+coverage==7.13.0

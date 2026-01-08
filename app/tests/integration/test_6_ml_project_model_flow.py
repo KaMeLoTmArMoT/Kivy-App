@@ -7,6 +7,9 @@ import pytest
 from kivy.clock import Clock
 from kivymd.uix.label import MDLabel
 
+pytest.importorskip("torch")
+pytest.importorskip("torchvision")
+
 TEST_PROJECT = "integration_test_project"
 TEST_MODEL_BASENAME = "integration_test_model"
 TEST_MODELTYPE = "MobileNetV3"

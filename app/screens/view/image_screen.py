@@ -1,8 +1,8 @@
 import os
 from shutil import copy
 
-from kivy.clock import Clock
 from checksumdir import dirhash
+from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
@@ -175,7 +175,7 @@ class ImageViewScreen(Screen, BaseScreen):
             stop = True
 
         if self.exit_screen:
-            logger.warning('terminate loading')
+            logger.warning("terminate loading")
             stop = True
 
         if stop:
