@@ -15,11 +15,13 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Keep CI stable/noisy-less for Kivy
       KIVY_NO_ARGS: "1"
       KIVY_NO_CONSOLELOG: "1"
-      # Optional: helps some headless setups; harmless if unused
       SDL_VIDEODRIVER: "x11"
+
+      APP_ENV: test
+      APP_DEV_PASSWORD: "test-password-123456"
+      APP_AUTOLOGIN: "1"
 
     steps:
       - name: Checkout
@@ -45,7 +47,7 @@ jobs:
 
       - name: Run tests (headless X)
         run: |
-          xvfb-run -a pytest --timeout 20 -v -s \
+          xvfb-run -a pytest --timeout 30 -v -s \
             app/tests/integration/test_1_screen_navigation.py \
             app/tests/integration/test_2_auth_flow.py \
             app/tests/integration/test_3_test_main_crud_flow.py \

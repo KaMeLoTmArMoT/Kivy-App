@@ -13,10 +13,6 @@ def auth_test_env(monkeypatch):
     monkeypatch.setenv("APP_AUTOLOGIN", "0")
     monkeypatch.setenv("APP_DEV_PASSWORD", "")
 
-    os.environ["APP_ENV"] = "test"
-    os.environ["APP_AUTOLOGIN"] = "0"
-    os.environ["APP_DEV_PASSWORD"] = ""
-
 
 class BaseAuthTest:
     """Base class for authentication test functionality"""
