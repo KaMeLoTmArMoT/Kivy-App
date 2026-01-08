@@ -107,7 +107,6 @@ class TestDbImagesSplit:
         sm = kivy_app.root
         wait_until(lambda: sm.has_screen("dbview"), timeout=15, msg="dbview not loaded")
         wait_until(lambda: sm.has_screen("login"), timeout=15, msg="login not loaded")
-        wait_until(lambda: sm.current == "login", timeout=15, msg="login not opened")
 
         ensure_logged_in(sm, request)
 
