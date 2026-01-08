@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
 
 os.environ.setdefault("KCFG_KIVY_LOG_LEVEL", "warning")
@@ -15,6 +16,8 @@ from kivy.config import Config  # noqa: E402
 from kivy.lang import Builder  # noqa: E402
 
 from app.screens.utils.utils import call_db, get_sha  # noqa: E402
+
+logger = get_logger(__name__)
 
 Config.set("graphics", "width", "400")
 Config.set("graphics", "height", "600")
@@ -76,7 +79,7 @@ def dump_stacks_on_hang():
 @pytest.fixture
 def reset_login_state(kivy_app):
     """Reset login screen to clean state before each test"""
-    # print(f"11111111111111 --- reset_login_state {kivy_app.root.current=}")
+    logger.debug("Resetting login state")
     sm = kivy_app.root
 
     if sm.current != "login":

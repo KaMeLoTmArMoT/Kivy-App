@@ -30,9 +30,11 @@ class MainScreen(Screen, BaseScreen):
         self.on_enter_done = False
 
     def on_enter(self, *args):
+        logger.debug("MAIN: on_enter start")
         self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
+        logger.debug("MAIN: on_enter done")
 
         Clock.schedule_once(self._finish_enter, 0)
 

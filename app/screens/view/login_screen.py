@@ -82,5 +82,17 @@ class LoginScreen(Screen, BaseScreen):
         self.next_screen()
 
     def next_screen(self):
+        logger.debug(
+            f"LOGIN: before switch "
+            f"current={self.manager.current} "
+            f"has_main={self.manager.has_screen('main')}"
+        )
         self.manager.transition.direction = "left"
         self.manager.current = "main"
+        logger.debug(f"LOGIN: after switch current={self.manager.current} (immediate)")
+        Clock.schedule_once(
+            lambda dt: logger.debug(f"LOGIN: +0 tick current={self.manager.current}"), 0
+        )
+        Clock.schedule_once(
+            lambda dt: logger.debug(f"LOGIN: +0.2s current={self.manager.current}"), 0.2
+        )

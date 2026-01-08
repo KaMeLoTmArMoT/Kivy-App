@@ -6,7 +6,10 @@ import pytest
 from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 
+from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import call_db, extend_key
+
+logger = get_logger(__name__)
 
 TEST_IMAGES_DIR = (
     Path(__file__).resolve().parent.parent / "test_data" / "example_images"
@@ -45,6 +48,7 @@ def clear_images_table():
 
 def ensure_logged_in(sm, request):
     if sm.has_screen("main") and getattr(sm.get_screen("main"), "key", None):
+        logger.debug("Already logged in")
         return
     login = request.getfixturevalue("reset_login_state")
     login.ids.word_input.text = "test_dev_pass_123"
