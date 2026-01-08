@@ -39,10 +39,12 @@ class MainScreen(Screen, BaseScreen):
         Clock.schedule_once(self._finish_enter, 0)
 
     def _finish_enter(self, dt):
+        logger.debug("MAIN: _finish_enter start")
         self.chrome_path = DB().get_config_typed("chrome_path")
         self.key = extend_key(self.manager.get_screen("login").key)
         self.reload_records()
         self.on_enter_done = True
+        logger.debug("MAIN: _finish_enter done")
 
     def submit(self):
         text = self.get_input()

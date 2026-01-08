@@ -57,7 +57,7 @@ class LoadingScreen(Screen, BaseScreen):
             total_time = time.time() - self.init_time
             logger.info(f"All modules loaded in {total_time:.2f} seconds.")
             self.ids.status.text = "Loading complete"
-            Clock.schedule_once(self.next_screen, 0)
+            Clock.schedule_once(self.next_screen, 0.1)
             return
 
         self.fake_progress = 0
@@ -91,7 +91,11 @@ class LoadingScreen(Screen, BaseScreen):
         Clock.schedule_once(self.start_next_module, 0.1)
 
     def next_screen(self, *_):
-        logger.debug("Loading complete, transitioning to login screen")
+        logger.debug("Loading complete, preparing to switch to login screen")
+        if self.manager.current != self.name:  # not on LoadingScreen anymore
+            logger.debug("Already switched screens, aborting")
+            return
+        logger.debug("Transitioning to login screen")
         self.manager.transition.direction = "left"
         self.manager.current = "login"
 
