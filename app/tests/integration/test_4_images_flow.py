@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 from kivy.clock import Clock
 
-TEST_IMAGES_DIR = Path(
-    r"G:\programming\Kivy-App\app\tests\test_data\example_images"
-).resolve()
+TEST_IMAGES_DIR = (
+    Path(__file__).resolve().parent.parent / "test_data" / "example_images"
+)
 assert TEST_IMAGES_DIR.exists(), f"Missing test folder: {TEST_IMAGES_DIR}"
 
 

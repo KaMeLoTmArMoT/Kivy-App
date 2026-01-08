@@ -8,9 +8,9 @@ from kivy.clock import Clock
 
 from app.screens.utils.utils import call_db, extend_key
 
-TEST_IMAGES_DIR = Path(
-    r"G:\programming\Kivy-App\app\tests\test_data\example_images"
-).resolve()
+TEST_IMAGES_DIR = (
+    Path(__file__).resolve().parent.parent / "test_data" / "example_images"
+)
 
 
 def drain(frames: int = 5) -> None:
