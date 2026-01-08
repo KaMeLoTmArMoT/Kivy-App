@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from shutil import copy
 
 from checksumdir import dirhash
@@ -274,8 +275,9 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = "Choose 1+"
             return
 
-        app_folder = os.getcwd()
-        projects_folder = os.path.join(app_folder, "app\\training\\classification\\")
+        projects_folder = (
+            Path(__file__).resolve().parents[2] / "training" / "classification"
+        )
         to_ml_btn = self.ids.to_ml_btn
 
         projects = []

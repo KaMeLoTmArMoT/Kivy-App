@@ -5,9 +5,11 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 
 from app.screens.utils.additional import BaseScreen
+from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import get_sha
 
 load_dotenv()
+logger = get_logger(__name__)
 
 
 class LoginScreen(Screen, BaseScreen):
@@ -44,6 +46,7 @@ class LoginScreen(Screen, BaseScreen):
 
     def submit(self):
         self.key = self.get_input()
+        logger.debug(f"Submit pressed with key {self.key} length {len(self.key)}")
         self.ids.word_input.text_validate_unfocus = False
 
         if len(self.key) <= 5:
@@ -52,12 +55,17 @@ class LoginScreen(Screen, BaseScreen):
 
         if len(self.passwords) == 0:
             self.submit_new_password(self.key)
+            logger.debug("Create new password")
         else:
             self.validate_password(self.key)
+            logger.debug("Validate password")
 
     def validate_password(self, inp_pass):
         real_value = self.passwords[0][1]
         input_value = get_sha(inp_pass)
+        logger.debug(
+            f"Validating password: input hash {input_value}, real hash {real_value}"
+        )
 
         if real_value == input_value:
             self.next_screen()
@@ -66,6 +74,7 @@ class LoginScreen(Screen, BaseScreen):
 
     def submit_new_password(self, inp_pass):
         enc_pass = get_sha(inp_pass)
+        logger.debug(f"Encrypting password to {enc_pass}")
 
         self.db.set_login_password(enc_pass, origin=self.source_name)
         self.next_screen()

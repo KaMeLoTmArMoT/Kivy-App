@@ -118,7 +118,13 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
 
-        self.k_model.update_params()
+        try:
+            self.k_model.update_params()
+        except RuntimeError as e:
+            if "PyTorch is not installed" in str(e):
+                self.label_out("ML features disabled (torch not installed).")
+                return
+            raise
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
