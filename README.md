@@ -4,12 +4,19 @@
   <p align="center">
     A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
     (classification + detection) in one UI.
-    <br />
-    The repo was recently restructured for maintainability and now includes a pytest-driven Kivy integration-test harness.
     <br /><br />
     <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Report Bug</a>
     ·
     <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Request Feature</a>
+  </p>
+
+  <p align="center">
+    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml">
+      <img alt="tests-minimal" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml/badge.svg">
+    </a>
+    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml">
+      <img alt="pre-commit" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml/badge.svg">
+    </a>
   </p>
 </div>
 
