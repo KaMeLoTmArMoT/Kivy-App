@@ -30,3 +30,7 @@ htmlcov/*
 *.tiff
 
 .coverage
+
+__pycache__/
+.agents/
+.env

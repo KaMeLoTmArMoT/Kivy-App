@@ -5,10 +5,8 @@ from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen
-from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.selectioncontrol import MDCheckbox
 
-from app.screens.utils.additional import BaseScreen, ImageMDButton
+from app.screens.utils.additional import BaseScreen, ImageMDButton, SelectableImage
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import extend_key
 
@@ -55,7 +53,7 @@ class DbViewScreen(Screen, BaseScreen):
         self._autoload_ev = None
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid_1 = self.ids.grid_1
         self.grid_2 = self.ids.grid_2
@@ -98,11 +96,7 @@ class DbViewScreen(Screen, BaseScreen):
 
         simple, secure = 0, 0
         for pk, b_image in db_images:
-            img_button = ImageMDButton(
-                allow_stretch=True,
-                keep_ratio=True,
-                pos_hint={"center_x": 0.5, "center_y": 0.5},
-            )
+            selectable_img = SelectableImage()
 
             success = False
             grid, texture = None, None
@@ -111,7 +105,7 @@ class DbViewScreen(Screen, BaseScreen):
                 data = io.BytesIO(b_image)
                 texture = CoreImage(data, ext=ext).texture
                 success = True
-                img_button.line_color = (1.0, 0.6, 0.0, 0.5)
+                selectable_img.line_color = (1.0, 0.6, 0.0, 0.5)
                 grid = self.grid_1
                 simple += 1
                 self.last_match["matched_simple"].add(sha256(b_image))
@@ -132,7 +126,7 @@ class DbViewScreen(Screen, BaseScreen):
                     data = io.BytesIO(plain)
                     texture = CoreImage(data, ext=ext).texture
                     success = True
-                    img_button.line_color = (0.0, 1.0, 0.0, 0.5)
+                    selectable_img.line_color = (0.0, 1.0, 0.0, 0.5)
                     grid = self.grid_2
                     secure += 1
                     self.last_match["matched_secure"].add(sha256(plain))
@@ -151,25 +145,15 @@ class DbViewScreen(Screen, BaseScreen):
 
                 texture = Texture.create(size=(w, h))
                 texture.blit_buffer(buff, bufferfmt="ubyte", colorfmt="bgr")
-                img_button.line_color = (1.0, 0.0, 0.0, 0.5)
+                selectable_img.line_color = (1.0, 0.0, 0.0, 0.5)
                 grid = self.grid_1
 
-            img_button.source = str(pk)
-            img_button.texture = texture
-            img_button.bind(on_press=self.image_click)
+            selectable_img.source = str(pk)
+            selectable_img.texture = texture
+            selectable_img.ids.img.bind(on_press=self.image_click)
+            selectable_img.ids.checkbox.bind(on_press=self.checkbox_click)
 
-            checkbox = MDCheckbox(
-                size_hint=(None, None),
-                size=("48dp", "48dp"),
-                pos_hint={"center_x": 0.96, "center_y": 0.96},
-            )
-            checkbox.bind(on_press=self.checkbox_click)
-
-            fl = MDFloatLayout()
-            fl.add_widget(img_button)
-            fl.add_widget(checkbox)
-
-            grid.add_widget(fl)
+            grid.add_widget(selectable_img)
 
         self.last_match["simple"] = simple
         self.last_match["secure"] = secure
@@ -180,16 +164,6 @@ class DbViewScreen(Screen, BaseScreen):
     def update_label_info(self, simple, secure):
         self.ids.simple.text = f"Simple images [{simple}]"
         self.ids.secure.text = f"Secure images [{secure}]"
-
-    def toggle_load_label(self, mode, text="Loading, please wait..."):
-        lbl = self.ids.load_label
-
-        if mode == "on":
-            lbl.text = text
-            lbl.size_hint_y = 0.2
-        else:
-            lbl.text = ""
-            lbl.size_hint_y = 0
 
     def checkbox_click(self, instance):
         logger.debug(f"{instance}")
@@ -212,18 +186,12 @@ class DbViewScreen(Screen, BaseScreen):
 
     def select_image(self, instance):
         self.selected_images.append(instance)
-
-        self.prev_line_color = instance.line_color
-        instance.line_color = (1.0, 1.0, 1.0, 0.6)
-        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
-        instance.parent.children[0].active = True
+        instance.parent.selected = True
         self.update_buttons_state()
 
     def unselect_image(self, instance):
-        if len(self.selected_images) > 0:
-            instance.line_color = self.prev_line_color
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.parent.children[0].active = False  # disable checkbox
+        if instance in self.selected_images:
+            instance.parent.selected = False
             self.selected_images.remove(instance)
         self.update_buttons_state()
 

@@ -16,11 +16,9 @@ from kivymd.uix.slider import MDSlider
 
 try:
     import torch
-    from sklearn.model_selection import train_test_split
     from ultralytics import YOLO
 except ImportError:
     torch = None
-    train_test_split = None
     YOLO = None
 
 from app.screens.utils.additional import BaseScreen, MDLabelBtn, MlUiHelper
@@ -88,21 +86,17 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.monitor = PerformanceMonitor()
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
 
         self.projects = self.get_all_projects()
-        latest_active_project = self.db_get_last_active_project()
+        db_project = self.db.get_latest_detection_project()
 
-        if len(latest_active_project) != 0:
-            logger.debug("check latest from db")
-            latest_active_project = latest_active_project[0][0]
-            if latest_active_project in self.projects:
-                logger.debug("use latest from db")
-                self.active_project = latest_active_project
+        if db_project and db_project[0][0] in self.projects:
+            self.active_project = db_project[0][0]
 
         if self.active_project is None:
             self.active_project = self.projects[0]
-        self.db_set_last_active_project()
+        self.db.set_latest_detection_project(self.active_project)
         logger.info(f"active project: {self.active_project}")
 
         self.video_source = DB().get_config_typed("video_source")
@@ -110,14 +104,6 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.update_project_paths()
         self.display_camera_paused()
         self.load_model_names()
-
-    def db_get_last_active_project(self):
-        val = self.db.get_latest_detection_project()
-        logger.info(f"db get: {val} {type(val)}")
-        return val
-
-    def db_set_last_active_project(self):
-        self.db.set_latest_detection_project(self.active_project)
 
     def get_all_projects(self) -> list:
         projects = self.get_projects()
@@ -418,12 +404,8 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.confidence = self.ids.slider.value
         logger.info(f"{self.confidence}")
 
-    def select_project_button(self):
-        projects = self.get_all_projects()
-        self.setup_project_dropdown(projects)
-
     def after_project_selection_hook(self, project_name, path):
-        self.db_set_last_active_project()
+        self.db.set_latest_detection_project(self.active_project)
         logger.debug(f"Database updated for {project_name}")
 
     def restore_project_params(self, project_name, cur_project_path):
@@ -431,10 +413,6 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.yolo_terminate()
         self.load_model_names()
         self.unselect_model_btn()
-
-    def launch_tensorboard(self):
-        status = self.tb_server.launch_tensorboard(self.tb_folder)
-        logger.warning(f"{status}")
 
     def update_project_paths(self):
         self.active_project_folder = os.path.join(
@@ -468,11 +446,6 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         else:
             pass  # TODO parse models at runs folder or exported ones
 
-    def unselect_model_btn(self):
-        self.selected_model = None
-        for btn in self.ids.model_grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-
     def update_value(self, increment):
         current_value = int(self.ids.label_spinner.text)
         new_value = current_value + increment
@@ -485,102 +458,8 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.update_all_button_states()
 
     def split(self):
-        if train_test_split is None:
-            logger.error(
-                "scikit-learn not installed. Install scikit-learn to use dataset split."
-            )
-            return
-
-        pth_annotations = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\raw\\annotations"
-        )
-        pth_images = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\raw\\images"
-        )
-        logger.info(f"{pth_annotations=}, {pth_images=}")
-
-        annotations = os.listdir(pth_annotations)
-        annotations.remove("classes.txt")
-        images = os.listdir(pth_images)
-        logger.info(f"all: {len(annotations)=}, {len(images)=}")
-
-        # select images only with annotations
-        selected_images = []
-
-        for annotation in annotations:
-            name = annotation.replace(
-                ".txt", ".png"
-            )  # TODO: check image type png or jpg
-            if name in images:
-                selected_images.append(name)
-
-        logger.info(f"clear: {len(annotations)=}, {len(selected_images)=}")
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            selected_images, annotations, test_size=0.2
-        )
-        logger.info(f"{len(X_train)=} {len(y_train)=}\n{len(X_test)=} {len(y_test)=}")
-
-        # TODO: create target dirs
-
-        out_train = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\raw\\out\\train"
-        )
-        out_test = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\raw\\out\\val"
-        )
-
-        os.makedirs(out_train, exist_ok=True)
-        os.makedirs(out_test, exist_ok=True)
-        os.makedirs(os.path.join(out_train, "labels"), exist_ok=True)
-        os.makedirs(os.path.join(out_train, "images"), exist_ok=True)
-        os.makedirs(os.path.join(out_test, "labels"), exist_ok=True)
-        os.makedirs(os.path.join(out_test, "images"), exist_ok=True)
-
-        for img, ann in zip(X_train, y_train):
-            shutil.copy(
-                os.path.join(pth_annotations, ann),
-                os.path.join(out_train, "labels", ann),
-            )
-            shutil.copy(
-                os.path.join(pth_images, img), os.path.join(out_train, "images", img)
-            )
-
-        for img, ann in zip(X_test, y_test):
-            shutil.copy(
-                os.path.join(pth_annotations, ann),
-                os.path.join(out_test, "labels", ann),
-            )
-            shutil.copy(
-                os.path.join(pth_images, img), os.path.join(out_test, "images", img)
-            )
-
-        class_file = os.path.join(pth_annotations, "classes.txt")
-        logger.debug(f"{class_file}")
-        with open(class_file, "r") as f:
-            classes = f.read().split("\n")
-            classes.remove("")
-            logger.debug(f"{classes=}, {len(classes)=}")
-
-        yaml_file = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\custom_dataset.yaml"
-        )
-        with open(yaml_file, "w") as f:
-            f.write("train: ./train\n")
-            f.write("val: ./val\n")
-            f.write("\n")
-            f.write(f"nc: {len(classes)}\n")
-            f.write("\n")
-            f.write(f"names: {classes}")
-
-        # move from out to dataset
-        shutil.move(
-            out_train,
-            os.path.join(self.projects_folder, self.active_project, "dataset"),
-        )
-        shutil.move(
-            out_test, os.path.join(self.projects_folder, self.active_project, "dataset")
-        )
+        from app.screens.utils.detection_utils import split_detection_dataset
+        split_detection_dataset(self.projects_folder, self.active_project)
 
     def train(self):
         yaml_file = os.path.join(

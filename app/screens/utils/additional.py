@@ -1,8 +1,9 @@
 import os
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from typing import Tuple
 
 from kivy.clock import Clock
+from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -15,6 +16,7 @@ from kivymd.uix import SpecificBackgroundColorBehavior
 from kivymd.uix.behaviors import HoverBehavior
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
+from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
 
 from app.screens.utils.custom_logging import get_logger
@@ -59,6 +61,13 @@ class ImageMDButton(
             self.md_bg_color = self.saved_color
 
 
+class SelectableImage(MDFloatLayout):
+    selected = BooleanProperty(False)
+    source = StringProperty("")
+    texture = ObjectProperty(None)
+    line_color = ListProperty([1.0, 1.0, 1.0, 0.2])
+
+
 class BaseScreen:
     manager = None
     progress_bar = None
@@ -89,6 +98,20 @@ class BaseScreen:
         b_encoded_text = b64encode(encoded_text).decode("utf-8")
         return b_encoded_text
 
+    def decrypt(self, encrypted_text: str) -> str:
+        from Cryptodome.Cipher import AES
+
+        logger.debug(f"[decrypt] {self.key=} {encrypted_text=}")
+        cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
+        decoded_bytes = b64decode(encrypted_text.encode("utf-8"))
+        return cipher.decrypt(decoded_bytes).decode("utf-8")
+
+    def setup_header(self):
+        if "header" in self.ids and self.manager:
+            current_screen = self.manager.current
+            if current_screen in self.ids.header.ids:
+                self.ids.header.ids[current_screen].background_color = (1, 1, 1, 1)
+
     def select_direction(self, screen_name: str):
         self.exit_screen = True
         translations = {
@@ -110,8 +133,10 @@ class BaseScreen:
 
         self.manager.current = screen_name
 
-    def toggle_load_label(self, mode: str):
-        lbl: MDLabel = self.ids.load_label
+    def toggle_load_label(self, mode: str, text: str = "Loading, please wait..."):
+        lbl = self.ids.get("load_label")
+        if lbl is None:
+            return
 
         def lbl_prop(
             text: str = "",
@@ -123,11 +148,12 @@ class BaseScreen:
             lbl.text = text
             lbl.size_hint_y = lbl_hint_y
             lbl.color = color
-            self.progress_bar.size_hint_y = pbar_hint_y
-            self.progress_bar.opacity = opacity
+            if self.progress_bar is not None:
+                self.progress_bar.size_hint_y = pbar_hint_y
+                self.progress_bar.opacity = opacity
 
         if mode == "on":
-            lbl_prop("Loading, please wait...")
+            lbl_prop(text)
 
         elif mode == "no_dir":
             lbl_prop("No images, please select folder.", opacity=0)
@@ -296,4 +322,21 @@ class MlUiHelper:
         pass
 
     def unselect_model_btn(self):
-        pass
+        self.selected_model = None
+        if "model_grid" in self.ids:
+            for btn in self.ids.model_grid.children:
+                btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+        self.update_all_button_states()
+
+    def launch_tensorboard(self):
+        if getattr(self, "tb_server", None) and getattr(self, "tb_folder", None):
+            status = self.tb_server.launch_tensorboard(self.tb_folder)
+            logger.warning(f"{status}")
+            self.update_all_button_states()
+
+    def get_all_projects(self) -> list:
+        return self.get_projects()
+
+    def select_project_button(self):
+        projects = self.get_all_projects()
+        self.setup_project_dropdown(projects)

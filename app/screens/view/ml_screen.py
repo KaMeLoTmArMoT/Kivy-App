@@ -28,6 +28,7 @@ from app.screens.utils.additional import (
     ImageMDButton,
     MDLabelBtn,
     MlUiHelper,
+    SelectableImage,
 )
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
@@ -101,7 +102,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.num_predictions = 0
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
         self.key = extend_key(self.manager.get_screen("login").key)
         self.load_classes()
         self.load_model_names()
@@ -358,22 +359,10 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
 
-        img = ImageMDButton(
-            source=im_path,
-            allow_stretch=True,
-            keep_ratio=True,
-            pos_hint={"center_x": 0.5, "center_y": 0.5},
-            nocache=True,
-        )
-        img.line_color = (1, 1, 1, 0.2)
+        selectable_img = SelectableImage(source=im_path)
+        img = selectable_img.ids.img
+        img.nocache = True
         img.bind(on_press=self.image_click)
-
-        # 2) The checkbox
-        checkbox = MDCheckbox(
-            size_hint=(None, None),
-            size=(dp(48), dp(48)),
-            pos_hint={"right": 0.98, "top": 0.98},
-        )
 
         # 3) A fixed-height label container at the very bottom
         label_container = BoxLayout(
@@ -386,30 +375,13 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         # Store it for later:
         img.label_container = label_container
 
-        # Now wrap them all in one FloatLayout tile
-        fl = MDFloatLayout()
-        fl.add_widget(img)
-        fl.add_widget(checkbox)
-        fl.add_widget(label_container)
-
-        self.ids.image_grid.add_widget(fl)
+        selectable_img.add_widget(label_container)
+        self.ids.image_grid.add_widget(selectable_img)
 
     def unselect_all_images(self):
         # Work on a copy since we'll mutate the original list
         for instance in list(self.selected_images):
-            # Reset the image’s visuals
-            instance.md_bg_color = (1, 1, 1, 0)
-            instance.line_color = (1, 1, 1, 0.2)
-
-            # Find and uncheck its checkbox
-            container = instance.parent
-            checkbox = next(
-                (w for w in container.children if isinstance(w, MDCheckbox)), None
-            )
-            if checkbox:
-                checkbox.active = False
-
-            # Remove from our selection list
+            instance.parent.selected = False
             self.selected_images.remove(instance)
 
         self.update_all_button_states()
@@ -420,17 +392,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.update_all_button_states()
             return
 
-        # Each tile is MDFloatLayout containing ImageMDButton + MDCheckbox + labelcontainer
+        # Each tile is SelectableImage containing ImageMDButton + MDCheckbox + labelcontainer
         for tile in list(self.ids.image_grid.children):
-            img = next(
-                (w for w in tile.children if isinstance(w, ImageMDButton)),
-                None,
-            )
-            if img is None:
-                continue
-            if img in self.selected_images:
-                continue
-            self.image_click(img)
+            if isinstance(tile, SelectableImage):
+                img = tile.ids.img
+                if img not in self.selected_images:
+                    self.image_click(img)
 
         self.update_all_button_states()
 
@@ -444,29 +411,14 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def image_click(self, instance):
         # path = instance.source
-        container = instance.parent  # the MDFloatLayout tile
-
-        # find the checkbox in this tile
-        checkbox = next(
-            (w for w in container.children if isinstance(w, MDCheckbox)), None
-        )
-        if not checkbox:
-            return  # somehow no checkbox here
+        selectable_img = instance.parent
 
         if instance in self.selected_images:
-            # Deselect
-            instance.md_bg_color = (1, 1, 1, 0)
-            instance.line_color = (1, 1, 1, 0.2)
+            selectable_img.selected = False
             self.selected_images.remove(instance)
-
-            checkbox.active = False
         else:
-            # Select
-            instance.md_bg_color = (1, 1, 1, 0.1)
-            instance.line_color = (1, 1, 1, 0.6)
+            selectable_img.selected = True
             self.selected_images.append(instance)
-
-            checkbox.active = True
 
         self.update_all_button_states()
 
@@ -900,17 +852,6 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         empty_tb_folder = len(os.listdir(self.tb_folder)) != 0
         self.ids.tensorboard_btn.disabled = not (tb_folder_exists and empty_tb_folder)
 
-    def unselect_model_btn(self):
-        self.selected_model = None
-        for btn in self.ids.model_grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-        self.update_all_button_states()
-
-    def launch_tensorboard(self):
-        status = self.tb_server.launch_tensorboard(self.tb_folder)
-        logger.warning(f"{status}")
-        self.update_all_button_states()
-
     def rotate(self, side):
         import cv2
 
@@ -962,10 +903,6 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.load_classes()
         self.load_model_names()
         self.show_folder_images(path=os.path.join(cur_project_path, "all"))
-
-    def select_project_button(self):
-        projects = self.get_projects()
-        self.setup_project_dropdown(projects)
 
     def on_text_input_class(self, instance, value):
         text = self.ids.class_input.text

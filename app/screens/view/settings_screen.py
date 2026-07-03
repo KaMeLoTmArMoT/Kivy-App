@@ -20,6 +20,9 @@ class SettingsViewScreen(Screen, BaseScreen):
         self.grid = self.ids.grid
         Clock.schedule_once(self._delayed_init, 0)
 
+    def on_enter(self, *args):
+        self.setup_header()
+
     def _delayed_init(self, dt):
         self.show_settings()
 

@@ -1,8 +1,6 @@
-import base64
 import os
 import webbrowser
 
-from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
@@ -31,7 +29,7 @@ class MainScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         logger.debug("MAIN: on_enter start")
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
         logger.debug("MAIN: on_enter done")
@@ -74,11 +72,7 @@ class MainScreen(Screen, BaseScreen):
         layout.bind(minimum_height=layout.setter("height"))
 
         for word in records:
-            cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-
-            tm = word[0]
-            tm = base64.b64decode(tm.encode("utf-8"))
-            tm = cipher.decrypt(tm).decode("utf-8")
+            tm = self.decrypt(word[0])
 
             btn = MDLabelBtn(text=tm)
             btn.bind(on_press=self.select_label_btn)
