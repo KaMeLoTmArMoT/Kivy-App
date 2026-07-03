@@ -18,9 +18,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
-from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
-from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 
 from app.screens.utils.additional import (
@@ -392,7 +390,8 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.update_all_button_states()
             return
 
-        # Each tile is SelectableImage containing ImageMDButton + MDCheckbox + labelcontainer
+        # Each tile is SelectableImage containing
+        # ImageMDButton + MDCheckbox + labelcontainer
         for tile in list(self.ids.image_grid.children):
             if isinstance(tile, SelectableImage):
                 img = tile.ids.img

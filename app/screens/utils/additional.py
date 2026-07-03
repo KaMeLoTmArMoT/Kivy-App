@@ -3,7 +3,12 @@ from base64 import b64decode, b64encode
 from typing import Tuple
 
 from kivy.clock import Clock
-from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
+from kivy.properties import (
+    BooleanProperty,
+    ListProperty,
+    ObjectProperty,
+    StringProperty,
+)
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button

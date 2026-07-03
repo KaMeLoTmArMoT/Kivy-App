@@ -68,6 +68,7 @@ class PerformanceMonitor:
 def split_detection_dataset(projects_folder: str, active_project: str):
     import os
     import shutil
+
     try:
         from sklearn.model_selection import train_test_split
     except ImportError:
@@ -169,6 +170,4 @@ def split_detection_dataset(projects_folder: str, active_project: str):
         out_train,
         os.path.join(projects_folder, active_project, "dataset"),
     )
-    shutil.move(
-        out_test, os.path.join(projects_folder, active_project, "dataset")
-    )
+    shutil.move(out_test, os.path.join(projects_folder, active_project, "dataset"))

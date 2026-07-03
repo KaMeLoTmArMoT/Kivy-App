@@ -1,6 +1,5 @@
 import gc
 import os
-import shutil
 import subprocess
 import threading
 import time
@@ -459,6 +458,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
 
     def split(self):
         from app.screens.utils.detection_utils import split_detection_dataset
+
         split_detection_dataset(self.projects_folder, self.active_project)
 
     def train(self):

@@ -13,7 +13,8 @@ from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from app.screens.utils.additional import BaseScreen, ImageMDButton, MDLabelBtn, SelectableImage
+
+from app.screens.utils.additional import BaseScreen, MDLabelBtn, SelectableImage
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import extend_key
 
