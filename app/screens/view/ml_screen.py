@@ -72,9 +72,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.cur_dir = ""
 
         self.app_folder = os.getcwd()
-        self.projects_folder = os.path.join(
-            self.app_folder, "app/training/classification"
-        )
+        self.projects_folder = os.path.join(self.app_folder, "app/training/classification")
         os.makedirs(self.projects_folder, exist_ok=True)
 
         self.active_project = "Kivy"
@@ -324,8 +322,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.update_page_counter()
         if n_images > self.max_images_per_page:
             self.images_to_load = self.images_to_load[
-                self.page
-                * self.max_images_per_page : (self.page + 1)
+                self.page * self.max_images_per_page : (self.page + 1)
                 * self.max_images_per_page
             ]
 
@@ -403,7 +400,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def clear_predictions(self):
         for tile in self.ids.image_grid.children:
             for child in tile.children:
-                if isinstance(child, ImageMDButton):
+                if isinstance(child, ImageMDButton) and hasattr(child, "label_container"):
                     child.label_container.clear_widgets()
         self.num_predictions = 0
         self.unselect_all_images()
@@ -792,9 +789,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def update_all_button_states(self):
         has_selection = bool(self.selected_images)
         can_transfer = (
-            has_selection
-            and self.selected_dir
-            and self.cur_dir != self.selected_dir_full
+            has_selection and self.selected_dir and self.cur_dir != self.selected_dir_full
         )
         is_model_selected = bool(self.selected_model)
         is_model_loaded = bool(self.k_model.model)
@@ -830,10 +825,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         # Predict
         self.ids.predict_btn.disabled = not (
-            is_model_loaded
-            and is_model_named
-            and has_selection
-            and not self.train_active
+            is_model_loaded and is_model_named and has_selection and not self.train_active
         )
 
         # Train

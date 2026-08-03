@@ -291,9 +291,7 @@ class ImageViewScreen(Screen, BaseScreen):
         if not self.lock_schedule:  # to trigger schedule only once at a time
             logger.debug("lock")
             self.lock_schedule = True
-            Clock.schedule_once(
-                lambda dt: self.selected_counter_update(schedule=True), 1
-            )
+            Clock.schedule_once(lambda dt: self.selected_counter_update(schedule=True), 1)
 
     def select_or_unselect_button_action(self):
         if len(self.selected_images) > 0:

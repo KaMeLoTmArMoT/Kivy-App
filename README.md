@@ -64,12 +64,18 @@ selection, dataset preparation, training runs, and evaluation/detection.
 
 ### Install
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Run
 ```bash
-python main.py
+uv run python main.py
+```
+
+### Linting & Formatting
+```bash
+uv run ruff check --fix
+uv run ruff format
 ```
 
 ### Tests
@@ -77,8 +83,8 @@ Integration tests live under `app/tests/` and include a short guide at `app/test
 
 Quick run:
 ```powershell
-pytest --timeout 20 -v -s
-pytest --timeout 20 -v -s .\app\tests\integration\
+uv run pytest --timeout 20 -v -s
+uv run pytest --timeout 20 -v -s .\app\tests\integration\
 ```
 
 ## Project layout (current)

@@ -91,8 +91,7 @@ def expected_label_from_filename(path: Path) -> str:
 
 def wait_images_loaded(ml, *, timeout=20):
     wait_until(
-        lambda: (ml.load_event is None)
-        or (len(getattr(ml, "images_to_load", [])) == 0),
+        lambda: (ml.load_event is None) or (len(getattr(ml, "images_to_load", [])) == 0),
         timeout=timeout,
         msg="Image loading not settled",
     )
@@ -155,8 +154,7 @@ class TestMlProjectModelFlow:
 
         # let async folder load finish (it schedules Clock interval)
         wait_until(
-            lambda: ml.load_event is None
-            or len(getattr(ml, "images_to_load", [])) == 0,
+            lambda: ml.load_event is None or len(getattr(ml, "images_to_load", [])) == 0,
             timeout=6,
             msg="Image loading not settled",
         )
@@ -178,9 +176,7 @@ class TestMlProjectModelFlow:
             # assert "Model cant have 0 or 1 class" in ml.ids.error_popup_text.text
 
             # no model should appear
-            assert not any(
-                TEST_MODEL_BASENAME in t for t in grid_texts(ml.ids.model_grid)
-            )
+            assert not any(TEST_MODEL_BASENAME in t for t in grid_texts(ml.ids.model_grid))
 
             # ----- add 2 classes -----
             for cname in CLASSES:
@@ -370,8 +366,7 @@ class TestMlPredictTrainEvaluate:
             drain()
 
             wait_until(
-                lambda: (ml.train_active is False)
-                and (ml.ids.train_btn.text == "Train"),
+                lambda: (ml.train_active is False) and (ml.ids.train_btn.text == "Train"),
                 timeout=240,
                 msg="Training did not finish in time",
             )
@@ -396,8 +391,9 @@ class TestMlPredictTrainEvaluate:
 
             # wait eval finishes
             wait_until(
-                lambda: (ml.eval_event is None)
-                and (ml.ids.evaluate_btn.text == "Evaluate"),
+                lambda: (
+                    (ml.eval_event is None) and (ml.ids.evaluate_btn.text == "Evaluate")
+                ),
                 timeout=240,
                 msg="Evaluate did not finish in time",
             )

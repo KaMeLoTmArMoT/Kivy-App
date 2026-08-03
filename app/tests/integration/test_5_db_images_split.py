@@ -11,9 +11,7 @@ from app.screens.utils.utils import call_db, extend_key
 
 logger = get_logger(__name__)
 
-TEST_IMAGES_DIR = (
-    Path(__file__).resolve().parent.parent / "test_data" / "example_images"
-)
+TEST_IMAGES_DIR = Path(__file__).resolve().parent.parent / "test_data" / "example_images"
 
 
 def drain(frames: int = 5) -> None:

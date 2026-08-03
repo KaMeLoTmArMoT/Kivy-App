@@ -142,13 +142,11 @@ class DB:
 
     @staticmethod
     def set_config(conf_name: str, value: str) -> None:
-        call_db(f"INSERT OR REPLACE INTO configs VALUES " f"('{conf_name}', '{value}')")
+        call_db(f"INSERT OR REPLACE INTO configs VALUES ('{conf_name}', '{value}')")
 
     @staticmethod
     def get_latest_detection_project() -> list:
-        return call_db(
-            "SELECT value FROM configs WHERE name='latest_detection_project'"
-        )
+        return call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
 
     @staticmethod
     def set_latest_detection_project(active_project: str) -> None:

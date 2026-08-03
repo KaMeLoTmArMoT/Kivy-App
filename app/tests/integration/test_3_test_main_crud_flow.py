@@ -89,8 +89,7 @@ class TestMainCrudFlow:
         drain()
 
         wait_until(
-            lambda: getattr(main, "on_enter_done", False)
-            and getattr(main, "key", None),
+            lambda: getattr(main, "on_enter_done", False) and getattr(main, "key", None),
             timeout=10,
             msg="MainScreen not ready (on_enter_done/key missing)",
         )

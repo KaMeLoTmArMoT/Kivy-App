@@ -45,13 +45,9 @@ class SettingsViewScreen(Screen, BaseScreen):
     def apply_changes(self):
         children = self.grid.children[::-1]
         for i in range(0, len(children), 2):
-            key_widget = (
-                children[i] if isinstance(children[i], Label) else children[i + 1]
-            )
+            key_widget = children[i] if isinstance(children[i], Label) else children[i + 1]
             val_widget = (
-                children[i + 1]
-                if isinstance(children[i + 1], TextInput)
-                else children[i]
+                children[i + 1] if isinstance(children[i + 1], TextInput) else children[i]
             )
 
             if isinstance(key_widget, Label) and isinstance(val_widget, TextInput):

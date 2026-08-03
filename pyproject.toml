@@ -1,0 +1,53 @@
+[project]
+name = "kivy-app"
+version = "0.1.0"
+description = "Kivy App for Image Management and Machine Learning"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "kivy==2.1.0",
+    "kivymd==0.104.2",
+    "numpy==1.26.4",
+    "pycryptodomex==3.19.1",
+    "opencv-python==4.7.0.72",
+    "checksumdir==1.2.0",
+    "setuptools<71",
+    "scikit-learn==1.5.2",
+    "tensorboard==2.19.0",
+    "tqdm==4.66.1",
+    "onnx==1.17.0",
+    "onnxruntime-gpu==1.22.0",
+    "onnxslim==0.1.59",
+    "tensorrt==10.12.0.36",
+    "ultralytics==8.3.172",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.16.1",
+    "pytest==9.0.2",
+    "pytest-timeout==2.4.0",
+    "pytest-cov==7.0.0",
+    "pytest-kivy==0.1.0.dev2",
+    "coverage==7.13.0",
+    "python-dotenv==1.2.1",
+    "pre-commit==4.0.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 91
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E203"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true

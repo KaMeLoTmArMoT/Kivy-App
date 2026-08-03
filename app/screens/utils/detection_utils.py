@@ -80,9 +80,7 @@ def split_detection_dataset(projects_folder: str, active_project: str):
     pth_annotations = os.path.join(
         projects_folder, active_project, "dataset", "raw", "annotations"
     )
-    pth_images = os.path.join(
-        projects_folder, active_project, "dataset", "raw", "images"
-    )
+    pth_images = os.path.join(projects_folder, active_project, "dataset", "raw", "images")
     logger.info(f"split: {pth_annotations=}, {pth_images=}")
 
     if not os.path.exists(pth_annotations) or not os.path.exists(pth_images):
@@ -131,18 +129,14 @@ def split_detection_dataset(projects_folder: str, active_project: str):
             os.path.join(pth_annotations, ann),
             os.path.join(out_train, "labels", ann),
         )
-        shutil.copy(
-            os.path.join(pth_images, img), os.path.join(out_train, "images", img)
-        )
+        shutil.copy(os.path.join(pth_images, img), os.path.join(out_train, "images", img))
 
     for img, ann in zip(X_test, y_test):
         shutil.copy(
             os.path.join(pth_annotations, ann),
             os.path.join(out_test, "labels", ann),
         )
-        shutil.copy(
-            os.path.join(pth_images, img), os.path.join(out_test, "images", img)
-        )
+        shutil.copy(os.path.join(pth_images, img), os.path.join(out_test, "images", img))
 
     class_file = os.path.join(pth_annotations, "classes.txt")
     logger.debug(f"{class_file}")

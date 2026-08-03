@@ -275,9 +275,7 @@ class KModel:
                     logger.warning("Early termination inside batch")
                     return
 
-                images, labels = images.to(self.get_device()), labels.to(
-                    self.get_device()
-                )
+                images, labels = images.to(self.get_device()), labels.to(self.get_device())
                 self.optimizer.zero_grad()
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
@@ -392,8 +390,8 @@ def read_config_file(config_path):
 
 
 def log_gpu(tag, summary=False):
-    logger.debug(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024 ** 2:.2f} MB")
-    logger.debug(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024 ** 2:.2f} MB")
+    logger.debug(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+    logger.debug(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
     if summary:
         logger.debug(f"{torch.cuda.memory_summary()}")
 
