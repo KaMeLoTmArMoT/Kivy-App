@@ -103,9 +103,7 @@ class TestPasswordValidation(BaseAuthTest):
             ("a" * 100, True),  # Very long password
         ],
     )
-    def test_password_length_validation(
-        self, kivy_app, password, should_pass, reset_login_state
-    ):
+    def test_password_length_validation(self, kivy_app, password, should_pass, reset_login_state):
         self.wait_for_screen()
 
         login_screen = reset_login_state

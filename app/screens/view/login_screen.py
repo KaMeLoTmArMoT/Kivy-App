@@ -61,9 +61,7 @@ class LoginScreen(Screen, BaseScreen):
     def validate_password(self, inp_pass):
         real_value = self.passwords[0][1]
         input_value = get_sha(inp_pass)
-        logger.debug(
-            f"Validating password: input hash {input_value}, real hash {real_value}"
-        )
+        logger.debug(f"Validating password: input hash {input_value}, real hash {real_value}")
 
         if real_value == input_value:
             logger.debug("Password is valid, transitioning to next screen")

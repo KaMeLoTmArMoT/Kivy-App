@@ -135,10 +135,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.toggle_load_label("on")
 
-        if os.path.isdir(path):
-            files = os.listdir(path)
-        else:
-            files = None
+        files = os.listdir(path) if os.path.isdir(path) else None
 
         self.grid.clear_widgets()
         self.unselect_all_images()
@@ -163,9 +160,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), 0.001
-        )
+        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
 
     def async_image_load(self):
         stop = False
@@ -251,9 +246,7 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = "Choose 1+"
             return
 
-        projects_folder = (
-            Path(__file__).resolve().parents[2] / "training" / "classification"
-        )
+        projects_folder = Path(__file__).resolve().parents[2] / "training" / "classification"
         to_ml_btn = self.ids.to_ml_btn
 
         projects = []
@@ -278,9 +271,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
             to_ml_btn.bind(on_release=self.dropdown.open)
             self.dropdown.bind(
-                on_select=lambda instance, project: self.transfer_images(
-                    projects_folder, project
-                )
+                on_select=lambda instance, project: self.transfer_images(projects_folder, project)
             )
             self.projects = projects
 

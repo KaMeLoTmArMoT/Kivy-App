@@ -207,12 +207,8 @@ class TestImagesFlow:
             assert target.exists(), f"Target folder not created: {target}"
             after_set = set(target.glob("*"))
 
-            created = {
-                p for p in (after_set - before_set) if p.suffix.lower() in {".jpg", ".png"}
-            }
-            assert len(created) >= 2, (
-                f"Expected at least 2 files copied, got {len(created)}"
-            )
+            created = {p for p in (after_set - before_set) if p.suffix.lower() in {".jpg", ".png"}}
+            assert len(created) >= 2, f"Expected at least 2 files copied, got {len(created)}"
 
             assert len(img.selected_images) == 0
             assert img.ids.selected_images.text.startswith("Copied ")

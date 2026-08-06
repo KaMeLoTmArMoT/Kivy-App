@@ -60,9 +60,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.model_name = None
         self.confidence = 0.5
 
-        self.tb_folder = os.path.join(
-            self.app_folder, "app/training/detection/tensorboard"
-        )
+        self.tb_folder = os.path.join(self.app_folder, "app/training/detection/tensorboard")
         self.tb_server = TBServer()
 
         self.dropdown = None
@@ -126,9 +124,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
 
         if self.video_source == "file":
             video_source_path = DB().get_config_typed("video_source_path")
-            logger.warning(
-                f"Custom video source: {self.video_source} | {video_source_path}"
-            )
+            logger.warning(f"Custom video source: {self.video_source} | {video_source_path}")
             # TODO: handle errors
             self.camara = cv2.VideoCapture(video_source_path)
 
@@ -224,12 +220,8 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         if self.model is not None:
             frame = self.yolo_inference(frame)
 
-        texture: Texture = Texture.create(
-            size=(frame.shape[1], frame.shape[0]), colorfmt=colorfmt
-        )
-        texture.blit_buffer(
-            frame.tobytes(order=None), colorfmt=colorfmt, bufferfmt="ubyte"
-        )
+        texture: Texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt=colorfmt)
+        texture.blit_buffer(frame.tobytes(order=None), colorfmt=colorfmt, bufferfmt="ubyte")
         texture.flip_vertical()
         self.ids.image.texture = texture
         self.processing_flag = False
@@ -271,9 +263,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         if self.labelimg_process is not None:
             self.labelimg_close()
 
-        pth_images = os.path.join(
-            self.projects_folder, self.active_project, "dataset\\raw\\images"
-        )
+        pth_images = os.path.join(self.projects_folder, self.active_project, "dataset\\raw\\images")
         pth_classes = os.path.join(
             self.projects_folder,
             self.active_project,
@@ -317,9 +307,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
 
     def yolo_init(self, last_display_mode, tm=None):
         if YOLO is None:
-            logger.error(
-                "ultralytics not installed. Install ultralytics to use detection."
-            )
+            logger.error("ultralytics not installed. Install ultralytics to use detection.")
             return
 
         if not self.selected_model:
@@ -354,9 +342,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
                     except Exception as e:
                         logger.error(f"Failed to fuse model {model_path}\n{e}")
 
-                warmup_image = np.random.randint(
-                    0, 255, size=(640, 640, 3), dtype=np.uint8
-                )
+                warmup_image = np.random.randint(0, 255, size=(640, 640, 3), dtype=np.uint8)
                 self.model(warmup_image)
                 logger.debug("Warmup done successfully")
                 logger.warning(f"Model {model_path} initialised")
@@ -414,9 +400,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.unselect_model_btn()
 
     def update_project_paths(self):
-        self.active_project_folder = os.path.join(
-            self.projects_folder, self.active_project
-        )
+        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
 
     def load_model_names(self):
         self.ids.model_grid.clear_widgets()
@@ -478,9 +462,7 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
 
     def yolo_optimize(self):
         if YOLO is None:
-            logger.error(
-                "ultralytics not installed. Install ultralytics to use detection."
-            )
+            logger.error("ultralytics not installed. Install ultralytics to use detection.")
             return
 
         if not self.selected_model:

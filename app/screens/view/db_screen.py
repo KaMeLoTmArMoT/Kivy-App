@@ -47,7 +47,7 @@ class DbViewScreen(Screen, BaseScreen):
         self.selected_images = []
         self.prev_line_color = None
         self.checkbox_first = None
-        self.last_match = dict()
+        self.last_match = {}
 
         self.autoload_on_enter = True
         self._autoload_ev = None

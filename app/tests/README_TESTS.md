@@ -69,3 +69,10 @@ pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py::Tes
 ```powershell
 pytest --timeout 20 -v -s --lf
 ```
+
+---
+
+## Test Optimization & Speedup Strategies
+
+See [TEST_OPTIMIZATION.md](../../TEST_OPTIMIZATION.md) for techniques to reduce full test suite runtime from ~3 minutes to <30 seconds (mocking PyTorch CPU training, accelerating Kivy Clock intervals, and running `pytest -n auto`).
+

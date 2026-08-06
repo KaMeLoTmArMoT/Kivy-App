@@ -44,9 +44,7 @@ def ensure_logged_in(sm, request):
     drain()
     login.submit()
     drain()
-    wait_until(
-        lambda: sm.current == "main", timeout=10, msg="Login did not navigate to main"
-    )
+    wait_until(lambda: sm.current == "main", timeout=10, msg="Login did not navigate to main")
 
 
 def grid_texts(grid) -> set[str]:
@@ -328,8 +326,7 @@ class TestMlPredictTrainEvaluate:
                         [
                             p
                             for p in folder.iterdir()
-                            if p.is_file()
-                            and p.suffix.lower() in {".jpg", ".jpeg", ".png"}
+                            if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}
                         ]
                     ),
                     ml.max_images_per_page,
@@ -391,9 +388,7 @@ class TestMlPredictTrainEvaluate:
 
             # wait eval finishes
             wait_until(
-                lambda: (
-                    (ml.eval_event is None) and (ml.ids.evaluate_btn.text == "Evaluate")
-                ),
+                lambda: (ml.eval_event is None) and (ml.ids.evaluate_btn.text == "Evaluate"),
                 timeout=240,
                 msg="Evaluate did not finish in time",
             )

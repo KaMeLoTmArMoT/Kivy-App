@@ -67,9 +67,7 @@ class DB:
 
     @staticmethod
     def update_customer(new_encrypted: str, old_encrypted: str) -> None:
-        call_db(
-            f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'"
-        )
+        call_db(f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'")
 
     @staticmethod
     def create_images_table() -> None:
@@ -129,10 +127,7 @@ class DB:
 
     @staticmethod
     def init_default_configs(force: bool = False) -> None:
-        if force:
-            mode = "REPLACE"
-        else:
-            mode = "IGNORE"
+        mode = "REPLACE" if force else "IGNORE"
 
         for key, value in DEFAULT_CONFIGS.items():
             call_db(

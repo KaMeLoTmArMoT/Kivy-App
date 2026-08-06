@@ -40,9 +40,7 @@ class TBServer:
                     webbrowser.get(browser).open(self.url)
                     break
             else:
-                logger.error(
-                    "No known browser found. Please install chrome or use xdg-open."
-                )
+                logger.error("No known browser found. Please install chrome or use xdg-open.")
         else:
             logger.error("Unknown operating system.")
             webbrowser.open(self.url)

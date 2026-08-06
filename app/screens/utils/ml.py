@@ -38,9 +38,7 @@ def _require_torch():
 
 def _require_ultralytics():
     if YOLO is None:
-        raise RuntimeError(
-            "Ultralytics is not installed. Install ultralytics to use YOLO export."
-        )
+        raise RuntimeError("Ultralytics is not installed. Install ultralytics to use YOLO export.")
 
 
 class KModel:

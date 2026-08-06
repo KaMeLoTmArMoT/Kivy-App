@@ -1,6 +1,5 @@
 import os
 from base64 import b64decode, b64encode
-from typing import Tuple
 
 from kivy.clock import Clock
 from kivy.properties import (
@@ -47,9 +46,7 @@ class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
             self.md_bg_color = self.saved_color
 
 
-class ImageMDButton(
-    MDButtonBehavior, Image, SpecificBackgroundColorBehavior, HoverBehavior
-):
+class ImageMDButton(MDButtonBehavior, Image, SpecificBackgroundColorBehavior, HoverBehavior):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -146,7 +143,7 @@ class BaseScreen:
         def lbl_prop(
             text: str = "",
             lbl_hint_y: float = 0.1,
-            color: Tuple[float, float, float, float] = (1, 1, 1, 1),
+            color: tuple[float, float, float, float] = (1, 1, 1, 1),
             pbar_hint_y: float = 0.1,
             opacity: float = 1,
         ):
@@ -205,9 +202,7 @@ class MlUiHelper:
     ids = None
 
     def create_project_name_input_popup(self):
-        self.popup = Popup(
-            title="New project creation", size_hint=(None, None), size=(400, 150)
-        )
+        self.popup = Popup(title="New project creation", size_hint=(None, None), size=(400, 150))
         box = BoxLayout(orientation="vertical")
 
         lbl = Label(text="Please enter new name", size_hint_y=0.3)
@@ -305,11 +300,10 @@ class MlUiHelper:
 
     def select_model_btn(self, instance):
         logger.info(f"The model button <{instance.text}> is being pressed")
-        if self.selected_model:
-            if instance.uid == self.selected_model.uid:
-                # custom double touch event
-                self.unselect_model_btn()
-                return
+        if self.selected_model and instance.uid == self.selected_model.uid:
+            # custom double touch event
+            self.unselect_model_btn()
+            return
 
         # reset selection
         for btn in self.ids.model_grid.children:

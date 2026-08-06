@@ -53,9 +53,7 @@ def ensure_logged_in(sm, request):
     drain()
     login.submit()
     drain()
-    wait_until(
-        lambda: sm.current == "main", timeout=5, msg="Login did not navigate to main"
-    )
+    wait_until(lambda: sm.current == "main", timeout=5, msg="Login did not navigate to main")
 
 
 def init_dbview_without_on_enter(db, login_key: str):
@@ -66,11 +64,7 @@ def init_dbview_without_on_enter(db, login_key: str):
 
 def get_any_image_files(n: int = 4):
     files = sorted(
-        [
-            p
-            for p in TEST_IMAGES_DIR.iterdir()
-            if p.suffix.lower() in {".png", ".jpg", ".jpeg"}
-        ]
+        [p for p in TEST_IMAGES_DIR.iterdir() if p.suffix.lower() in {".png", ".jpg", ".jpeg"}]
     )
     assert len(files) >= n, f"Need at least {n} images in {TEST_IMAGES_DIR}"
     return files[:n]
@@ -149,9 +143,7 @@ class TestDbImagesSplit:
         assert remaining == set()
 
     def test_wrong_key_only_secure_left(self, kivy_app, request):
-        db, expected_all, expected_plain, expected_secure = self.init_test(
-            kivy_app, request
-        )
+        db, expected_all, expected_plain, expected_secure = self.init_test(kivy_app, request)
 
         # wrong key same length
         db.key = b"X" * len(db.key)

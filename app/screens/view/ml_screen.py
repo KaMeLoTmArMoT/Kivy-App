@@ -76,9 +76,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         os.makedirs(self.projects_folder, exist_ok=True)
 
         self.active_project = "Kivy"
-        self.active_project_folder = os.path.join(
-            self.projects_folder, self.active_project
-        )
+        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
 
         self.images_path = os.path.join(self.active_project_folder, "all")
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
@@ -125,9 +123,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
-        self.active_project_folder = os.path.join(
-            self.projects_folder, self.active_project
-        )
+        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
 
         self.images_path = os.path.join(self.active_project_folder, "all")
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
@@ -284,10 +280,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         if path is None:  # TODO: re-check if we call without path
             path = self.selected_dir_full
 
-        if os.path.isdir(path):
-            files = os.listdir(path)
-        else:
-            files = None
+        files = os.listdir(path) if os.path.isdir(path) else None
 
         self.ids.image_grid.clear_widgets()
         self.unselect_all_images()
@@ -322,15 +315,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.update_page_counter()
         if n_images > self.max_images_per_page:
             self.images_to_load = self.images_to_load[
-                self.page * self.max_images_per_page : (self.page + 1)
-                * self.max_images_per_page
+                self.page * self.max_images_per_page : (self.page + 1) * self.max_images_per_page
             ]
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), 0.001
-        )
+        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
 
     def update_page_counter(self):  # TODO: reset page when open new folder
         self.ids.page_label.text = f"{self.page}/{self.total_pages}"
@@ -559,9 +549,11 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def select_model_type_btn(self, instance):
         grid = instance.parent
 
-        if self.tmp_model_type == instance.text.split(" ")[0]:
-            if time.time() - self.touch_time < 0.2:
-                self.submit_model_type_btn("instance")  # may cause error
+        if (
+            self.tmp_model_type == instance.text.split(" ")[0]
+            and time.time() - self.touch_time < 0.2
+        ):
+            self.submit_model_type_btn("instance")  # may cause error
 
         for btn_name in grid.ids:
             grid.ids[btn_name].background_color = (1.0, 1.0, 1.0, 1.0)
@@ -651,9 +643,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             data,
         )
         self.toggle_error_popup("on", "Start eval...")
-        self.eval_event = Clock.schedule_interval(
-            lambda tm: self.async_eval_cycle(), 0.0001
-        )
+        self.eval_event = Clock.schedule_interval(lambda tm: self.async_eval_cycle(), 0.0001)
 
     def async_eval_cycle(self):
         (state, processed_steps, loss, acc) = self.k_model.async_eval_cycle()
@@ -667,17 +657,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         self.toggle_error_popup(
             "on",
-            f"[{processed_steps}/{self.total_steps}] "
-            f"Loss: {round(loss, 4)} | Acc: {round(acc, 4)}",
+            f"[{processed_steps}/{self.total_steps}] Loss: {round(loss, 4)} | Acc: {round(acc, 4)}",
         )
 
     def get_classes(self):
         return sorted(
-            [
-                btn.text.split("\\")[-1]
-                for btn in self.ids.class_grid.children
-                if btn.text != "all"
-            ]
+            [btn.text.split("\\")[-1] for btn in self.ids.class_grid.children if btn.text != "all"]
         )
 
     def create_model(self, name):
@@ -730,9 +715,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         path = os.path.join(self.ml_models_folder, self.selected_model.text)
         logger.info(f"delete model from: {path}")
         shutil.rmtree(path)
-        config_path = os.path.join(
-            self.ml_configs_folder, self.selected_model.text + ".conf"
-        )
+        config_path = os.path.join(self.ml_configs_folder, self.selected_model.text + ".conf")
         os.remove(config_path)
 
         self.unselect_model_btn()
@@ -794,9 +777,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         is_model_selected = bool(self.selected_model)
         is_model_loaded = bool(self.k_model.model)
         is_model_named = bool(self.model_name)
-        model_name_differs = (
-            is_model_selected and self.selected_model.text != self.model_name
-        )
+        model_name_differs = is_model_selected and self.selected_model.text != self.model_name
 
         # Transfer button
         self.ids.transfer_image.disabled = not can_transfer
@@ -835,9 +816,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         # Image selection info
         self.ids.unselect_all_images.disabled = not has_selection
-        self.ids.num_selected_images.text = (
-            f"{len(self.selected_images)}" if has_selection else ""
-        )
+        self.ids.num_selected_images.text = f"{len(self.selected_images)}" if has_selection else ""
 
         tb_folder_exists = os.path.isdir(self.tb_folder)
         empty_tb_folder = len(os.listdir(self.tb_folder)) != 0
@@ -850,10 +829,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Select image(s)!")
             return
 
-        if side == "left":
-            rot = cv2.ROTATE_90_COUNTERCLOCKWISE
-        else:
-            rot = cv2.ROTATE_90_CLOCKWISE
+        rot = cv2.ROTATE_90_COUNTERCLOCKWISE if side == "left" else cv2.ROTATE_90_CLOCKWISE
 
         for image in self.selected_images:
             path: str = image.source
