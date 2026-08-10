@@ -6,11 +6,12 @@ import pytest
 from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 
+from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import call_db, extend_key
 
-TEST_IMAGES_DIR = Path(
-    r"G:\programming\Kivy-App\app\tests\test_data\example_images"
-).resolve()
+logger = get_logger(__name__)
+
+TEST_IMAGES_DIR = Path(__file__).resolve().parent.parent / "test_data" / "example_images"
 
 
 def drain(frames: int = 5) -> None:
@@ -28,6 +29,7 @@ def wait_until(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         drain(step_frames)
+        time.sleep(0.01)
         if predicate():
             return
     raise AssertionError(msg)
@@ -44,15 +46,14 @@ def clear_images_table():
 
 def ensure_logged_in(sm, request):
     if sm.has_screen("main") and getattr(sm.get_screen("main"), "key", None):
+        logger.debug("Already logged in")
         return
     login = request.getfixturevalue("reset_login_state")
     login.ids.word_input.text = "test_dev_pass_123"
     drain()
     login.submit()
     drain()
-    wait_until(
-        lambda: sm.current == "main", timeout=5, msg="Login did not navigate to main"
-    )
+    wait_until(lambda: sm.current == "main", timeout=5, msg="Login did not navigate to main")
 
 
 def init_dbview_without_on_enter(db, login_key: str):
@@ -63,11 +64,7 @@ def init_dbview_without_on_enter(db, login_key: str):
 
 def get_any_image_files(n: int = 4):
     files = sorted(
-        [
-            p
-            for p in TEST_IMAGES_DIR.iterdir()
-            if p.suffix.lower() in {".png", ".jpg", ".jpeg"}
-        ]
+        [p for p in TEST_IMAGES_DIR.iterdir() if p.suffix.lower() in {".png", ".jpg", ".jpeg"}]
     )
     assert len(files) >= n, f"Need at least {n} images in {TEST_IMAGES_DIR}"
     return files[:n]
@@ -146,9 +143,7 @@ class TestDbImagesSplit:
         assert remaining == set()
 
     def test_wrong_key_only_secure_left(self, kivy_app, request):
-        db, expected_all, expected_plain, expected_secure = self.init_test(
-            kivy_app, request
-        )
+        db, expected_all, expected_plain, expected_secure = self.init_test(kivy_app, request)
 
         # wrong key same length
         db.key = b"X" * len(db.key)

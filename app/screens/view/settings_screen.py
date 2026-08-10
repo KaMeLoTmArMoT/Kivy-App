@@ -20,6 +20,9 @@ class SettingsViewScreen(Screen, BaseScreen):
         self.grid = self.ids.grid
         Clock.schedule_once(self._delayed_init, 0)
 
+    def on_enter(self, *args):
+        self.setup_header()
+
     def _delayed_init(self, dt):
         self.show_settings()
 
@@ -42,14 +45,8 @@ class SettingsViewScreen(Screen, BaseScreen):
     def apply_changes(self):
         children = self.grid.children[::-1]
         for i in range(0, len(children), 2):
-            key_widget = (
-                children[i] if isinstance(children[i], Label) else children[i + 1]
-            )
-            val_widget = (
-                children[i + 1]
-                if isinstance(children[i + 1], TextInput)
-                else children[i]
-            )
+            key_widget = children[i] if isinstance(children[i], Label) else children[i + 1]
+            val_widget = children[i + 1] if isinstance(children[i + 1], TextInput) else children[i]
 
             if isinstance(key_widget, Label) and isinstance(val_widget, TextInput):
                 key = key_widget.text

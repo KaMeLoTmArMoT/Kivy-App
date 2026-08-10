@@ -48,11 +48,14 @@ def get_sha(text):
     return enc.hexdigest()
 
 
-def extend_key(text):
-    if len(text) < 16:
-        while len(text) < 16:
-            text += text
-    return text[:16].encode("utf-8")
+def extend_key(text) -> bytes:
+    text = "" if text is None else str(text)
+
+    if not text:
+        raise ValueError("Empty key cannot be extended")
+
+    padded = (text * ((16 // len(text)) + 1))[:16]
+    return padded.encode("utf-8")
 
 
 def get_system_type():

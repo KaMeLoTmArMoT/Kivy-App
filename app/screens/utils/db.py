@@ -67,9 +67,7 @@ class DB:
 
     @staticmethod
     def update_customer(new_encrypted: str, old_encrypted: str) -> None:
-        call_db(
-            f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'"
-        )
+        call_db(f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'")
 
     @staticmethod
     def create_images_table() -> None:
@@ -129,10 +127,7 @@ class DB:
 
     @staticmethod
     def init_default_configs(force: bool = False) -> None:
-        if force:
-            mode = "REPLACE"
-        else:
-            mode = "IGNORE"
+        mode = "REPLACE" if force else "IGNORE"
 
         for key, value in DEFAULT_CONFIGS.items():
             call_db(
@@ -142,13 +137,11 @@ class DB:
 
     @staticmethod
     def set_config(conf_name: str, value: str) -> None:
-        call_db(f"INSERT OR REPLACE INTO configs VALUES " f"('{conf_name}', '{value}')")
+        call_db(f"INSERT OR REPLACE INTO configs VALUES ('{conf_name}', '{value}')")
 
     @staticmethod
     def get_latest_detection_project() -> list:
-        return call_db(
-            "SELECT value FROM configs WHERE name='latest_detection_project'"
-        )
+        return call_db("SELECT value FROM configs WHERE name='latest_detection_project'")
 
     @staticmethod
     def set_latest_detection_project(active_project: str) -> None:

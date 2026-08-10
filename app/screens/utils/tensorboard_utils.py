@@ -3,8 +3,6 @@ import platform
 import shutil
 import webbrowser
 
-from tensorboard import program
-
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
 
@@ -17,6 +15,8 @@ class TBServer:
         self.url = None
 
     def launch_tensorboard(self, tb_folder):
+        from tensorboard import program
+
         if not os.path.isdir(tb_folder):
             return "No tensorboard folder"
 
@@ -40,9 +40,7 @@ class TBServer:
                     webbrowser.get(browser).open(self.url)
                     break
             else:
-                logger.error(
-                    "No known browser found. Please install chrome or use xdg-open."
-                )
+                logger.error("No known browser found. Please install chrome or use xdg-open.")
         else:
             logger.error("Unknown operating system.")
             webbrowser.open(self.url)

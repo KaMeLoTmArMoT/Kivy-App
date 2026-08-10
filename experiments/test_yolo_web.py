@@ -70,9 +70,7 @@ def benchmark_webcam(model_path, camera_index=0, num_frames_to_average=500):
             2,
         )
 
-        cv2.imshow(
-            f"Webcam Benchmark - {os.path.basename(model_path)}", annotated_frame
-        )
+        cv2.imshow(f"Webcam Benchmark - {os.path.basename(model_path)}", annotated_frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break

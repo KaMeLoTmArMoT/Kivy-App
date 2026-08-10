@@ -83,3 +83,20 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
+
+<SelectableImage>:
+    ImageMDButton:
+        id: img
+        source: root.source
+        texture: root.texture
+        allow_stretch: True
+        keep_ratio: True
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+        line_color: (1, 1, 1, 0.6) if root.selected else root.line_color
+        md_bg_color: (1, 1, 1, 0.1) if root.selected else (1, 1, 1, 0)
+    MDCheckbox:
+        id: checkbox
+        active: root.selected
+        size_hint: None, None
+        size: "48dp", "48dp"
+        pos_hint: {"center_x": 0.96, "center_y": 0.96}

@@ -18,9 +18,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
-from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.label import MDLabel
-from kivymd.uix.selectioncontrol import MDCheckbox
 from PIL import Image
 
 from app.screens.utils.additional import (
@@ -28,6 +26,7 @@ from app.screens.utils.additional import (
     ImageMDButton,
     MDLabelBtn,
     MlUiHelper,
+    SelectableImage,
 )
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
@@ -73,15 +72,11 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.cur_dir = ""
 
         self.app_folder = os.getcwd()
-        self.projects_folder = os.path.join(
-            self.app_folder, "app/training/classification"
-        )
+        self.projects_folder = os.path.join(self.app_folder, "app/training/classification")
         os.makedirs(self.projects_folder, exist_ok=True)
 
         self.active_project = "Kivy"
-        self.active_project_folder = os.path.join(
-            self.projects_folder, self.active_project
-        )
+        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
 
         self.images_path = os.path.join(self.active_project_folder, "all")
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
@@ -101,7 +96,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.num_predictions = 0
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
         self.key = extend_key(self.manager.get_screen("login").key)
         self.load_classes()
         self.load_model_names()
@@ -118,13 +113,17 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.ids.class_input.bind(text=self.on_text_input_class)
         self.ids.model_input.bind(text=self.on_text_input_model)
 
-        self.k_model.update_params()
+        try:
+            self.k_model.update_params()
+        except RuntimeError as e:
+            if "PyTorch is not installed" in str(e):
+                self.label_out("ML features disabled (torch not installed).")
+                return
+            raise
 
     def update_project_paths(self):
         os.makedirs(self.projects_folder, exist_ok=True)
-        self.active_project_folder = os.path.join(
-            self.projects_folder, self.active_project
-        )
+        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
 
         self.images_path = os.path.join(self.active_project_folder, "all")
         self.ml_train_folder = os.path.join(self.active_project_folder, "train")
@@ -225,7 +224,8 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def error_popup_clock(self, text="Error", show_time=1):
         self.toggle_error_popup("on", text)
-        Clock.schedule_once(lambda tm: self.toggle_error_popup("off"), show_time)
+        eff_time = 0.01 if os.getenv("APP_ENV") == "test" else show_time
+        Clock.schedule_once(lambda tm: self.toggle_error_popup("off"), eff_time)
 
     def toggle_error_popup(self, mode, text="Error"):
         if mode == "on":
@@ -281,10 +281,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         if path is None:  # TODO: re-check if we call without path
             path = self.selected_dir_full
 
-        if os.path.isdir(path):
-            files = os.listdir(path)
-        else:
-            files = None
+        files = os.listdir(path) if os.path.isdir(path) else None
 
         self.ids.image_grid.clear_widgets()
         self.unselect_all_images()
@@ -319,16 +316,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.update_page_counter()
         if n_images > self.max_images_per_page:
             self.images_to_load = self.images_to_load[
-                self.page
-                * self.max_images_per_page : (self.page + 1)
-                * self.max_images_per_page
+                self.page * self.max_images_per_page : (self.page + 1) * self.max_images_per_page
             ]
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), 0.001
-        )
+        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
 
     def update_page_counter(self):  # TODO: reset page when open new folder
         self.ids.page_label.text = f"{self.page}/{self.total_pages}"
@@ -352,22 +345,10 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
 
-        img = ImageMDButton(
-            source=im_path,
-            allow_stretch=True,
-            keep_ratio=True,
-            pos_hint={"center_x": 0.5, "center_y": 0.5},
-            nocache=True,
-        )
-        img.line_color = (1, 1, 1, 0.2)
+        selectable_img = SelectableImage(source=im_path)
+        img = selectable_img.ids.img
+        img.nocache = True
         img.bind(on_press=self.image_click)
-
-        # 2) The checkbox
-        checkbox = MDCheckbox(
-            size_hint=(None, None),
-            size=(dp(48), dp(48)),
-            pos_hint={"right": 0.98, "top": 0.98},
-        )
 
         # 3) A fixed-height label container at the very bottom
         label_container = BoxLayout(
@@ -380,30 +361,13 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         # Store it for later:
         img.label_container = label_container
 
-        # Now wrap them all in one FloatLayout tile
-        fl = MDFloatLayout()
-        fl.add_widget(img)
-        fl.add_widget(checkbox)
-        fl.add_widget(label_container)
-
-        self.ids.image_grid.add_widget(fl)
+        selectable_img.add_widget(label_container)
+        self.ids.image_grid.add_widget(selectable_img)
 
     def unselect_all_images(self):
         # Work on a copy since we'll mutate the original list
         for instance in list(self.selected_images):
-            # Reset the image’s visuals
-            instance.md_bg_color = (1, 1, 1, 0)
-            instance.line_color = (1, 1, 1, 0.2)
-
-            # Find and uncheck its checkbox
-            container = instance.parent
-            checkbox = next(
-                (w for w in container.children if isinstance(w, MDCheckbox)), None
-            )
-            if checkbox:
-                checkbox.active = False
-
-            # Remove from our selection list
+            instance.parent.selected = False
             self.selected_images.remove(instance)
 
         self.update_all_button_states()
@@ -414,53 +378,34 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.update_all_button_states()
             return
 
-        # Each tile is MDFloatLayout containing ImageMDButton + MDCheckbox + labelcontainer
+        # Each tile is SelectableImage containing
+        # ImageMDButton + MDCheckbox + labelcontainer
         for tile in list(self.ids.image_grid.children):
-            img = next(
-                (w for w in tile.children if isinstance(w, ImageMDButton)),
-                None,
-            )
-            if img is None:
-                continue
-            if img in self.selected_images:
-                continue
-            self.image_click(img)
+            if isinstance(tile, SelectableImage):
+                img = tile.ids.img
+                if img not in self.selected_images:
+                    self.image_click(img)
 
         self.update_all_button_states()
 
     def clear_predictions(self):
         for tile in self.ids.image_grid.children:
             for child in tile.children:
-                if isinstance(child, ImageMDButton):
+                if isinstance(child, ImageMDButton) and hasattr(child, "label_container"):
                     child.label_container.clear_widgets()
         self.num_predictions = 0
         self.unselect_all_images()
 
     def image_click(self, instance):
         # path = instance.source
-        container = instance.parent  # the MDFloatLayout tile
-
-        # find the checkbox in this tile
-        checkbox = next(
-            (w for w in container.children if isinstance(w, MDCheckbox)), None
-        )
-        if not checkbox:
-            return  # somehow no checkbox here
+        selectable_img = instance.parent
 
         if instance in self.selected_images:
-            # Deselect
-            instance.md_bg_color = (1, 1, 1, 0)
-            instance.line_color = (1, 1, 1, 0.2)
+            selectable_img.selected = False
             self.selected_images.remove(instance)
-
-            checkbox.active = False
         else:
-            # Select
-            instance.md_bg_color = (1, 1, 1, 0.1)
-            instance.line_color = (1, 1, 1, 0.6)
+            selectable_img.selected = True
             self.selected_images.append(instance)
-
-            checkbox.active = True
 
         self.update_all_button_states()
 
@@ -605,9 +550,11 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def select_model_type_btn(self, instance):
         grid = instance.parent
 
-        if self.tmp_model_type == instance.text.split(" ")[0]:
-            if time.time() - self.touch_time < 0.2:
-                self.submit_model_type_btn("instance")  # may cause error
+        if (
+            self.tmp_model_type == instance.text.split(" ")[0]
+            and time.time() - self.touch_time < 0.2
+        ):
+            self.submit_model_type_btn("instance")  # may cause error
 
         for btn_name in grid.ids:
             grid.ids[btn_name].background_color = (1.0, 1.0, 1.0, 1.0)
@@ -697,9 +644,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             data,
         )
         self.toggle_error_popup("on", "Start eval...")
-        self.eval_event = Clock.schedule_interval(
-            lambda tm: self.async_eval_cycle(), 0.0001
-        )
+        self.eval_event = Clock.schedule_interval(lambda tm: self.async_eval_cycle(), 0.0001)
 
     def async_eval_cycle(self):
         (state, processed_steps, loss, acc) = self.k_model.async_eval_cycle()
@@ -713,17 +658,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         self.toggle_error_popup(
             "on",
-            f"[{processed_steps}/{self.total_steps}] "
-            f"Loss: {round(loss, 4)} | Acc: {round(acc, 4)}",
+            f"[{processed_steps}/{self.total_steps}] Loss: {round(loss, 4)} | Acc: {round(acc, 4)}",
         )
 
     def get_classes(self):
         return sorted(
-            [
-                btn.text.split("\\")[-1]
-                for btn in self.ids.class_grid.children
-                if btn.text != "all"
-            ]
+            [btn.text.split("\\")[-1] for btn in self.ids.class_grid.children if btn.text != "all"]
         )
 
     def create_model(self, name):
@@ -776,9 +716,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         path = os.path.join(self.ml_models_folder, self.selected_model.text)
         logger.info(f"delete model from: {path}")
         shutil.rmtree(path)
-        config_path = os.path.join(
-            self.ml_configs_folder, self.selected_model.text + ".conf"
-        )
+        config_path = os.path.join(self.ml_configs_folder, self.selected_model.text + ".conf")
         os.remove(config_path)
 
         self.unselect_model_btn()
@@ -835,16 +773,12 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def update_all_button_states(self):
         has_selection = bool(self.selected_images)
         can_transfer = (
-            has_selection
-            and self.selected_dir
-            and self.cur_dir != self.selected_dir_full
+            has_selection and self.selected_dir and self.cur_dir != self.selected_dir_full
         )
         is_model_selected = bool(self.selected_model)
         is_model_loaded = bool(self.k_model.model)
         is_model_named = bool(self.model_name)
-        model_name_differs = (
-            is_model_selected and self.selected_model.text != self.model_name
-        )
+        model_name_differs = is_model_selected and self.selected_model.text != self.model_name
 
         # Transfer button
         self.ids.transfer_image.disabled = not can_transfer
@@ -873,10 +807,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         # Predict
         self.ids.predict_btn.disabled = not (
-            is_model_loaded
-            and is_model_named
-            and has_selection
-            and not self.train_active
+            is_model_loaded and is_model_named and has_selection and not self.train_active
         )
 
         # Train
@@ -886,24 +817,11 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         # Image selection info
         self.ids.unselect_all_images.disabled = not has_selection
-        self.ids.num_selected_images.text = (
-            f"{len(self.selected_images)}" if has_selection else ""
-        )
+        self.ids.num_selected_images.text = f"{len(self.selected_images)}" if has_selection else ""
 
         tb_folder_exists = os.path.isdir(self.tb_folder)
         empty_tb_folder = len(os.listdir(self.tb_folder)) != 0
         self.ids.tensorboard_btn.disabled = not (tb_folder_exists and empty_tb_folder)
-
-    def unselect_model_btn(self):
-        self.selected_model = None
-        for btn in self.ids.model_grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-        self.update_all_button_states()
-
-    def launch_tensorboard(self):
-        status = self.tb_server.launch_tensorboard(self.tb_folder)
-        logger.warning(f"{status}")
-        self.update_all_button_states()
 
     def rotate(self, side):
         import cv2
@@ -912,10 +830,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Select image(s)!")
             return
 
-        if side == "left":
-            rot = cv2.ROTATE_90_COUNTERCLOCKWISE
-        else:
-            rot = cv2.ROTATE_90_CLOCKWISE
+        rot = cv2.ROTATE_90_COUNTERCLOCKWISE if side == "left" else cv2.ROTATE_90_CLOCKWISE
 
         for image in self.selected_images:
             path: str = image.source
@@ -956,10 +871,6 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.load_classes()
         self.load_model_names()
         self.show_folder_images(path=os.path.join(cur_project_path, "all"))
-
-    def select_project_button(self):
-        projects = self.get_projects()
-        self.setup_project_dropdown(projects)
 
     def on_text_input_class(self, instance, value):
         text = self.ids.class_input.text

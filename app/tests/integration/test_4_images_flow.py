@@ -5,9 +5,7 @@ from pathlib import Path
 import pytest
 from kivy.clock import Clock
 
-TEST_IMAGES_DIR = Path(
-    r"G:\programming\Kivy-App\app\tests\test_data\example_images"
-).resolve()
+TEST_IMAGES_DIR = Path(__file__).resolve().parent.parent / "test_data" / "example_images"
 assert TEST_IMAGES_DIR.exists(), f"Missing test folder: {TEST_IMAGES_DIR}"
 
 
@@ -209,14 +207,8 @@ class TestImagesFlow:
             assert target.exists(), f"Target folder not created: {target}"
             after_set = set(target.glob("*"))
 
-            created = {
-                p
-                for p in (after_set - before_set)
-                if p.suffix.lower() in {".jpg", ".png"}
-            }
-            assert (
-                len(created) >= 2
-            ), f"Expected at least 2 files copied, got {len(created)}"
+            created = {p for p in (after_set - before_set) if p.suffix.lower() in {".jpg", ".png"}}
+            assert len(created) >= 2, f"Expected at least 2 files copied, got {len(created)}"
 
             assert len(img.selected_images) == 0
             assert img.ids.selected_images.text.startswith("Copied ")

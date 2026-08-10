@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from shutil import copy
 
 from checksumdir import dirhash
@@ -12,10 +13,8 @@ from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
-from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.selectioncontrol import MDCheckbox
 
-from app.screens.utils.additional import BaseScreen, ImageMDButton, MDLabelBtn
+from app.screens.utils.additional import BaseScreen, MDLabelBtn, SelectableImage
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import extend_key
 
@@ -46,7 +45,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.projects = []
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        self.setup_header()
         self.key = extend_key(self.manager.get_screen("login").key)
         self.grid = self.ids.grid
         self.selected_counter_update()
@@ -136,10 +135,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.toggle_load_label("on")
 
-        if os.path.isdir(path):
-            files = os.listdir(path)
-        else:
-            files = None
+        files = os.listdir(path) if os.path.isdir(path) else None
 
         self.grid.clear_widgets()
         self.unselect_all_images()
@@ -164,9 +160,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
         self.progress_bar.value = 1
         self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(
-            lambda tm: self.async_image_load(), 0.001
-        )
+        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
 
     def async_image_load(self):
         stop = False
@@ -190,42 +184,20 @@ class ImageViewScreen(Screen, BaseScreen):
         self.progress_bar.value += 1
         im_path = self.images_to_load.pop(0)
 
-        img = ImageMDButton(
-            source=im_path,
-            allow_stretch=True,
-            keep_ratio=True,
-            pos_hint={"center_x": 0.5, "center_y": 0.5},
-        )
-
-        checkbox = MDCheckbox(
-            size_hint=(None, None),
-            size=("48dp", "48dp"),
-            pos_hint={"center_x": 0.96, "center_y": 0.96},
-        )
-
-        fl = MDFloatLayout()
-        fl.add_widget(img)
-        fl.add_widget(checkbox)
-
-        img.line_color = (1.0, 1.0, 1.0, 0.2)
-        img.bind(on_press=self.image_click)
-        self.grid.add_widget(fl)
+        selectable_img = SelectableImage(source=im_path)
+        selectable_img.ids.img.bind(on_press=self.image_click)
+        self.grid.add_widget(selectable_img)
 
     def image_click(self, instance):
         # path = instance.source
+        selectable_img = instance.parent
 
         if instance in self.selected_images:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
+            selectable_img.selected = False
             self.selected_images.remove(instance)
-
-            instance.parent.children[0].active = False
         else:
-            instance.line_color = (1.0, 1.0, 1.0, 0.6)
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
+            selectable_img.selected = True
             self.selected_images.append(instance)
-
-            instance.parent.children[0].active = True
 
         self.selected_counter_update()
         self.update_buttons_state()
@@ -274,8 +246,7 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = "Choose 1+"
             return
 
-        app_folder = os.getcwd()
-        projects_folder = os.path.join(app_folder, "app\\training\\classification\\")
+        projects_folder = Path(__file__).resolve().parents[2] / "training" / "classification"
         to_ml_btn = self.ids.to_ml_btn
 
         projects = []
@@ -300,9 +271,7 @@ class ImageViewScreen(Screen, BaseScreen):
 
             to_ml_btn.bind(on_release=self.dropdown.open)
             self.dropdown.bind(
-                on_select=lambda instance, project: self.transfer_images(
-                    projects_folder, project
-                )
+                on_select=lambda instance, project: self.transfer_images(projects_folder, project)
             )
             self.projects = projects
 
@@ -313,9 +282,7 @@ class ImageViewScreen(Screen, BaseScreen):
         if not self.lock_schedule:  # to trigger schedule only once at a time
             logger.debug("lock")
             self.lock_schedule = True
-            Clock.schedule_once(
-                lambda dt: self.selected_counter_update(schedule=True), 1
-            )
+            Clock.schedule_once(lambda dt: self.selected_counter_update(schedule=True), 1)
 
     def select_or_unselect_button_action(self):
         if len(self.selected_images) > 0:
@@ -326,22 +293,18 @@ class ImageViewScreen(Screen, BaseScreen):
     def unselect_all_images(self):
         instances = self.selected_images.copy()
         for instance in instances:
-            instance.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-            instance.line_color = (1.0, 1.0, 1.0, 0.2)
-            instance.parent.children[0].active = False
+            instance.parent.selected = False
             self.selected_images.remove(instance)
         self.selected_counter_update()
         self.update_buttons_state()
 
     def select_all_images(self):
-        for float_layout in self.grid.children:
-            checkbox = float_layout.children[0]
-            checkbox.active = True
-
-            image = float_layout.children[1]
-            image.line_color = (1.0, 1.0, 1.0, 0.6)
-            image.md_bg_color = (1.0, 1.0, 1.0, 0.1)
-            self.selected_images.append(image)
+        for selectable_img in self.grid.children:
+            if isinstance(selectable_img, SelectableImage):
+                selectable_img.selected = True
+                image = selectable_img.ids.img
+                if image not in self.selected_images:
+                    self.selected_images.append(image)
 
         self.selected_counter_update()
         self.update_buttons_state()

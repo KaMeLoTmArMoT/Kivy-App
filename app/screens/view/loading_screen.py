@@ -91,6 +91,11 @@ class LoadingScreen(Screen, BaseScreen):
         Clock.schedule_once(self.start_next_module, 0.1)
 
     def next_screen(self, *_):
+        logger.debug("Loading complete, preparing to switch to login screen")
+        if self.manager.current != self.name:  # not on LoadingScreen anymore
+            logger.debug("Already switched screens, aborting")
+            return
+        logger.debug("Transitioning to login screen")
         self.manager.transition.direction = "left"
         self.manager.current = "login"
 

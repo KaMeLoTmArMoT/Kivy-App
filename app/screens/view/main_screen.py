@@ -1,8 +1,6 @@
-import base64
 import os
 import webbrowser
 
-from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
@@ -30,16 +28,25 @@ class MainScreen(Screen, BaseScreen):
         self.on_enter_done = False
 
     def on_enter(self, *args):
-        self.ids.header.ids[self.manager.current].background_color = 1, 1, 1, 1
+        logger.debug("MAIN: on_enter start")
+        self.setup_header()
         self.ids.word_input.focus = True
         self.ids.word_input.bind(text=self.on_text_input)
+        logger.debug("MAIN: on_enter done")
 
+        Clock.schedule_once(self._finish_enter, 0)
+
+    def _finish_enter(self, dt):
+        logger.debug("MAIN: _finish_enter start")
         self.chrome_path = DB().get_config_typed("chrome_path")
-
-        self.key = extend_key(self.manager.get_screen("login").key)
-
+        login_key = getattr(self.manager.get_screen("login"), "key", None)
+        if not login_key:
+            logger.warning("MAIN: _finish_enter skipped due to empty login key")
+            return
+        self.key = extend_key(login_key)
         self.reload_records()
         self.on_enter_done = True
+        logger.debug("MAIN: _finish_enter done")
 
     def submit(self):
         text = self.get_input()
@@ -69,11 +76,7 @@ class MainScreen(Screen, BaseScreen):
         layout.bind(minimum_height=layout.setter("height"))
 
         for word in records:
-            cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-
-            tm = word[0]
-            tm = base64.b64decode(tm.encode("utf-8"))
-            tm = cipher.decrypt(tm).decode("utf-8")
+            tm = self.decrypt(word[0])
 
             btn = MDLabelBtn(text=tm)
             btn.bind(on_press=self.select_label_btn)
@@ -91,10 +94,9 @@ class MainScreen(Screen, BaseScreen):
 
     def select_label_btn(self, instance):
         logger.info(f"The button <{instance.text}> is being pressed")
-        if self.selected:
-            if instance.uid == self.selected.uid:
-                self.unselect_label_btn()
-                return
+        if self.selected and instance.uid == self.selected.uid:
+            self.unselect_label_btn()
+            return
 
         # reset selection
         grid = self.ids.scroll.children[0]  # TODO check correct index

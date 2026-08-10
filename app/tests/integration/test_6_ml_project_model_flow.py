@@ -7,6 +7,9 @@ import pytest
 from kivy.clock import Clock
 from kivymd.uix.label import MDLabel
 
+pytest.importorskip("torch")
+pytest.importorskip("torchvision")
+
 TEST_PROJECT = "integration_test_project"
 TEST_MODEL_BASENAME = "integration_test_model"
 TEST_MODELTYPE = "MobileNetV3"
@@ -41,9 +44,7 @@ def ensure_logged_in(sm, request):
     drain()
     login.submit()
     drain()
-    wait_until(
-        lambda: sm.current == "main", timeout=10, msg="Login did not navigate to main"
-    )
+    wait_until(lambda: sm.current == "main", timeout=10, msg="Login did not navigate to main")
 
 
 def grid_texts(grid) -> set[str]:
@@ -88,8 +89,7 @@ def expected_label_from_filename(path: Path) -> str:
 
 def wait_images_loaded(ml, *, timeout=20):
     wait_until(
-        lambda: (ml.load_event is None)
-        or (len(getattr(ml, "images_to_load", [])) == 0),
+        lambda: (ml.load_event is None) or (len(getattr(ml, "images_to_load", [])) == 0),
         timeout=timeout,
         msg="Image loading not settled",
     )
@@ -152,8 +152,7 @@ class TestMlProjectModelFlow:
 
         # let async folder load finish (it schedules Clock interval)
         wait_until(
-            lambda: ml.load_event is None
-            or len(getattr(ml, "images_to_load", [])) == 0,
+            lambda: ml.load_event is None or len(getattr(ml, "images_to_load", [])) == 0,
             timeout=6,
             msg="Image loading not settled",
         )
@@ -175,9 +174,7 @@ class TestMlProjectModelFlow:
             # assert "Model cant have 0 or 1 class" in ml.ids.error_popup_text.text
 
             # no model should appear
-            assert not any(
-                TEST_MODEL_BASENAME in t for t in grid_texts(ml.ids.model_grid)
-            )
+            assert not any(TEST_MODEL_BASENAME in t for t in grid_texts(ml.ids.model_grid))
 
             # ----- add 2 classes -----
             for cname in CLASSES:
@@ -329,8 +326,7 @@ class TestMlPredictTrainEvaluate:
                         [
                             p
                             for p in folder.iterdir()
-                            if p.is_file()
-                            and p.suffix.lower() in {".jpg", ".jpeg", ".png"}
+                            if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}
                         ]
                     ),
                     ml.max_images_per_page,
@@ -367,8 +363,7 @@ class TestMlPredictTrainEvaluate:
             drain()
 
             wait_until(
-                lambda: (ml.train_active is False)
-                and (ml.ids.train_btn.text == "Train"),
+                lambda: (ml.train_active is False) and (ml.ids.train_btn.text == "Train"),
                 timeout=240,
                 msg="Training did not finish in time",
             )
@@ -393,8 +388,7 @@ class TestMlPredictTrainEvaluate:
 
             # wait eval finishes
             wait_until(
-                lambda: (ml.eval_event is None)
-                and (ml.ids.evaluate_btn.text == "Evaluate"),
+                lambda: (ml.eval_event is None) and (ml.ids.evaluate_btn.text == "Evaluate"),
                 timeout=240,
                 msg="Evaluate did not finish in time",
             )
