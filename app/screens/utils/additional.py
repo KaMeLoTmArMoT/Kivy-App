@@ -117,6 +117,8 @@ class BaseScreen:
     def select_direction(self, screen_name: str):
         self.exit_screen = True
         translations = {
+            "loading": -2,
+            "login": -1,
             "main": 0,
             "imageview": 1,
             "dbview": 2,

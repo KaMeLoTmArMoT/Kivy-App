@@ -55,7 +55,7 @@ class DB:
 
     @staticmethod
     def insert_customer(b_encoded_text: str) -> None:
-        call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
+        call_db("INSERT INTO customers VALUES (?)", [b_encoded_text])
 
     @staticmethod
     def get_customers() -> list:

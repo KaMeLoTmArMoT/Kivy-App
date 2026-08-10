@@ -5,6 +5,7 @@ from kivy.clock import Clock
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import Screen
 
+from app.screens.services.customer_service import CustomerService
 from app.screens.utils.additional import BaseScreen, MDLabelBtn
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
@@ -16,6 +17,7 @@ logger = get_logger(__name__)
 class MainScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.customer_service = CustomerService(db=self.db)
         self.key = None
         self.selected = None
 
@@ -57,32 +59,25 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("Text should be longer than 2 letters")
             return
 
-        b_encoded_text = self.encrypt(text)
-        self.db.insert_customer(b_encoded_text)
-
+        self.customer_service.add_customer(text, self.key)
         self.reload_records()
 
-        # show message
         self.label_out(f"{text} added")
         Clock.schedule_once(lambda x: self.label_out("Enter new text:"), 1)
 
-        # clear input box
         self.ids.word_input.text = ""
 
     def reload_records(self):
-        records = self.db.get_customers()
+        records = self.customer_service.get_decrypted_customers(self.key)
 
         layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
         layout.bind(minimum_height=layout.setter("height"))
 
-        for word in records:
-            tm = self.decrypt(word[0])
-
-            btn = MDLabelBtn(text=tm)
+        for decrypted_name, raw_enc in records:
+            btn = MDLabelBtn(text=decrypted_name)
             btn.bind(on_press=self.select_label_btn)
             layout.add_widget(btn)
-
-            self.ids[f"{word}"] = btn
+            self.ids[f"('{raw_enc}',)"] = btn
 
         self.ids.scroll.clear_widgets()
         self.ids.scroll.add_widget(layout)
@@ -98,10 +93,10 @@ class MainScreen(Screen, BaseScreen):
             self.unselect_label_btn()
             return
 
-        # reset selection
-        grid = self.ids.scroll.children[0]  # TODO check correct index
-        for btn in grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
+        if self.ids.scroll.children:
+            grid = self.ids.scroll.children[0]
+            for btn in grid.children:
+                btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
 
         instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
         instance.radius = (20, 20, 20, 20)
@@ -130,15 +125,13 @@ class MainScreen(Screen, BaseScreen):
         self.url_btn.disabled = True
 
     def delete_record(self):
-        # TODO: fix - sometimes deleted 2-3 records instead of 1
         if self.selected is None:
             self.reload_records()
             self.label_out("First select any element")
             return
 
         text = self.selected.text
-        b_encoded_text = self.encrypt(text)
-        self.db.delete_customer(b_encoded_text)
+        self.customer_service.delete_customer_by_name(text, self.key)
 
         self.selected = None
         self.reload_records()
@@ -157,10 +150,7 @@ class MainScreen(Screen, BaseScreen):
             self.label_out("New text should be longer than 2 letters")
             return
 
-        old_encrypted = self.encrypt(old_text)
-        new_encrypted = self.encrypt(new_text)
-
-        self.db.update_customer(new_encrypted, old_encrypted)
+        self.customer_service.update_customer_name(old_text, new_text, self.key)
 
         self.ids.word_input.text = ""
         self.reload_records()
@@ -172,7 +162,7 @@ class MainScreen(Screen, BaseScreen):
             return
 
         url = self.selected.text
-        if "http" not in url:  # TODO: check for other link types
+        if "http" not in url:
             self.label_out("This is not a link probably")
             return
 
@@ -187,14 +177,11 @@ class MainScreen(Screen, BaseScreen):
         self.update_buttons_state()
         if len(text) > 2:
             self.submit_btn.disabled = False
-
             if self.selected:
                 self.update_btn.disabled = False
-
         else:
             self.submit_btn.disabled = True
             self.update_btn.disabled = True
 
     def update_buttons_state(self):
-        """TODO: implement and use"""
         pass

@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from shutil import copy
 
 from checksumdir import dirhash
 from kivy.clock import Clock
@@ -14,6 +13,7 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivy.uix.textinput import TextInput
 
+from app.screens.services.image_library_service import ImageLibraryService
 from app.screens.utils.additional import BaseScreen, MDLabelBtn, SelectableImage
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.utils import extend_key
@@ -24,7 +24,9 @@ logger = get_logger(__name__)
 class ImageViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.image_service = ImageLibraryService(db=self.db)
         self.lock_schedule = False
+
         self.grid = None
         self.key = ""
         self.selected_images = []
@@ -203,7 +205,6 @@ class ImageViewScreen(Screen, BaseScreen):
         self.update_buttons_state()
 
     def save_img_to_db(self, enc):
-        from Cryptodome.Cipher import AES
 
         num_images = len(self.selected_images)
         self.schedule_counter_update()
@@ -212,29 +213,20 @@ class ImageViewScreen(Screen, BaseScreen):
             return
 
         for path in self.selected_images:
-            with open(path.source, "rb") as f:
-                blob_data = f.read()
+            self.image_service.save_file_to_db(path.source, key=self.key, encrypt=enc)
 
-                if enc:
-                    cipher = AES.new(self.key, AES.MODE_EAX)
-                    ciphertext, tag = cipher.encrypt_and_digest(blob_data)
-                    blob_data = cipher.nonce + tag + ciphertext
-
-                self.db.insert_image(blob_data)
         self.unselect_all_images()
         self.ids.selected_images.text = f"Added {num_images}"
 
     def transfer_images(self, projects_folder, project):
         logger.info(f"{projects_folder}, {project}")
-
         num_images = len(self.selected_images)
 
         target_path = os.path.join(projects_folder, project, "all")
         logger.info(f"target path {target_path}")
-        if not os.path.isdir(target_path):
-            os.makedirs(target_path)
-        for path in self.selected_images:
-            copy(path.source, target_path)
+
+        sources = [p.source for p in self.selected_images]
+        self.image_service.transfer_images_to_workspace(sources, target_path)
 
         self.unselect_all_images()
         self.ids.selected_images.text = f"Copied {num_images}"
