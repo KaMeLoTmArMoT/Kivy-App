@@ -39,7 +39,11 @@ class MainScreen(Screen, BaseScreen):
     def _finish_enter(self, dt):
         logger.debug("MAIN: _finish_enter start")
         self.chrome_path = DB().get_config_typed("chrome_path")
-        self.key = extend_key(self.manager.get_screen("login").key)
+        login_key = getattr(self.manager.get_screen("login"), "key", None)
+        if not login_key:
+            logger.warning("MAIN: _finish_enter skipped due to empty login key")
+            return
+        self.key = extend_key(login_key)
         self.reload_records()
         self.on_enter_done = True
         logger.debug("MAIN: _finish_enter done")

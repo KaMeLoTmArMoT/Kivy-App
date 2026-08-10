@@ -6,9 +6,17 @@ class BaseScreenTest:
     """Base class for common test functionality"""
 
     @staticmethod
-    def wait_for_loading(seconds=2.5):
+    def wait_for_loading(kivy_app=None, screen_name=None, timeout=3.0):
+        if kivy_app is None:
+            for _ in range(2):
+                Clock.tick()
+            return
         start = Clock.time()
-        while Clock.time() - start < seconds:
+        while Clock.time() - start < timeout:
+            if screen_name and kivy_app.root.has_screen(screen_name):
+                return
+            if not screen_name and len(kivy_app.root.screens) >= 7:
+                return
             Clock.tick()
 
 
@@ -83,7 +91,7 @@ class TestScreenLoading(BaseScreenTest):
 
     @pytest.mark.parametrize("screen_name,module_path,class_name", SCREEN_CONFIGS)
     def test_screen_loads(self, kivy_app, screen_name, module_path, class_name):
-        self.wait_for_loading(3.0)
+        self.wait_for_loading(kivy_app, screen_name)
 
         sm = kivy_app.root
 
@@ -99,7 +107,7 @@ class TestScreenLoading(BaseScreenTest):
     def test_screen_instance_type(self, kivy_app, screen_name, module_path, class_name):
         from importlib import import_module
 
-        self.wait_for_loading(3.0)
+        self.wait_for_loading(kivy_app, screen_name)
 
         sm = kivy_app.root
 
@@ -113,7 +121,7 @@ class TestScreenLoading(BaseScreenTest):
         assert isinstance(screen, expected_class)
 
     def test_all_screens_loaded(self, kivy_app):
-        self.wait_for_loading(3.0)
+        self.wait_for_loading(kivy_app)
 
         sm = kivy_app.root
         expected_screens = ["loading"] + [cfg[0] for cfg in self.SCREEN_CONFIGS]
@@ -141,7 +149,7 @@ class TestScreenTransitions(BaseScreenTest):
 
     @pytest.mark.parametrize("screen_name", NAVIGABLE_SCREENS)
     def test_can_navigate_to_screen(self, kivy_app, screen_name):
-        self.wait_for_loading()
+        self.wait_for_loading(kivy_app, screen_name)
 
         sm = kivy_app.root
         sm.current = screen_name
@@ -150,7 +158,7 @@ class TestScreenTransitions(BaseScreenTest):
         assert sm.current == screen_name
 
     def test_navigation_round_trip(self, kivy_app):
-        self.wait_for_loading()
+        self.wait_for_loading(kivy_app)
 
         sm = kivy_app.root
 
@@ -163,7 +171,7 @@ class TestScreenTransitions(BaseScreenTest):
         assert sm.current == "main"
 
     def test_transition_direction(self, kivy_app):
-        self.wait_for_loading()
+        self.wait_for_loading(kivy_app)
 
         sm = kivy_app.root
         assert sm.transition.direction == "left"
@@ -181,7 +189,7 @@ class TestScreenNavigationFlow(BaseScreenTest):
         ],
     )
     def test_navigation_path(self, kivy_app, path):
-        self.wait_for_loading()
+        self.wait_for_loading(kivy_app)
 
         sm = kivy_app.root
 

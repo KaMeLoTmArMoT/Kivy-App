@@ -224,7 +224,8 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def error_popup_clock(self, text="Error", show_time=1):
         self.toggle_error_popup("on", text)
-        Clock.schedule_once(lambda tm: self.toggle_error_popup("off"), show_time)
+        eff_time = 0.01 if os.getenv("APP_ENV") == "test" else show_time
+        Clock.schedule_once(lambda tm: self.toggle_error_popup("off"), eff_time)
 
     def toggle_error_popup(self, mode, text="Error"):
         if mode == "on":

@@ -24,7 +24,9 @@ Config.set("graphics", "height", "600")
 Config.set("graphics", "window_state", "hidden")
 Config.set("kivy", "exit_on_escape", "0")
 
-DB_PATH = Path("app_test.db").resolve()
+worker_id = os.environ.get("PYTEST_XDIST_WORKER", "")
+DB_PATH = Path(f"app_test_{worker_id}.db" if worker_id else "app_test.db").resolve()
+TEST_PASSWORD_HASH = get_sha("test_dev_pass_123")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -84,27 +86,22 @@ def reset_login_state(kivy_app):
 
     if sm.current != "login":
         sm.current = "login"
-        Clock.tick()
+        for _ in range(3):
+            Clock.tick()
 
     login_screen = sm.get_screen("login")
-    Clock.tick()
 
     login_screen.ids.word_input.text = ""
     login_screen.key = ""
 
     call_db("DELETE FROM passwords WHERE destination='login_test'")
-
-    test_password = "test_dev_pass_123"
-    test_password_hash = get_sha(test_password)
-    call_db(f"INSERT INTO passwords VALUES ('login_test', '{test_password_hash}')")
+    call_db(f"INSERT INTO passwords VALUES ('login_test', '{TEST_PASSWORD_HASH}')")
 
     login_screen.passwords = login_screen.db.get_login_password("login_test")
 
     Clock.tick()
 
     yield login_screen
-
-    call_db("DELETE FROM passwords WHERE destination='login_test'")
 
 
 @pytest.fixture(scope="session", autouse=True)

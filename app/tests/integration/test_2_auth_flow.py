@@ -18,9 +18,15 @@ class BaseAuthTest:
     """Base class for authentication test functionality"""
 
     @staticmethod
-    def wait_for_screen(seconds=3.0):
+    def wait_for_screen(kivy_app=None, target_screen="login", timeout=3.0):
+        if kivy_app is None:
+            for _ in range(2):
+                Clock.tick()
+            return
         start = Clock.time()
-        while Clock.time() - start < seconds:
+        while Clock.time() - start < timeout:
+            if hasattr(kivy_app, "root") and kivy_app.root.has_screen(target_screen):
+                return
             Clock.tick()
 
     @staticmethod
@@ -30,14 +36,13 @@ class BaseAuthTest:
         Clock.tick()
 
 
-class TestLoginScreenComponents:
+class TestLoginScreenComponents(BaseAuthTest):
     """Test login screen UI components exist and are accessible"""
 
     REQUIRED_IDS = ["word_input", "word_label", "login"]
 
     def test_login_screen_exists(self, kivy_app):
-        self.wait_for_screen = BaseAuthTest.wait_for_screen
-        self.wait_for_screen()
+        self.wait_for_screen(kivy_app)
 
         from app.screens.view.login_screen import LoginScreen
 
@@ -49,8 +54,7 @@ class TestLoginScreenComponents:
 
     @pytest.mark.parametrize("widget_id", REQUIRED_IDS)
     def test_login_screen_has_required_widgets(self, kivy_app, widget_id):
-        self.wait_for_screen = BaseAuthTest.wait_for_screen
-        self.wait_for_screen()
+        self.wait_for_screen(kivy_app)
 
         login_screen = kivy_app.root.get_screen("login")
 
@@ -58,8 +62,7 @@ class TestLoginScreenComponents:
         assert login_screen.ids[widget_id] is not None
 
     def test_password_field_properties(self, kivy_app):
-        self.wait_for_screen = BaseAuthTest.wait_for_screen
-        self.wait_for_screen()
+        self.wait_for_screen(kivy_app)
 
         login_screen = kivy_app.root.get_screen("login")
         password_field = login_screen.ids.word_input
@@ -69,8 +72,7 @@ class TestLoginScreenComponents:
         assert hasattr(password_field, "text")
 
     def test_login_button_exists(self, kivy_app):
-        self.wait_for_screen = BaseAuthTest.wait_for_screen
-        self.wait_for_screen()
+        self.wait_for_screen(kivy_app)
 
         login_screen = kivy_app.root.get_screen("login")
         login_button = login_screen.ids.login
@@ -79,8 +81,7 @@ class TestLoginScreenComponents:
         assert hasattr(login_screen, "submit")
 
     def test_label_displays_message(self, kivy_app):
-        self.wait_for_screen = BaseAuthTest.wait_for_screen
-        self.wait_for_screen()
+        self.wait_for_screen(kivy_app)
 
         login_screen = kivy_app.root.get_screen("login")
         label = login_screen.ids.word_label
