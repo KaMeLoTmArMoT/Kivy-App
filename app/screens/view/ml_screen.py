@@ -21,6 +21,7 @@ from kivy.uix.screenmanager import Screen
 from kivymd.uix.label import MDLabel
 from PIL import Image
 
+from app.screens.services.ml_workspace import MLWorkspaceManager
 from app.screens.utils.additional import (
     BaseScreen,
     ImageMDButton,
@@ -71,20 +72,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
         self.cur_dir = ""
 
-        self.app_folder = os.getcwd()
-        self.projects_folder = os.path.join(self.app_folder, "app/training/classification")
-        os.makedirs(self.projects_folder, exist_ok=True)
-
-        self.active_project = "Kivy"
-        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
-
-        self.images_path = os.path.join(self.active_project_folder, "all")
-        self.ml_train_folder = os.path.join(self.active_project_folder, "train")
-        self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
-        self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tb_folder = os.path.join(self.active_project_folder, "tensorboard")
-        os.makedirs(self.tb_folder, exist_ok=True)
-        os.makedirs(self.images_path, exist_ok=True)
+        self.workspace = MLWorkspaceManager(active_project="Kivy")
 
         self.dropdown = None
         self.projects = []
@@ -94,6 +82,42 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.max_images_per_page = 20
 
         self.num_predictions = 0
+
+    @property
+    def active_project(self) -> str:
+        return self.workspace.active_project
+
+    @active_project.setter
+    def active_project(self, val: str) -> None:
+        self.workspace.set_active_project(val)
+
+    @property
+    def projects_folder(self) -> str:
+        return self.workspace.projects_root
+
+    @property
+    def active_project_folder(self) -> str:
+        return self.workspace.active_project_folder
+
+    @property
+    def images_path(self) -> str:
+        return self.workspace.images_path
+
+    @property
+    def ml_train_folder(self) -> str:
+        return self.workspace.ml_train_folder
+
+    @property
+    def ml_configs_folder(self) -> str:
+        return self.workspace.ml_configs_folder
+
+    @property
+    def ml_models_folder(self) -> str:
+        return self.workspace.ml_models_folder
+
+    @property
+    def tb_folder(self) -> str:
+        return self.workspace.tb_folder
 
     def on_enter(self, *args):
         self.setup_header()
@@ -122,14 +146,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             raise
 
     def update_project_paths(self):
-        os.makedirs(self.projects_folder, exist_ok=True)
-        self.active_project_folder = os.path.join(self.projects_folder, self.active_project)
-
-        self.images_path = os.path.join(self.active_project_folder, "all")
-        self.ml_train_folder = os.path.join(self.active_project_folder, "train")
-        self.ml_configs_folder = os.path.join(self.active_project_folder, "configs")
-        self.ml_models_folder = os.path.join(self.active_project_folder, "models")
-        self.tb_folder = os.path.join(self.active_project_folder, "tensorboard")
+        self.workspace.ensure_workspace()
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -142,20 +159,18 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         btn.bind(on_press=self.select_label_btn)
         self.ids.class_grid.add_widget(btn)
 
-        if not os.path.isdir(self.ml_train_folder):
-            logger.warning("No classes folder")
-            return
+        classes = self.workspace.list_classes()
+        if not classes:
+            logger.warning("No classes folder or empty classes")
 
-        for file in os.listdir(self.ml_train_folder):
-            path = os.path.join(self.ml_train_folder, file)
-            if os.path.isdir(path):
-                btn = MDLabelBtn(
-                    text="train/" + file,
-                    theme_text_color="Custom",
-                    text_color="white",
-                )
-                btn.bind(on_press=self.select_label_btn)
-                self.ids.class_grid.add_widget(btn)
+        for class_name in classes:
+            btn = MDLabelBtn(
+                text="train/" + class_name,
+                theme_text_color="Custom",
+                text_color="white",
+            )
+            btn.bind(on_press=self.select_label_btn)
+            self.ids.class_grid.add_widget(btn)
 
     def select_label_btn(self, instance):
         logger.info(f"The label button <{instance.text}> is being pressed")
@@ -209,16 +224,16 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def add_class(self):
         name = self.ids.class_input.text
-        if name == "":
+        if not name:
             self.error_popup_clock("Enter name!")
             return
 
-        path = os.path.join(self.ml_train_folder, name)
-        if os.path.exists(path):
+        try:
+            self.workspace.add_class(name)
+        except FileExistsError:
             self.error_popup_clock("Class exists!")
             return
 
-        os.makedirs(path)
         self.load_classes()
         self.ids.class_input.text = ""
 
@@ -246,10 +261,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Can`t delete main dir!")
             return
 
-        try:
-            shutil.rmtree(self.selected_dir_full)
-        except FileNotFoundError as e:
-            logger.warning(f"No such file or directory, skipping {e}")
+        self.workspace.delete_class_folder(self.selected_dir_full)
 
         self.unselect_label_btn()
         self.load_classes()

@@ -1,4 +1,3 @@
-import gc
 import os
 import subprocess
 import threading
@@ -20,11 +19,12 @@ except ImportError:
     torch = None
     YOLO = None
 
+from app.screens.services.yolo_pipeline import YoloInferencePipeline
 from app.screens.utils.additional import BaseScreen, MDLabelBtn, MlUiHelper
 from app.screens.utils.custom_logging import LazyLogger, get_logger
 from app.screens.utils.db import DB
 from app.screens.utils.detection_utils import PerformanceMonitor
-from app.screens.utils.ml import export_to_best_available, get_best_model_paths
+from app.screens.utils.ml import export_to_best_available
 from app.screens.utils.tensorboard_utils import TBServer
 from app.screens.utils.utils import get_system_type
 
@@ -56,12 +56,34 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.projects = []
         self.active_project = None
 
-        self.model: YOLO = None
-        self.model_name = None
-        self.confidence = 0.5
+        self.pipeline = YoloInferencePipeline(confidence=0.5)
 
         self.tb_folder = os.path.join(self.app_folder, "app/training/detection/tensorboard")
         self.tb_server = TBServer()
+
+    @property
+    def model(self):
+        return self.pipeline.model
+
+    @model.setter
+    def model(self, val):
+        self.pipeline.model = val
+
+    @property
+    def model_name(self):
+        return self.pipeline.model_name
+
+    @model_name.setter
+    def model_name(self, val):
+        self.pipeline.model_name = val
+
+    @property
+    def confidence(self):
+        return self.pipeline.confidence
+
+    @confidence.setter
+    def confidence(self, val):
+        self.pipeline.confidence = val
 
         self.dropdown = None
         self.main_button = self.ids.project_label
@@ -315,69 +337,26 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
             return
 
         model_name = self.selected_model.text
-
-        # TODO: parse for models at runs folder
         model_path = os.path.join(self.active_project_folder, model_name)
         if not os.path.exists(model_path):
             logger.warning(f"Model not found at {model_path}, downloading...")
             YOLO(model_path)
 
-        logger.info(f"Original {model_path=}")
-
-        available_models = get_best_model_paths(
-            self.active_project_folder, model_name.split(".")[0]
-        )
-
-        for model_path, model_type in available_models:
-            logger.info(f"Trying to load {model_path=}")
-
-            try:
-                self.model = YOLO(model_path, task="detect")
-                self.model.overrides["verbose"] = False
-
-                if model_type == "PyTorch":
-                    try:
-                        self.model.fuse()
-                        logger.debug("Fuse ok")
-                    except Exception as e:
-                        logger.error(f"Failed to fuse model {model_path}\n{e}")
-
-                warmup_image = np.random.randint(0, 255, size=(640, 640, 3), dtype=np.uint8)
-                self.model(warmup_image)
-                logger.debug("Warmup done successfully")
-                logger.warning(f"Model {model_path} initialised")
-                break
-
-            except Exception as e:
-                logger.error(f"Failed to load model {model_path}\n{e}")
-
-        self.model_name = model_name
+        self.pipeline.load_model(self.active_project_folder, model_name)
         self.update_all_button_states()
         self.monitor.clear_timings()
         if last_display_mode:
             self.display_start()
 
     def yolo_inference(self, cv2_frame):
-        cv2_frame = cv2_frame[:, :, ::-1]
-
         model_start_time = time.perf_counter()
-        results = self.model(cv2_frame, conf=self.confidence)
-
+        res_plotted = self.pipeline.infer_frame(cv2_frame)
         self.monitor.record("model", model_start_time)
-
-        if len(results) > 1:
-            logger.debug("yolo_inference: more results")
-
-        res_plotted = results[0].plot()
-        res_plotted = res_plotted[:, :, ::-1]
-
         return res_plotted
 
     def yolo_terminate(self):
         self.display_stop()
-        self.model = None
-        self.model_name = None
-        gc.collect()
+        self.pipeline.unload()
         self.unselect_model_btn()
         self.update_all_button_states()
         self.monitor.clear_timings()
