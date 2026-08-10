@@ -61,6 +61,18 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
         self.tb_folder = os.path.join(self.app_folder, "app/training/detection/tensorboard")
         self.tb_server = TBServer()
 
+        self.dropdown = None
+        self.main_button = self.ids.project_label
+        self.popup = None
+
+        self.active_project_folder = None
+        self.selected_model = None
+
+        self.yolo_generation = 11
+
+        self.video_source = None
+        self.is_optimizing = False
+
     @property
     def model(self):
         return self.pipeline.model
@@ -84,18 +96,6 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
     @confidence.setter
     def confidence(self, val):
         self.pipeline.confidence = val
-
-        self.dropdown = None
-        self.main_button = self.ids.project_label
-        self.popup = None
-
-        self.active_project_folder = None
-        self.selected_model = None
-
-        self.yolo_generation = 11
-
-        self.video_source = None
-        self.is_optimizing = False
 
         self.display_stats = True
         self.window_size = 100
@@ -459,21 +459,15 @@ class DetectionScreen(Screen, BaseScreen, MlUiHelper):
             logger.warning(f"Model not found at {model_path}, downloading...")
             YOLO(model_path)
 
-        threading.Thread(
-            target=self._threaded_export_wrapper, args=(model_path,), daemon=True
-        ).start()
-
-    def _threaded_export_wrapper(self, model_path):
-        try:
+        def _worker():
             export_to_best_available(model_path, force_export=[])
-            Clock.schedule_once(partial(self._on_export_complete, success=True))
-        except Exception as e:
-            logger.error(f"Failed to export model {self.model_name}: {e}")
-            Clock.schedule_once(partial(self._on_export_complete, success=False))
+            return True
 
-    def _on_export_complete(self, dt=None, success=True):
-        if success:
-            logger.info("Model optimization finished successfully.")
-        else:
-            logger.error("Model optimization failed.")
-        self.is_optimizing = False
+        def _on_done(success):
+            if success:
+                logger.info("Model optimization finished successfully.")
+            else:
+                logger.error("Model optimization failed.")
+            self.is_optimizing = False
+
+        self.run_async(_worker, _on_done)

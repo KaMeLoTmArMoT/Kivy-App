@@ -23,8 +23,7 @@ class AuthService:
 
     def is_registered(self, source_name: str) -> bool:
         """Check if a password has been set."""
-        records = self.get_stored_passwords(source_name)
-        return len(records) > 0
+        return bool(self.get_stored_passwords(source_name))
 
     def validate_password(self, input_password: str, source_name: str) -> tuple[bool, str]:
         """Validate input password against stored hash."""
@@ -32,10 +31,8 @@ class AuthService:
         if not records:
             return False, "No password registered."
 
-        real_hash = records[0][1]
-        input_hash = get_sha(input_password)
+        real_hash, input_hash = records[0][1], get_sha(input_password)
         logger.debug(f"Validating password: input hash {input_hash}, real hash {real_hash}")
-
         if real_hash == input_hash:
             return True, "Valid password."
         return False, "Wrong password. Try again."

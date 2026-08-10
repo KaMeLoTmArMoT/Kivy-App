@@ -4,7 +4,6 @@ import os
 import shutil
 import time
 from math import ceil
-from threading import Thread
 
 from checksumdir import dirhash
 from kivy.clock import Clock
@@ -91,33 +90,13 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
     def active_project(self, val: str) -> None:
         self.workspace.set_active_project(val)
 
-    @property
-    def projects_folder(self) -> str:
-        return self.workspace.projects_root
-
-    @property
-    def active_project_folder(self) -> str:
-        return self.workspace.active_project_folder
-
-    @property
-    def images_path(self) -> str:
-        return self.workspace.images_path
-
-    @property
-    def ml_train_folder(self) -> str:
-        return self.workspace.ml_train_folder
-
-    @property
-    def ml_configs_folder(self) -> str:
-        return self.workspace.ml_configs_folder
-
-    @property
-    def ml_models_folder(self) -> str:
-        return self.workspace.ml_models_folder
-
-    @property
-    def tb_folder(self) -> str:
-        return self.workspace.tb_folder
+    projects_folder = property(lambda self: self.workspace.projects_root)
+    active_project_folder = property(lambda self: self.workspace.active_project_folder)
+    images_path = property(lambda self: self.workspace.images_path)
+    ml_train_folder = property(lambda self: self.workspace.ml_train_folder)
+    ml_configs_folder = property(lambda self: self.workspace.ml_configs_folder)
+    ml_models_folder = property(lambda self: self.workspace.ml_models_folder)
+    tb_folder = property(lambda self: self.workspace.tb_folder)
 
     def on_enter(self, *args):
         self.setup_header()
@@ -462,7 +441,15 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.ids.train_btn.disabled = False
         self.update_all_button_states()
         self.error_popup_clock("Open tensorboard to get status.", 5)
-        Thread(target=self.train_model).start()
+        self.run_async(self.train_model, self._on_train_done)
+
+    def _on_train_done(self, _res=None):
+        self.train_active = False
+        self.k_model.terminate_training = False
+        self.ids.train_btn.text = "Train"
+        self.ids.train_btn.disabled = False
+        self.update_all_button_states()
+        self.save_model()
 
     def prev_page(self):
         if self.page > 1:
@@ -494,14 +481,6 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         )
 
         self.k_model.train_model(data, log_dir)
-
-        # self.evaluate_model(data)
-        self.train_active = False
-        self.k_model.terminate_training = False
-        self.ids.train_btn.text = "Train"
-        self.ids.train_btn.disabled = False
-        self.update_all_button_states()
-        self.save_model()
 
     def select_model_type(self):
         popup = Popup(
