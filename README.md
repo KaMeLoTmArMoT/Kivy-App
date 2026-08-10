@@ -90,11 +90,14 @@ uv run pytest --timeout 20 -v -s .\app\tests\integration\
 ## Project layout (current)
 ```text
 app/
-  screens/        # UI screens + helpers
-  ui/             # .kv files
-  resources/      # assets (icons/images)
+  screens/
+    services/     # Domain services (AuthService, CustomerService, ImageLibraryService, MLWorkspaceManager, YoloInferencePipeline)
+    view/         # View controllers for screens (db_screen, ml_screen, detection_screen, etc.)
+    utils/        # DB, BaseScreen, custom logging, ML & detection utilities
+  ui/             # .kv files (Kivy declarative layouts)
+  resources/      # Assets (icons/images)
   training/       # ML projects/datasets/models
-  tests/          # pytest + integration tests
+  tests/          # pytest fixture suite + integration tests
 ```
 
 ## Roadmap

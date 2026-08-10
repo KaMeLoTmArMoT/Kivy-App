@@ -48,7 +48,12 @@ class ImageViewScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         self.setup_header()
-        self.key = extend_key(self.manager.get_screen("login").key)
+        login_key = getattr(self.manager.get_screen("login"), "key", None)
+        if not login_key:
+            logger.warning("IMAGEVIEW: on_enter skipped due to empty login key")
+            self.key = ""
+            return
+        self.key = extend_key(login_key)
         self.grid = self.ids.grid
         self.selected_counter_update()
 
