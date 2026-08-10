@@ -1,5 +1,7 @@
 import os
-from base64 import b64decode, b64encode
+import threading
+from collections.abc import Callable
+from typing import Any
 
 from kivy.clock import Clock
 from kivy.properties import (
@@ -80,6 +82,22 @@ class BaseScreen:
         self.exit_screen = False
         self.db = DB()
 
+    def run_async(
+        self, worker_fn: Callable[[], Any], callback: Callable[[Any], None] | None = None
+    ) -> None:
+        """Run worker_fn in a background thread and trigger callback(result) on main Kivy thread."""
+
+        def _target():
+            res = None
+            try:
+                res = worker_fn()
+            except Exception as e:
+                logger.error(f"[async worker error] {e}", exc_info=True)
+            if callback:
+                Clock.schedule_once(lambda dt: callback(res))
+
+        threading.Thread(target=_target, daemon=True).start()
+
     def label_out(self, text: str):
         """Put string message to the label"""
         lbl = self.ids.get("word_label")
@@ -90,23 +108,6 @@ class BaseScreen:
 
     def get_input(self) -> str:
         return self.ids.word_input.text
-
-    def encrypt(self, text: str) -> str:
-        from Cryptodome.Cipher import AES
-
-        logger.debug(f"[encrypt] {self.key=} {text=}")
-        cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-        encoded_text = cipher.encrypt(text.encode("utf-8"))
-        b_encoded_text = b64encode(encoded_text).decode("utf-8")
-        return b_encoded_text
-
-    def decrypt(self, encrypted_text: str) -> str:
-        from Cryptodome.Cipher import AES
-
-        logger.debug(f"[decrypt] {self.key=} {encrypted_text=}")
-        cipher = AES.new(self.key, AES.MODE_EAX, nonce=b"TODO")
-        decoded_bytes = b64decode(encrypted_text.encode("utf-8"))
-        return cipher.decrypt(decoded_bytes).decode("utf-8")
 
     def setup_header(self):
         if "header" in self.ids and self.manager:

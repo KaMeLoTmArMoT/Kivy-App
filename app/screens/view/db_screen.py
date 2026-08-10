@@ -68,55 +68,46 @@ class DbViewScreen(Screen, BaseScreen):
             self.toggle_load_label("on")
             self.loaded = True
 
-        simple_count = 0
-        for pk, b_image, ext in plain_images:
-            selectable_img = SelectableImage()
-            try:
-                data = io.BytesIO(b_image)
-                texture = CoreImage(data, ext=ext).texture
-                selectable_img.line_color = (1.0, 0.6, 0.0, 0.5)
-                grid = self.grid_1
-                simple_count += 1
-                self.last_match["matched_simple"].add(sha256_hex(b_image))
-            except Exception as e:
-                logger.warning(f"Failed to display plain image {pk}: {e}")
-                texture = self._create_error_texture()
-                selectable_img.line_color = (1.0, 0.0, 0.0, 0.5)
-                grid = self.grid_1
-
-            selectable_img.source = str(pk)
-            selectable_img.texture = texture
-            selectable_img.ids.img.bind(on_press=self.image_click)
-            selectable_img.ids.checkbox.bind(on_press=self.checkbox_click)
-            grid.add_widget(selectable_img)
-
-        secure_count = 0
-        for pk, plain_bytes, ext in secure_images:
-            selectable_img = SelectableImage()
-            try:
-                data = io.BytesIO(plain_bytes)
-                texture = CoreImage(data, ext=ext).texture
-                selectable_img.line_color = (0.0, 1.0, 0.0, 0.5)
-                grid = self.grid_2
-                secure_count += 1
-                self.last_match["matched_secure"].add(sha256_hex(plain_bytes))
-            except Exception as e:
-                logger.warning(f"Failed to display secure image {pk}: {e}")
-                texture = self._create_error_texture()
-                selectable_img.line_color = (1.0, 0.0, 0.0, 0.5)
-                grid = self.grid_2
-
-            selectable_img.source = str(pk)
-            selectable_img.texture = texture
-            selectable_img.ids.img.bind(on_press=self.image_click)
-            selectable_img.ids.checkbox.bind(on_press=self.checkbox_click)
-            grid.add_widget(selectable_img)
+        simple_count = self._render_image_list(
+            plain_images, self.grid_1, (1.0, 0.6, 0.0, 0.5), "matched_simple"
+        )
+        secure_count = self._render_image_list(
+            secure_images, self.grid_2, (0.0, 1.0, 0.0, 0.5), "matched_secure"
+        )
 
         self.last_match["simple"] = simple_count
         self.last_match["secure"] = secure_count
 
         self.update_label_info(simple_count, secure_count)
         self.toggle_load_label("off")
+
+    def _render_image_list(
+        self,
+        records: list[tuple[int, bytes, str]],
+        grid,
+        line_color: tuple[float, float, float, float],
+        match_key: str,
+    ) -> int:
+        count = 0
+        for pk, b_image, ext in records:
+            selectable_img = SelectableImage()
+            try:
+                data = io.BytesIO(b_image)
+                texture = CoreImage(data, ext=ext).texture
+                selectable_img.line_color = line_color
+                count += 1
+                self.last_match[match_key].add(sha256_hex(b_image))
+            except Exception as e:
+                logger.warning(f"Failed to display image {pk}: {e}")
+                texture = self._create_error_texture()
+                selectable_img.line_color = (1.0, 0.0, 0.0, 0.5)
+
+            selectable_img.source = str(pk)
+            selectable_img.texture = texture
+            selectable_img.ids.img.bind(on_press=self.image_click)
+            selectable_img.ids.checkbox.bind(on_press=self.checkbox_click)
+            grid.add_widget(selectable_img)
+        return count
 
     def _create_error_texture(self) -> Texture:
         img = np.zeros((600, 800, 1), dtype=np.float32)

@@ -1,5 +1,5 @@
 import hashlib
-import os
+from pathlib import Path
 from shutil import copy
 
 from Cryptodome.Cipher import AES
@@ -9,6 +9,8 @@ from app.screens.utils.db import DB
 
 logger = get_logger(__name__)
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}
+
 
 def guess_image_ext(data: bytes) -> str | None:
     """Determine image extension from binary header signature."""
@@ -16,7 +18,7 @@ def guess_image_ext(data: bytes) -> str | None:
         return "png"
     if data.startswith(b"\xff\xd8\xff"):
         return "jpg"
-    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+    if data.startswith((b"GIF87a", b"GIF89a")):
         return "gif"
     if data.startswith(b"BM"):
         return "bmp"
@@ -35,22 +37,16 @@ class ImageLibraryService:
 
     def get_supported_images_in_dir(self, directory_path: str) -> list[str]:
         """Scan directory and return list of valid image file paths."""
-        if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
+        path = Path(directory_path)
+        if not path.is_dir():
             return []
-
-        images = []
-        for file_name in os.listdir(directory_path):
-            ext = os.path.splitext(file_name)[1].lower()
-            if ext in {".jpg", ".jpeg", ".png", ".bmp", ".gif"}:
-                images.append(os.path.join(directory_path, file_name))
-        return images
+        return [str(p) for p in path.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS]
 
     def save_file_to_db(
         self, file_path: str, key: bytes | None = None, encrypt: bool = False
     ) -> None:
         """Read image from disk and insert into database (encrypted or plaintext)."""
-        with open(file_path, "rb") as f:
-            blob_data = f.read()
+        blob_data = Path(file_path).read_bytes()
 
         if encrypt and key:
             cipher = AES.new(key, AES.MODE_EAX)
@@ -76,12 +72,8 @@ class ImageLibraryService:
                 plain_images.append((pk, b_image, ext))
                 continue
 
-            # Try AES decryption
             try:
-                nonce = b_image[:16]
-                tag = b_image[16:32]
-                ciphertext = b_image[32:]
-
+                nonce, tag, ciphertext = b_image[:16], b_image[16:32], b_image[32:]
                 cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
                 plain = cipher.decrypt_and_verify(ciphertext, tag)
                 ext = guess_image_ext(plain) or "png"
@@ -98,10 +90,12 @@ class ImageLibraryService:
 
     def transfer_images_to_workspace(self, image_paths: list[str], target_folder: str) -> int:
         """Copy list of image file paths into target workspace folder."""
-        os.makedirs(target_folder, exist_ok=True)
+        dest = Path(target_folder)
+        dest.mkdir(parents=True, exist_ok=True)
         copied = 0
         for src in image_paths:
-            if os.path.exists(src):
-                copy(src, target_folder)
+            p = Path(src)
+            if p.exists():
+                copy(p, dest)
                 copied += 1
         return copied
