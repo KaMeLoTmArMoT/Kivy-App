@@ -5,44 +5,42 @@ import shutil
 import time
 from math import ceil
 
-from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.metrics import dp
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.label import Label
-from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen
 from kivymd.uix.label import MDLabel
 from PIL import Image
 
+from app.screens.services.classification import KModel, prepare_dataset
+from app.screens.services.image_library_service import ImageLibraryService
+from app.screens.services.ml_model_service import MLModelService
 from app.screens.services.ml_workspace import MLWorkspaceManager
 from app.screens.utils.additional import (
     BaseScreen,
     ImageMDButton,
     MDLabelBtn,
-    MlUiHelper,
     SelectableImage,
 )
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.db import DB
-from app.screens.utils.ml import KModel, create_config_file, prepare_dataset
+from app.screens.utils.image_loader import ImageLoadController
+from app.screens.utils.model_selection import clear_model, select_model
+from app.screens.utils.model_type_dialog import build_model_type_popup
+from app.screens.utils.project_picker import ProjectPicker
 from app.screens.utils.tensorboard_utils import TBServer
 from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
 
 
-class MLViewScreen(Screen, BaseScreen, MlUiHelper):
+class MLViewScreen(Screen, BaseScreen):
     rgba = ListProperty([1, 1, 0, 0])  # error message popup color
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        BaseScreen.__init__(self)
         self.key = ""
         self.selected_dir = None
         self.selected_dir_full = None
@@ -52,6 +50,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.touch_time = time.time()
         self.train_active = False
         self.load_event = None
+        self.image_loader = None
         self.page = 1
         self.total_pages = None
 
@@ -61,9 +60,10 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.model_type = "MobileNetV2"
         self.model_type_popup = None
         self.tmp_model_type = None
-        self.tb_server = TBServer()
+        self.tb_server = TBServer(db=self.db)
 
-        self.k_model = KModel()
+        self.k_model = KModel(db=self.db)
+        self.image_service = ImageLibraryService(db=self.db)
 
         self.eval_event = None
 
@@ -72,15 +72,21 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.cur_dir = ""
 
         self.workspace = MLWorkspaceManager(active_project="Kivy")
+        self.model_service = MLModelService(self.workspace, self.k_model, db=self.db)
 
-        self.dropdown = None
-        self.projects = []
-        self.popup = None
         self.main_button = self.ids.project_label
+        self.project_picker = ProjectPicker(
+            self.main_button,
+            str(self.projects_folder),
+            self.open_project_folder,
+        )
 
         self.max_images_per_page = 20
 
         self.num_predictions = 0
+        self._inputs_bound = False
+        self.dropdown = None
+        self.projects = []
 
     @property
     def active_project(self) -> str:
@@ -100,21 +106,27 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def on_enter(self, *args):
         self.setup_header()
-        self.key = extend_key(self.manager.get_screen("login").key)
+        login_key = getattr(self.manager.get_screen("login"), "key", None)
+        if not login_key:
+            logger.warning("MLVIEW: on_enter skipped due to empty login key")
+            return
+        self.key = extend_key(login_key)
         self.load_classes()
         self.load_model_names()
 
-        dir_hash = dirhash(self.images_path, "sha1")
+        dir_hash = self.workspace.get_images_hash()
 
-        self.max_images_per_page = DB().get_config_typed("MAX_IMAGES_PER_PAGE")
+        self.max_images_per_page = self.db.get_config_typed("MAX_IMAGES_PER_PAGE")
         if self.loaded_hash != dir_hash:
             self.show_folder_images(path=self.images_path)
 
         self.exit_screen = False
         self.main_button.text = self.active_project
 
-        self.ids.class_input.bind(text=self.on_text_input_class)
-        self.ids.model_input.bind(text=self.on_text_input_model)
+        if not getattr(self, "_inputs_bound", False):
+            self.ids.class_input.bind(text=self.on_text_input_class)
+            self.ids.model_input.bind(text=self.on_text_input_model)
+            self._inputs_bound = True
 
         try:
             self.k_model.update_params()
@@ -126,6 +138,28 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def update_project_paths(self):
         self.workspace.ensure_workspace()
+
+    def select_project_button(self):
+        self.project_picker.open()
+        self.dropdown = self.project_picker.dropdown
+        self.projects = self.project_picker.projects
+
+    def open_project_folder(self, project_name: str):
+        project_path = os.path.join(str(self.projects_folder), project_name)
+        os.makedirs(project_path, exist_ok=True)
+        self.main_button.text = project_name
+        self.after_project_selection_hook(project_name, project_path)
+        self.active_project = project_name
+        self.restore_project_params(project_name, project_path)
+
+    def get_all_projects(self) -> list[str]:
+        return self.workspace.list_projects()
+
+    def select_model_btn(self, instance):
+        select_model(self, instance)
+
+    def unselect_model_btn(self):
+        clear_model(self)
 
     def load_classes(self):
         self.ids.class_grid.clear_widgets()
@@ -240,7 +274,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Can`t delete main dir!")
             return
 
-        self.workspace.delete_class_folder(self.selected_dir_full)
+        self.workspace.delete_class_folder(str(self.selected_dir_full))
 
         self.unselect_label_btn()
         self.load_classes()
@@ -272,14 +306,19 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         if path is None:  # TODO: re-check if we call without path
             path = self.selected_dir_full
 
-        files = os.listdir(path) if os.path.isdir(path) else None
+        if not os.path.isdir(path):
+            self.toggle_load_label("no_dir")
+            return
+
+        if self.image_loader is not None:
+            self.image_loader.stop()
+            self.load_event = None
+
+        files = self.image_service.get_supported_images_in_dir(path)
 
         self.ids.image_grid.clear_widgets()
         self.unselect_all_images()
-
-        if files is None:
-            self.toggle_load_label("no_dir")
-            return
+        self.images_to_load.clear()
 
         if new:
             self.page = 1
@@ -294,48 +333,35 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.disable_switch_buttons()  # disable load button
         self.cur_dir = path
 
-        for name in files:
-            if ".jpg" in name or ".png" in name:
-                im_path = os.path.join(path, name)
-                self.images_to_load.append(im_path)
-
-        n_images = len(self.images_to_load)
-        self.total_pages = ceil(n_images / self.max_images_per_page)
+        n_images = len(files)
+        self.total_pages = ceil(n_images / int(self.max_images_per_page))
         self.toggle_switch_buttons()
         self.ids.open_class.disabled = True
 
         self.update_page_counter()
-        if n_images > self.max_images_per_page:
-            self.images_to_load = self.images_to_load[
-                self.page * self.max_images_per_page : (self.page + 1) * self.max_images_per_page
-            ]
+        page_size = int(self.max_images_per_page)
+        start = (self.page - 1) * page_size
+        self.images_to_load = files[start : start + page_size]
 
-        self.progress_bar.value = 1
-        self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
+        if not self.images_to_load:
+            self.toggle_load_label("no_dir")
+            self.enable_switch_buttons()
+            return
+
+        self.image_loader = ImageLoadController(
+            self.ids.image_grid,
+            self.progress_bar,
+            self._create_image_widget,
+            self._image_load_finished,
+            lambda: self.exit_screen,
+        )
+        self.load_event = self.image_loader.start(self.images_to_load)
+        self.images_to_load = self.image_loader.pending
 
     def update_page_counter(self):  # TODO: reset page when open new folder
         self.ids.page_label.text = f"{self.page}/{self.total_pages}"
 
-    def async_image_load(self):
-        stop = False
-        if len(self.images_to_load) == 0:
-            self.loaded_hash = dirhash(self.images_path, "sha1")
-            stop = True
-
-        if self.exit_screen:
-            logger.warning("terminate loading")
-            stop = True
-
-        if stop:
-            Clock.unschedule(self.load_event)
-            self.toggle_load_label("success")
-            self.enable_switch_buttons()
-            return
-
-        self.progress_bar.value += 1
-        im_path = self.images_to_load.pop(0)
-
+    def _create_image_widget(self, im_path):
         selectable_img = SelectableImage(source=im_path)
         img = selectable_img.ids.img
         img.nocache = True
@@ -353,7 +379,14 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         img.label_container = label_container
 
         selectable_img.add_widget(label_container)
-        self.ids.image_grid.add_widget(selectable_img)
+        return selectable_img
+
+    def _image_load_finished(self):
+        self.images_to_load = self.image_loader.pending
+        self.load_event = None
+        self.loaded_hash = self.workspace.get_images_hash()
+        self.toggle_load_label("success")
+        self.enable_switch_buttons()
 
     def unselect_all_images(self):
         # Work on a copy since we'll mutate the original list
@@ -453,16 +486,16 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def prev_page(self):
         if self.page > 1:
-            if self.load_event:
-                Clock.unschedule(self.load_event)
+            if self.image_loader:
+                self.image_loader.stop()
 
             self.page -= 1
             self.show_folder_images(self.cur_dir)
 
     def next_page(self):
-        if self.page < self.total_pages:
-            if self.load_event:
-                Clock.unschedule(self.load_event)
+        if self.page < (self.total_pages or 0):
+            if self.image_loader:
+                self.image_loader.stop()
 
             self.page += 1
             self.show_folder_images(self.cur_dir)
@@ -471,7 +504,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         data = prepare_dataset(
             self.ml_train_folder,
             self.k_model.transform,
-            batch_size=DB().get_config_typed("train_batch_size"),
+            batch_size=self.db.get_config_typed("train_batch_size"),
             shuffle=True,
         )
 
@@ -483,57 +516,13 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
         self.k_model.train_model(data, log_dir)
 
     def select_model_type(self):
-        popup = Popup(
-            title="Please select model type:",
-            title_align="center",
-            title_size=20,
-            size_hint=(None, None),
-            size=(500, 400),
+        self.model_type_popup = build_model_type_popup(
+            self.model_type,
+            self.select_model_type_btn,
+            self.submit_model_type_btn,
+            self.dismiss_model_select_popup,
         )
-
-        lbl2_1 = Label(text="Current:", font_size=18)
-        lbl2_2 = Label(text=self.model_type, font_size=18)
-
-        box_inner = BoxLayout(orientation="horizontal", size_hint_y=0.2)
-        box_inner.add_widget(lbl2_1)
-        box_inner.add_widget(lbl2_2)
-
-        model_types = [
-            ["MobileNetV2", 3.5, 72.15],  # TODO v2
-            ["MobileNetV3", 5.5, 75.27],  # TODO large one, v2
-            ["ResNet", 11.7, 69.76],  # TODO 18
-            ["ResNeXt", 25.0, 81.20],  # TODO 50_32x4d, v2
-            ["EfficientNet", 5.3, 77.69],  # TODO b0
-            ["EfficientNetV2", 21.5, 84.23],  # TODO s
-            ["AlexNet", 61.1, 56.52],  # TODO
-            ["VGG", 132.9, 69.02],  # TODO 11
-        ]
-
-        grid = GridLayout(cols=2)
-        for name, size, acc in model_types:
-            text = f"{name:<18} | {size}M | {acc}%"
-            btn = Button(text=text)
-            btn.bind(on_press=self.select_model_type_btn)
-            grid.add_widget(btn)
-            grid.ids[name] = btn
-
-        btn_submit = MDLabelBtn(text="Submit", size_hint_y=0.15)
-        btn_submit.allow_hover = True
-        btn_submit.bind(on_press=self.submit_model_type_btn)
-
-        box = BoxLayout(orientation="vertical")
-
-        box.add_widget(box_inner)
-        box.add_widget(grid)
-        box.add_widget(btn_submit)
-        box.ids["box_inner"] = box_inner
-        box.ids["grid"] = grid
-        box.ids["btn_submit"] = btn_submit
-
-        popup.content = box
-        popup.bind(on_dismiss=self.dismiss_model_select_popup)
-        self.model_type_popup = popup
-        popup.open()
+        self.model_type_popup.open()
 
     def dismiss_model_select_popup(self, instance):
         self.tmp_model_type = None
@@ -570,14 +559,8 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             return
 
         self.model_name = self.selected_model.text
-        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
-        save_path = os.path.join(model_dir, self.model_name + ".pth")
-        logger.info(f"load model: {save_path}")
-
-        config_path = os.path.join(self.ml_configs_folder, self.model_name + ".conf")
-        self.k_model.load_model(save_path, config_path)
-
-        self.model_type = self.model_name.split("_")[-2]
+        logger.info(f"load model: {self.workspace.model_path(self.model_name)}")
+        self.model_type = self.model_service.load_model(self.model_name)
 
         self.ids.model_label.text = self.model_type
 
@@ -599,9 +582,10 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             return
 
         # TODO: if change ach and save - have wrong name, test it.
-        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
-        save_path = os.path.join(model_dir, self.model_name + ".pth")
-        self.k_model.save_model(model_dir, save_path)
+        if not self.model_name:
+            logger.warning("No model name to save.")
+            return
+        self.model_service.save_model(self.model_name)
 
         self.update_all_button_states()
 
@@ -627,7 +611,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             data = prepare_dataset(
                 self.ml_train_folder,
                 self.k_model.transform,
-                batch_size=DB().get_config_typed("inference_batch_size"),
+                batch_size=self.db.get_config_typed("inference_batch_size"),
                 shuffle=False,
             )
         self.total_steps = len(data)
@@ -654,7 +638,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
 
     def get_classes(self):
         return sorted(
-            [btn.text.split("\\")[-1] for btn in self.ids.class_grid.children if btn.text != "all"]
+            [btn.text.replace("\\", "/").split("/")[-1] for btn in self.ids.class_grid.children if btn.text != "all"]
         )
 
     def create_model(self, name):
@@ -669,27 +653,7 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Model can`t have 0 or 1 class.")
             return
 
-        self.model_name = f"{name}_{self.model_type}_{num_classes}"
-        model_dir = os.path.join(self.active_project_folder, "models", self.model_name)
-        save_path = os.path.join(model_dir, self.model_name + ".pth")
-
-        classes = self.get_classes()
-
-        self.k_model.create_model(
-            self.model_name,
-            classes,
-            self.model_type,
-            model_dir,
-            save_path,
-        )
-
-        create_config_file(
-            self.model_name,
-            self.model_type,
-            num_classes,
-            classes,
-            self.ml_configs_folder,
-        )
+        self.model_name = self.model_service.create_model(name, self.model_type, classes)
 
         self.load_model_names()
         self.ids.model_input.text = ""
@@ -704,17 +668,14 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             self.error_popup_clock("Can`t delete while loaded!")
             return
 
-        path = os.path.join(self.ml_models_folder, self.selected_model.text)
-        logger.info(f"delete model from: {path}")
-        shutil.rmtree(path)
-        config_path = os.path.join(self.ml_configs_folder, self.selected_model.text + ".conf")
-        os.remove(config_path)
+        logger.info(f"delete model from: {self.workspace.model_folder(self.selected_model.text)}")
+        self.model_service.delete_model(self.selected_model.text)
 
         self.unselect_model_btn()
         self.load_model_names()
 
     def model_predict(self):
-        if self.selected_images is None or self.k_model.model is None:
+        if not self.selected_images or self.k_model.model is None:
             self.error_popup_clock("Select model and images!")
             return
 
@@ -748,18 +709,14 @@ class MLViewScreen(Screen, BaseScreen, MlUiHelper):
             logger.warning("No models folder")
             return
 
-        for file in os.listdir(self.ml_models_folder):
-            path = os.path.join(self.ml_models_folder, file)
-            logger.debug(f"------ {path}")
-            if os.path.isdir(path):
-                btn = MDLabelBtn(
-                    text=file,
-                    theme_text_color="Custom",
-                    text_color="white",
-                )
-                btn.bind(on_press=self.select_model_btn)
-                # btn.allow_hover = True
-                self.ids.model_grid.add_widget(btn)
+        for model_name in self.model_service.list_models():
+            btn = MDLabelBtn(
+                text=model_name,
+                theme_text_color="Custom",
+                text_color="white",
+            )
+            btn.bind(on_press=self.select_model_btn)
+            self.ids.model_grid.add_widget(btn)
 
     def update_all_button_states(self):
         has_selection = bool(self.selected_images)

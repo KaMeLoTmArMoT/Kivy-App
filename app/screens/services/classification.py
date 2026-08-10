@@ -1,7 +1,6 @@
 import configparser
 import gc
 import os
-import platform
 import sys
 from collections import deque
 
@@ -17,12 +16,11 @@ try:
     from torch.utils.tensorboard import SummaryWriter
     from torchvision import transforms
     from torchvision.datasets import ImageFolder
-    from ultralytics import YOLO
 except ImportError:
     torch = None
     nn = models = optim = DataLoader = SummaryWriter = transforms = ImageFolder = None
-    YOLO = None
 
+from app.screens.services.model_export import log_gpu
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
 
@@ -36,13 +34,9 @@ def _require_torch():
         )
 
 
-def _require_ultralytics():
-    if YOLO is None:
-        raise RuntimeError("Ultralytics is not installed. Install ultralytics to use YOLO export.")
-
-
 class KModel:
-    def __init__(self):
+    def __init__(self, db: DB | None = None):
+        self.db = db or DB()
         self.device = None
 
         self.model = None
@@ -206,9 +200,9 @@ class KModel:
 
     def update_params(self):
         _require_torch()
-        img_shape = DB().get_config_typed("IMG_SHAPE")
-        mean = DB().get_config_typed("MEAN")
-        std = DB().get_config_typed("STD")
+        img_shape = self.db.get_config_typed("IMG_SHAPE")
+        mean = self.db.get_config_typed("MEAN")
+        std = self.db.get_config_typed("STD")
 
         self.transform = transforms.Compose(
             [
@@ -219,11 +213,11 @@ class KModel:
         )
 
     def train_model(self, data, log_dir):
-        epochs_s1 = DB().get_config_typed("epochs_s1")
-        epochs_s2 = DB().get_config_typed("epochs_s2")
+        epochs_s1 = self.db.get_config_typed("epochs_s1")
+        epochs_s2 = self.db.get_config_typed("epochs_s2")
 
-        lr_s1 = DB().get_config_typed("lr_s1")
-        lr_s2 = DB().get_config_typed("lr_s2")
+        lr_s1 = self.db.get_config_typed("lr_s1")
+        lr_s2 = self.db.get_config_typed("lr_s2")
 
         self.model.train()
 
@@ -256,7 +250,7 @@ class KModel:
                 self.writer.close()
 
     def train_cycle(self, epochs, dataset, start_epoch=0):
-        smooth_window = DB().get_config_typed("smooth_window")
+        smooth_window = self.db.get_config_typed("smooth_window")
         total_epochs = start_epoch + epochs
 
         for epoch_idx in range(epochs):
@@ -313,54 +307,41 @@ class KModel:
 
 def get_base_model(model_type: str, num_classes: int, no_weights=False):
     _require_torch()
-    # Weights handling
-    pretrained = not no_weights
-    weights = None  # For newer versions, if needed
-
     model_type = model_type.lower()
+    mobile_specs = {
+        "mobilenetv2": (models.mobilenet_v2, models.MobileNet_V2_Weights, 1),
+        "mobilenetv3": (models.mobilenet_v3_large, models.MobileNet_V3_Large_Weights, 3),
+    }
+    if model_type in mobile_specs:
+        builder, weights_enum, classifier_index = mobile_specs[model_type]
+        model = builder(weights=None if no_weights else weights_enum.DEFAULT)
+        classifier = model.classifier[classifier_index]
+        model.classifier[classifier_index] = nn.Linear(classifier.in_features, num_classes)
+        return model
 
-    if model_type == "mobilenetv2":
-        weights = models.MobileNet_V2_Weights.DEFAULT if not no_weights else None
-        model = models.mobilenet_v2(weights=weights)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-
-    elif model_type == "mobilenetv3":
-        weights = models.MobileNet_V3_Large_Weights.DEFAULT if not no_weights else None
-        model = models.mobilenet_v3_large(weights=weights)
-        model.classifier[3] = nn.Linear(model.classifier[3].in_features, num_classes)
-
-    elif model_type == "resnet":
-        model = models.resnet18(pretrained=pretrained)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-
-    elif model_type == "resnext":
-        model = models.resnext50_32x4d(pretrained=pretrained)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-
-    elif model_type == "efficientnet":
-        model = models.efficientnet_b0(pretrained=pretrained)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-
-    elif model_type == "efficientnetv2":
-        model = models.efficientnet_v2_s(pretrained=pretrained)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-
-    elif model_type == "alexnet":
-        model = models.alexnet(pretrained=pretrained)
-        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
-
-    elif model_type == "vgg":
-        model = models.vgg11(pretrained=pretrained)
-        model.classifier[6] = nn.Linear(model.classifier[6].in_features, num_classes)
-
-    else:
+    specs = {
+        "resnet": (models.resnet18, "fc", None),
+        "resnext": (models.resnext50_32x4d, "fc", None),
+        "efficientnet": (models.efficientnet_b0, "classifier", 1),
+        "efficientnetv2": (models.efficientnet_v2_s, "classifier", 1),
+        "alexnet": (models.alexnet, "classifier", 6),
+        "vgg": (models.vgg11, "classifier", 6),
+    }
+    if model_type not in specs:
         raise ValueError(f"Unsupported model type: {model_type}")
 
+    builder, head_name, head_index = specs[model_type]
+    model = builder(pretrained=not no_weights)
+    head = getattr(model, head_name)
+    if head_index is None:
+        setattr(model, head_name, nn.Linear(head.in_features, num_classes))
+    else:
+        head[head_index] = nn.Linear(head[head_index].in_features, num_classes)
     return model
 
 
-def create_config_file(model_name, model_type, num_classes, classes, config_dir):
-    img_shape = DB().get_config_typed("IMG_SHAPE")
+def create_config_file(model_name, model_type, num_classes, classes, config_dir, db=None):
+    img_shape = (db or DB()).get_config_typed("IMG_SHAPE")
 
     config = configparser.ConfigParser()
     config["Model"] = {
@@ -394,13 +375,6 @@ def read_config_file(config_path):
     return model_type, num_classes, img_shape, classes
 
 
-def log_gpu(tag, summary=False):
-    logger.debug(f"{tag}[Used]     {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
-    logger.debug(f"{tag}[Reserved] {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
-    if summary:
-        logger.debug(f"{torch.cuda.memory_summary()}")
-
-
 def prepare_dataset(
     ml_train_folder,
     transform,
@@ -419,77 +393,3 @@ def prepare_dataset(
     )
 
     return testloader
-
-
-def get_hardware_acceleration_type() -> str:
-    if torch.cuda.is_available():
-        logger.debug("NVIDIA CUDA device found. Best acceleration: TensorRT")
-        return "TensorRT"
-
-    try:
-        if "intel" in platform.processor().lower():
-            logger.debug("Intel CPU detected. Best acceleration: OpenVINO")
-            return "OpenVINO"
-    except Exception as e:
-        logger.debug(f"{e}")
-
-    logger.warning("No specific hardware acceleration detected.")
-    return "None"
-
-
-def export_to_best_available(pt_model_path, force_export=None):
-    _require_torch()
-    _require_ultralytics()
-    if not os.path.exists(pt_model_path):
-        logger.error(f"Cannot export. Model not found at {pt_model_path}")
-        return
-
-    accel_type = get_hardware_acceleration_type()
-    model = YOLO(pt_model_path)
-    name = os.path.basename(pt_model_path)
-
-    logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
-    model.export(format="onnx", half=True, simplify=True)
-    logger.info("Export to ONNX complete.")
-
-    if accel_type == "TensorRT" or "TensorRT" in force_export:
-        logger.info(f"Exporting '{name}' to TensorRT format...")
-        model.export(format="tensorrt", half=True, simplify=True)
-        logger.info("Export to TensorRT complete.")
-
-    if accel_type == "OpenVINO" or "OpenVINO" in force_export:
-        logger.info(f"Exporting '{name}' to OpenVINO format...")
-        model.export(format="openvino", half=True)
-        logger.info("Export to OpenVINO complete.")
-
-
-def get_best_model_paths(base_dir, model_name):
-    available_models = []
-    logger.info("Searching for best available model to load...")
-
-    tensorrt_path = os.path.join(base_dir, f"{model_name}.engine")
-    if os.path.exists(tensorrt_path):
-        logger.info("Found high-performance TensorRT model.")
-        available_models.append([tensorrt_path, "TensorRT"])
-
-    openvino_path = os.path.join(base_dir, f"{model_name}_openvino_model")
-    if os.path.isdir(openvino_path):
-        logger.info("Found optimized OpenVINO model.")
-        available_models.append([openvino_path, "OpenVINO"])
-
-    onnx_path = os.path.join(base_dir, f"{model_name}.onnx")
-    if os.path.exists(onnx_path):
-        logger.info("Found general-purpose ONNX model.")
-        available_models.append([onnx_path, "ONNX"])
-
-    pt_path = os.path.join(base_dir, f"{model_name}.pt")
-    if os.path.exists(pt_path):
-        logger.info("Found baseline PyTorch model.")
-        available_models.append([pt_path, "PyTorch"])
-
-    if available_models:
-        return available_models
-
-    else:
-        logger.error(f"No model file found for '{model_name}' in '{base_dir}'")
-        return [None, None]

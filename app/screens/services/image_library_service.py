@@ -2,6 +2,7 @@ import hashlib
 from pathlib import Path
 from shutil import copy
 
+from checksumdir import dirhash
 from Cryptodome.Cipher import AES
 
 from app.screens.utils.custom_logging import get_logger
@@ -40,7 +41,12 @@ class ImageLibraryService:
         path = Path(directory_path)
         if not path.is_dir():
             return []
-        return [str(p) for p in path.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS]
+        return sorted(str(p) for p in path.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS)
+
+    @staticmethod
+    def get_directory_hash(directory_path: str) -> str:
+        path = Path(directory_path)
+        return dirhash(str(path), "sha1") if path.is_dir() else ""
 
     def save_file_to_db(
         self, file_path: str, key: bytes | None = None, encrypt: bool = False

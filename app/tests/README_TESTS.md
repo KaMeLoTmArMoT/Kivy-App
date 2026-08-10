@@ -1,4 +1,4 @@
-# Integration tests (modules 1–5)
+# Test Suite
 
 ## Prereqs
 
@@ -18,17 +18,17 @@ pytest --timeout 20 -v -s
 
 ---
 
-## Run ALL integration tests
+## Run the fast gate
 
-Run everything under integration folder:
+Run unit tests and all non-ML integration tests:
 
 ```powershell
-pytest --timeout 20 -v -s .\app\tests\integration\
+uv run pytest --timeout 30 -m "not slow" -q
 ```
 
 ---
 
-## Run module 1–5
+## Run fast modules 1–5
 
 ```powershell
 pytest --timeout 20 -v -s .\app\tests\integration\test_1_screen_navigation.py
@@ -41,6 +41,14 @@ pytest --timeout 20 -v -s .\app\tests\integration\test_4_images_flow.py
 
 pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py
 ```
+
+## Run the ML module
+
+```powershell
+uv run pytest --timeout 30 -m slow -q
+```
+
+The test database and project workspace are shared, so run these commands serially.
 
 ---
 

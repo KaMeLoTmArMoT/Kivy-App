@@ -7,7 +7,6 @@ from kivy.uix.textinput import TextInput
 
 from app.screens.utils.additional import BaseScreen
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.db import DB
 
 logger = get_logger(__name__)
 
@@ -16,7 +15,6 @@ class SettingsViewScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.db = DB()
         self.grid = self.ids.grid
         Clock.schedule_once(self._delayed_init, 0)
 

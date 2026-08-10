@@ -16,15 +16,22 @@ class CustomerService:
 
     def encrypt_text(self, text: str, key: bytes) -> str:
         """Encrypt text string using AES MODE_EAX."""
-        cipher = AES.new(key, AES.MODE_EAX, nonce=b"TODO")
-        encoded_bytes = cipher.encrypt(text.encode("utf-8"))
-        return b64encode(encoded_bytes).decode("utf-8")
+        cipher = AES.new(key, AES.MODE_EAX)
+        ciphertext, tag = cipher.encrypt_and_digest(text.encode("utf-8"))
+        payload = b"v2" + cipher.nonce + tag + ciphertext
+        return b64encode(payload).decode("utf-8")
 
     def decrypt_text(self, encrypted_text: str, key: bytes) -> str:
         """Decrypt AES MODE_EAX encoded string."""
+        payload = b64decode(encrypted_text.encode("utf-8"))
+        if payload.startswith(b"v2"):
+            nonce, tag, ciphertext = payload[2:18], payload[18:34], payload[34:]
+            cipher = AES.new(key, AES.MODE_EAX, nonce=nonce)
+            return cipher.decrypt_and_verify(ciphertext, tag).decode("utf-8")
+
+        # Read records written by the pre-migration fixed-nonce format.
         cipher = AES.new(key, AES.MODE_EAX, nonce=b"TODO")
-        decoded_bytes = b64decode(encrypted_text.encode("utf-8"))
-        return cipher.decrypt(decoded_bytes).decode("utf-8")
+        return cipher.decrypt(payload).decode("utf-8")
 
     def add_customer(self, name: str, key: bytes) -> None:
         """Encrypt and insert customer name record."""
@@ -44,13 +51,16 @@ class CustomerService:
 
     def delete_customer_by_name(self, name: str, key: bytes) -> None:
         """Delete customer record matching plaintext name."""
-        b_encoded = self.encrypt_text(name, key)
-        self.db.delete_customer(b_encoded)
+        for decrypted_name, raw_encrypted in self.get_decrypted_customers(key):
+            if decrypted_name == name:
+                self.db.delete_customer(raw_encrypted)
+                break
         logger.info(f"Deleted customer record: {name}")
 
     def update_customer_name(self, old_name: str, new_name: str, key: bytes) -> None:
         """Update customer record from old_name to new_name."""
-        old_enc = self.encrypt_text(old_name, key)
-        new_enc = self.encrypt_text(new_name, key)
-        self.db.update_customer(new_enc, old_enc)
+        for decrypted_name, raw_encrypted in self.get_decrypted_customers(key):
+            if decrypted_name == old_name:
+                self.db.update_customer(self.encrypt_text(new_name, key), raw_encrypted)
+                break
         logger.info(f"Updated customer record from {old_name} to {new_name}")

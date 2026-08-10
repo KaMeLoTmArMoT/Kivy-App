@@ -8,7 +8,6 @@ from kivy.uix.screenmanager import Screen
 from app.screens.services.customer_service import CustomerService
 from app.screens.utils.additional import BaseScreen, MDLabelBtn
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.db import DB
 from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
@@ -28,19 +27,22 @@ class MainScreen(Screen, BaseScreen):
 
         self.chrome_path = None
         self.on_enter_done = False
+        self._input_bound = False
 
     def on_enter(self, *args):
         logger.debug("MAIN: on_enter start")
         self.setup_header()
         self.ids.word_input.focus = True
-        self.ids.word_input.bind(text=self.on_text_input)
+        if not self._input_bound:
+            self.ids.word_input.bind(text=self.on_text_input)
+            self._input_bound = True
         logger.debug("MAIN: on_enter done")
 
         Clock.schedule_once(self._finish_enter, 0)
 
     def _finish_enter(self, dt):
         logger.debug("MAIN: _finish_enter start")
-        self.chrome_path = DB().get_config_typed("chrome_path")
+        self.chrome_path = self.db.get_config_typed("chrome_path")
         login_key = getattr(self.manager.get_screen("login"), "key", None)
         if not login_key:
             logger.warning("MAIN: _finish_enter skipped due to empty login key")
@@ -174,7 +176,6 @@ class MainScreen(Screen, BaseScreen):
     def on_text_input(self, instance, value):
         text = self.get_input()
 
-        self.update_buttons_state()
         if len(text) > 2:
             self.submit_btn.disabled = False
             if self.selected:
@@ -182,6 +183,3 @@ class MainScreen(Screen, BaseScreen):
         else:
             self.submit_btn.disabled = True
             self.update_btn.disabled = True
-
-    def update_buttons_state(self):
-        pass

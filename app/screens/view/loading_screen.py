@@ -1,5 +1,5 @@
 import time
-from functools import wraps
+from importlib import import_module
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -11,31 +11,38 @@ from app.screens.utils.custom_logging import get_logger
 logger = get_logger(__name__)
 
 
-def log_exec_time(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        exec_time = end_time - start_time
-        logger.debug(f"Function {func.__name__} executed in {exec_time:.2f} seconds")
-        return result
-
-    return wrapper
-
-
 class LoadingScreen(Screen, BaseScreen):
+    SCREEN_SPECS = (
+        ("load_login", "app/ui/login.kv", "app.screens.view.login_screen", "LoginScreen", "login"),
+        ("load_main", "app/ui/main.kv", "app.screens.view.main_screen", "MainScreen", "main"),
+        (
+            "load_imageview",
+            "app/ui/imageview.kv",
+            "app.screens.view.image_screen",
+            "ImageViewScreen",
+            "imageview",
+        ),
+        ("load_dbview", "app/ui/dbview.kv", "app.screens.view.db_screen", "DbViewScreen", "dbview"),
+        ("load_mlview", "app/ui/mlview.kv", "app.screens.view.ml_screen", "MLViewScreen", "mlview"),
+        (
+            "load_settings",
+            "app/ui/settingsview.kv",
+            "app.screens.view.settings_screen",
+            "SettingsViewScreen",
+            "settingsview",
+        ),
+        (
+            "load_detection",
+            "app/ui/detectionview.kv",
+            "app.screens.view.detection_screen",
+            "DetectionScreen",
+            "detectionview",
+        ),
+    )
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.modules = [
-            self.load_login,
-            self.load_main,
-            self.load_imageview,
-            self.load_dbview,
-            self.load_mlview,
-            self.load_settings,
-            self.load_detection,
-        ]
+        self.modules = [getattr(self, spec[0]) for spec in self.SCREEN_SPECS]
 
         self.steps = 20
         self.ids.pbar.value = 0
@@ -99,72 +106,31 @@ class LoadingScreen(Screen, BaseScreen):
         self.manager.transition.direction = "left"
         self.manager.current = "login"
 
-    @log_exec_time
+    def _load_screen(self, spec):
+        _, kv_path, module_path, class_name, screen_name = spec
+        screen_class = getattr(import_module(module_path), class_name)
+        Builder.load_file(kv_path)
+        self.manager.add_widget(screen_class(name=screen_name))
+        self.ids.status.text = f"{screen_name} loaded"
+        self.increment_pbar()
+
     def load_login(self, _):
-        from app.screens.view.login_screen import LoginScreen
+        self._load_screen(self.SCREEN_SPECS[0])
 
-        Builder.load_file("app/ui/login.kv")
-        self.manager.add_widget(LoginScreen(name="login"))
-
-        self.ids.status.text = "login loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_main(self, _):
-        from app.screens.view.main_screen import MainScreen
+        self._load_screen(self.SCREEN_SPECS[1])
 
-        Builder.load_file("app/ui/main.kv")
-        self.manager.add_widget(MainScreen(name="main"))
-
-        self.ids.status.text = "main loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_imageview(self, _):
-        from app.screens.view.image_screen import ImageViewScreen
+        self._load_screen(self.SCREEN_SPECS[2])
 
-        Builder.load_file("app/ui/imageview.kv")
-        self.manager.add_widget(ImageViewScreen(name="imageview"))
-
-        self.ids.status.text = "imageview loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_dbview(self, _):
-        from app.screens.view.db_screen import DbViewScreen
+        self._load_screen(self.SCREEN_SPECS[3])
 
-        Builder.load_file("app/ui/dbview.kv")
-        self.manager.add_widget(DbViewScreen(name="dbview"))
-
-        self.ids.status.text = "dbview loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_mlview(self, _):
-        from app.screens.view.ml_screen import MLViewScreen
+        self._load_screen(self.SCREEN_SPECS[4])
 
-        Builder.load_file("app/ui/mlview.kv")
-        self.manager.add_widget(MLViewScreen(name="mlview"))
-
-        self.ids.status.text = "mlview loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_settings(self, _):
-        from app.screens.view.settings_screen import SettingsViewScreen
+        self._load_screen(self.SCREEN_SPECS[5])
 
-        Builder.load_file("app/ui/settingsview.kv")
-        self.manager.add_widget(SettingsViewScreen(name="settingsview"))
-
-        self.ids.status.text = "settingsview loaded"
-        self.increment_pbar()
-
-    @log_exec_time
     def load_detection(self, _):
-        from app.screens.view.detection_screen import DetectionScreen
-
-        Builder.load_file("app/ui/detectionview.kv")
-        self.manager.add_widget(DetectionScreen(name="detectionview"))
-
-        self.ids.status.text = "detectionview loaded"
-        self.increment_pbar()
+        self._load_screen(self.SCREEN_SPECS[6])

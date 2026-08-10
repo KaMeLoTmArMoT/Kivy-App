@@ -1,17 +1,16 @@
 import gc
+import os
 from typing import Any
 
 import numpy as np
 
 try:
-    import torch
     from ultralytics import YOLO
 except ImportError:
-    torch = None
     YOLO = None
 
+from app.screens.services.model_export import get_best_model_paths
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.ml import get_best_model_paths
 
 logger = get_logger(__name__)
 
@@ -27,6 +26,24 @@ class YoloInferencePipeline:
     @property
     def is_loaded(self) -> bool:
         return self.model is not None
+
+    @property
+    def is_available(self) -> bool:
+        return YOLO is not None
+
+    def ensure_model(self, model_path: str) -> bool:
+        """Download or validate a model file before loading it."""
+        if YOLO is None:
+            logger.error("Ultralytics YOLO is not installed.")
+            return False
+        if os.path.exists(model_path):
+            return True
+        try:
+            YOLO(model_path, task="detect")
+            return True
+        except Exception as exc:
+            logger.error(f"Failed to download YOLO model {model_path}: {exc}")
+            return False
 
     def load_model(self, project_folder: str, model_name: str) -> bool:
         """Load, fuse, and warm up the best available YOLO model variant."""

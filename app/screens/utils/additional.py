@@ -1,75 +1,17 @@
-import os
 import threading
 from collections.abc import Callable
 from typing import Any
 
 from kivy.clock import Clock
-from kivy.properties import (
-    BooleanProperty,
-    ListProperty,
-    ObjectProperty,
-    StringProperty,
-)
-from kivy.uix.behaviors.button import ButtonBehavior
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.dropdown import DropDown
-from kivy.uix.image import Image
-from kivy.uix.label import Label
-from kivy.uix.popup import Popup
-from kivy.uix.textinput import TextInput
-from kivymd.uix import SpecificBackgroundColorBehavior
-from kivymd.uix.behaviors import HoverBehavior
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import ButtonBehavior as MDButtonBehavior
-from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel
 
 from app.screens.utils.custom_logging import get_logger
 from app.screens.utils.db import DB
+from app.screens.utils.widgets import ImageMDButton, MDLabelBtn, SelectableImage
 
 logger = get_logger(__name__)
 
-
-class MDLabelBtn(ButtonBehavior, MDLabel, HoverBehavior):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.allow_hover = False
-        self.saved_color = None
-
-    def on_enter(self):
-        if self.allow_hover:
-            self.saved_color = self.md_bg_color.copy()
-            self.md_bg_color = (1, 1, 1, 0.1)
-
-    def on_leave(self):
-        if self.allow_hover:
-            self.md_bg_color = self.saved_color
-
-
-class ImageMDButton(MDButtonBehavior, Image, SpecificBackgroundColorBehavior, HoverBehavior):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.allow_hover = False
-        self.saved_color = None
-
-    def on_enter(self):
-        if self.allow_hover:
-            self.saved_color = self.md_bg_color.copy()
-            self.md_bg_color = (1, 1, 1, 0.1)
-
-    def on_leave(self):
-        if self.allow_hover:
-            self.md_bg_color = self.saved_color
-
-
-class SelectableImage(MDFloatLayout):
-    selected = BooleanProperty(False)
-    source = StringProperty("")
-    texture = ObjectProperty(None)
-    line_color = ListProperty([1.0, 1.0, 1.0, 0.2])
+__all__ = ["BaseScreen", "Header", "ImageMDButton", "MDLabelBtn", "SelectableImage"]
 
 
 class BaseScreen:
@@ -188,157 +130,13 @@ class BaseScreen:
     def goto_settings(self):
         self.select_direction("settingsview")
 
+    def launch_tensorboard(self):
+        if getattr(self, "tb_server", None) and getattr(self, "tb_folder", None):
+            status = self.tb_server.launch_tensorboard(self.tb_folder)
+            logger.warning(status)
+            self.update_all_button_states()
+
 
 class Header(MDBoxLayout, BaseScreen):
     def __init__(self, **kwargs):  # TODO: check
         super().__init__(**kwargs)
-
-
-class MlUiHelper:
-    projects_folder = None
-    main_button = None
-    dropdown = None
-    popup = None
-    projects = []
-    active_project = None
-    selected_model = None
-    ids = None
-
-    def create_project_name_input_popup(self):
-        self.popup = Popup(title="New project creation", size_hint=(None, None), size=(400, 150))
-        box = BoxLayout(orientation="vertical")
-
-        lbl = Label(text="Please enter new name", size_hint_y=0.3)
-
-        name_input = TextInput(
-            text="",
-            hint_text="Project name",
-            size_hint_y=0.4,
-            multiline=False,
-            font_size=16,
-        )
-        name_input.bind(
-            on_text_validate=lambda x: self.open_project_folder(
-                name_input.text,
-            ),
-        )
-
-        submit_btn = MDLabelBtn(text="Create", size_hint_y=0.3)
-        submit_btn.bind(
-            on_release=lambda x: self.open_project_folder(
-                name_input.text,
-            )
-        )
-        submit_btn.allow_hover = True
-
-        box.add_widget(lbl)
-        box.add_widget(name_input)
-        box.add_widget(submit_btn)
-
-        self.popup.content = box
-        self.popup.open()
-
-    def setup_project_dropdown(self, projects):
-        # If projects folders changed or dropdown was not created
-        if projects != self.projects or self.dropdown is None:
-            if self.dropdown is not None:
-                logger.debug("clear bind")
-                self.main_button.unbind(on_release=self.dropdown.open)
-
-            logger.debug("create bind")
-            self.dropdown = DropDown()
-            for folder in projects:
-                btn = Button(text=f"{folder}", size_hint_y=None, height=44)
-                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
-                self.dropdown.add_widget(btn)
-
-            btn_new = Button(text="New project", size_hint_y=None, height=44)
-            btn_new.bind(on_release=lambda b: self.dropdown.select(b.text))
-            btn_new.background_color = 0.5, 0.9, 0.5, 1
-            self.dropdown.add_widget(btn_new)
-
-            self.main_button.bind(on_release=self.dropdown.open)
-            self.dropdown.bind(
-                on_select=lambda instance, project: self.open_project_folder(project)
-            )
-            self.projects = projects
-
-        else:
-            logger.debug("use bind")
-
-    def get_projects(self):
-        projects = []
-        for folder in os.listdir(self.projects_folder):
-            if os.path.isdir(os.path.join(self.projects_folder, folder)):
-                projects.append(folder)
-        return projects
-
-    def open_project_folder(self, project_name):
-        logger.debug(f"project_name, {project_name}")
-        if project_name == "":
-            return
-        if self.popup is not None:
-            self.popup.dismiss()
-
-        # trigger popup and then call this method again with correct name
-        if project_name == "New project":
-            self.create_project_name_input_popup()
-            return
-
-        self.main_button.text = project_name
-        cur_project_path = os.path.join(self.projects_folder, project_name)
-        os.makedirs(cur_project_path, exist_ok=True)
-
-        self.after_project_selection_hook(project_name, cur_project_path)
-
-        self.active_project = project_name
-        self.restore_project_params(project_name, cur_project_path)
-
-    def after_project_selection_hook(self, project_name, path):
-        """
-        This is a 'no-op' (no operation) by default.
-        Subclasses override this to add custom behavior.
-        """
-        pass
-
-    def select_model_btn(self, instance):
-        logger.info(f"The model button <{instance.text}> is being pressed")
-        if self.selected_model and instance.uid == self.selected_model.uid:
-            # custom double touch event
-            self.unselect_model_btn()
-            return
-
-        # reset selection
-        for btn in self.ids.model_grid.children:
-            btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-
-        instance.md_bg_color = (1.0, 1.0, 1.0, 0.1)
-        instance.radius = (20, 20, 20, 20)
-        self.selected_model = instance
-        self.update_all_button_states()
-
-    def restore_project_params(self, name, path):
-        pass
-
-    def update_all_button_states(self):
-        pass
-
-    def unselect_model_btn(self):
-        self.selected_model = None
-        if "model_grid" in self.ids:
-            for btn in self.ids.model_grid.children:
-                btn.md_bg_color = (1.0, 1.0, 1.0, 0.0)
-        self.update_all_button_states()
-
-    def launch_tensorboard(self):
-        if getattr(self, "tb_server", None) and getattr(self, "tb_folder", None):
-            status = self.tb_server.launch_tensorboard(self.tb_folder)
-            logger.warning(f"{status}")
-            self.update_all_button_states()
-
-    def get_all_projects(self) -> list:
-        return self.get_projects()
-
-    def select_project_button(self):
-        projects = self.get_all_projects()
-        self.setup_project_dropdown(projects)

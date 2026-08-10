@@ -1,37 +1,25 @@
-# How to Speed Up Kivy-App Tests
+# Test Performance
 
-**Current Execution Time**: ~181 seconds (3 minutes) for 72 tests (74.6% code coverage).
+The fast integration gate covers navigation, authentication, CRUD, image workflows, and encrypted DB images. The ML flow is separate because model creation, prediction, TensorBoard output, and evaluation load PyTorch and torchvision.
 
----
+## Current Behavior
 
-## Key Bottleneck Areas & Solutions
+- `APP_ENV=test` skips the full PyTorch training loop in `classification.py` while still writing a TensorBoard scalar.
+- Image loading is incremental and bounded by Kivy `Clock` events.
+- Database schema/default setup uses batched default configuration inserts.
 
-### 1. Mock PyTorch Model Training in Integration Tests (Estimated Savings: ~120s)
-- **Problem**: 	est_6_ml_project_model_flow.py executes real PyTorch MobileNetV3 training loops on the CPU during full integration test flows.
-- **Fix**:
-  - In integration/UI flow tests, mock 	rain() / it() methods to return dummy loss/metrics instantly.
-  - Or configure epochs=1 and pass synthetic pre-computed model weights in APP_ENV=test mode.
-  - Keep real PyTorch training restricted to isolated unit tests.
+## Recommended Commands
 
-### 2. Accelerate Kivy Clock Delay Intervals (wait_until) (Estimated Savings: ~30s)
-- **Problem**: Helper functions like wait_until(predicate, timeout=20) poll Kivy frames using real wall-clock time (	ime.monotonic()), resulting in idle wait frames.
-- **Fix**:
-  - In headless test execution (APP_ENV=test), increase the frame step multiplier in drain(step_frames) or mock Clock.tick() to trigger handlers without waiting for real-time clock delays.
+Fast feedback:
 
-### 3. Parallel Test Execution (pytest-xdist) (Estimated Speedup: 3x)
-- **Problem**: Tests execute sequentially in a single process.
-- **Fix**:
-  - Install pytest-xdist dev dependency: uv add --dev pytest-xdist
-  - Run pytest across CPU cores in parallel:
-    `powershell
-    uv run pytest -n auto
-    `
+```powershell
+uv run pytest --timeout 30 -m "not slow" -q
+```
 
----
+ML flow:
 
-## Recommended Daily Command
+```powershell
+uv run pytest --timeout 30 -m slow -q
+```
 
-For fast local developer feedback during UI feature development:
-`powershell
-uv run pytest app/tests/integration/test_1_screen_navigation.py test_2_auth_flow.py
-`
+The slow test should remain isolated from daily UI feedback. Parallel execution should only be enabled after each worker uses an isolated DB and project workspace.

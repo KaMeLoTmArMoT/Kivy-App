@@ -112,3 +112,19 @@ class MLWorkspaceManager:
         if not p.exists():
             return ""
         return dirhash(str(p), "sha1")
+
+    def model_folder(self, model_name: str) -> Path:
+        return Path(self.ml_models_folder) / model_name
+
+    def model_path(self, model_name: str) -> Path:
+        return self.model_folder(model_name) / f"{model_name}.pth"
+
+    def config_path(self, model_name: str) -> Path:
+        return Path(self.ml_configs_folder) / f"{model_name}.conf"
+
+    def list_models(self) -> list[str]:
+        return sorted(path.name for path in Path(self.ml_models_folder).iterdir() if path.is_dir())
+
+    def delete_model(self, model_name: str) -> None:
+        shutil.rmtree(self.model_folder(model_name))
+        self.config_path(model_name).unlink(missing_ok=True)

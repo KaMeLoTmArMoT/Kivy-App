@@ -1,11 +1,7 @@
 import os
-from pathlib import Path
 
-from checksumdir import dirhash
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.dropdown import DropDown
 from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
@@ -16,6 +12,8 @@ from kivy.uix.textinput import TextInput
 from app.screens.services.image_library_service import ImageLibraryService
 from app.screens.utils.additional import BaseScreen, MDLabelBtn, SelectableImage
 from app.screens.utils.custom_logging import get_logger
+from app.screens.utils.image_loader import ImageLoadController
+from app.screens.utils.project_picker import ProjectPicker
 from app.screens.utils.utils import extend_key
 
 logger = get_logger(__name__)
@@ -33,6 +31,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.images_to_load = []
         self.progress_bar: ProgressBar = self.ids.progress_bar
         self.load_event = None
+        self.image_loader = None
 
         self.loaded_hash = ""
         self.path = os.path.join(
@@ -43,6 +42,12 @@ class ImageViewScreen(Screen, BaseScreen):
         if not os.path.exists(self.path):
             os.makedirs(self.path, exist_ok=True)
 
+        projects_folder = os.path.join(os.getcwd(), "app", "training", "classification")
+        self.project_picker = ProjectPicker(
+            self.ids.to_ml_btn,
+            projects_folder,
+            lambda project: self.transfer_images(projects_folder, project),
+        )
         self.dropdown = None
         self.projects = []
 
@@ -57,7 +62,7 @@ class ImageViewScreen(Screen, BaseScreen):
         self.grid = self.ids.grid
         self.selected_counter_update()
 
-        dir_hash = dirhash(self.path, "sha1")
+        dir_hash = self.image_service.get_directory_hash(self.path)
 
         if self.loaded_hash != dir_hash:
             self.show_folder_images(self.path)
@@ -134,66 +139,52 @@ class ImageViewScreen(Screen, BaseScreen):
         self.path = os.path.abspath(path)
         self.ids.current_folder.text = f"Folder: {self.path}"
 
-        if self.load_event is not None:
-            self.load_event.cancel()
-            self.load_event = None
-
-        self.images_to_load.clear()
+        if self.image_loader is not None:
+            self.image_loader.stop()
 
         self.toggle_load_label("on")
 
-        files = os.listdir(path) if os.path.isdir(path) else None
+        files = bool(path) and os.path.isdir(path)
 
         self.grid.clear_widgets()
         self.unselect_all_images()
         self.selected_counter_update()
 
-        if files is None:
+        if not files:
             self.ids.choose_image.disabled = False
             self.toggle_load_label("no_dir")
             return
 
         self.ids.choose_image.disabled = True  # disable load button
 
-        for name in files:
-            if ".jpg" in name or ".png" in name:
-                im_path = os.path.join(path, name)
-                self.images_to_load.append(im_path)
+        self.images_to_load = self.image_service.get_supported_images_in_dir(path)
 
         if len(self.images_to_load) == 0:
             self.ids.choose_image.disabled = False
             self.toggle_load_label("no_dir")
             return
 
-        self.progress_bar.value = 1
-        self.progress_bar.max = len(self.images_to_load)
-        self.load_event = Clock.schedule_interval(lambda tm: self.async_image_load(), 0.001)
+        self.image_loader = ImageLoadController(
+            self.grid,
+            self.progress_bar,
+            self._create_image_widget,
+            self._image_load_finished,
+            lambda: self.exit_screen,
+        )
+        self.load_event = self.image_loader.start(self.images_to_load)
+        self.images_to_load = self.image_loader.pending
 
-    def async_image_load(self):
-        stop = False
-        if len(self.images_to_load) == 0:
-            self.loaded_hash = dirhash(self.path, "sha1")
-            stop = True
-
-        if self.exit_screen:
-            logger.warning("terminate loading")
-            stop = True
-
-        if stop:
-            if self.load_event is not None:
-                self.load_event.cancel()
-                self.load_event = None
-
-            self.toggle_load_label("success")
-            self.ids.choose_image.disabled = False
-            return
-
-        self.progress_bar.value += 1
-        im_path = self.images_to_load.pop(0)
-
+    def _create_image_widget(self, im_path):
         selectable_img = SelectableImage(source=im_path)
         selectable_img.ids.img.bind(on_press=self.image_click)
-        self.grid.add_widget(selectable_img)
+        return selectable_img
+
+    def _image_load_finished(self):
+        self.images_to_load = self.image_loader.pending
+        self.load_event = None
+        self.loaded_hash = self.image_service.get_directory_hash(self.path)
+        self.toggle_load_label("success")
+        self.ids.choose_image.disabled = False
 
     def image_click(self, instance):
         # path = instance.source
@@ -243,37 +234,9 @@ class ImageViewScreen(Screen, BaseScreen):
             self.ids.selected_images.text = "Choose 1+"
             return
 
-        projects_folder = Path(__file__).resolve().parents[2] / "training" / "classification"
-        to_ml_btn = self.ids.to_ml_btn
-
-        projects = []
-        for folder in os.listdir(projects_folder):
-            if os.path.isdir(os.path.join(projects_folder, folder)):
-                projects.append(folder)
-
-        # If projects folders changed or dropdown was not created
-        if (
-            projects != self.projects or self.dropdown is None
-        ):  # TODO: clear, same as `select_project_button`
-            if self.dropdown is not None:
-                logger.debug("clear bind")
-                to_ml_btn.unbind(on_release=self.dropdown.open)
-
-            logger.debug("create bind")
-            self.dropdown = DropDown()
-            for folder in projects:
-                btn = Button(text=folder, size_hint_y=None, height=44)
-                btn.bind(on_release=lambda b: self.dropdown.select(b.text))
-                self.dropdown.add_widget(btn)
-
-            to_ml_btn.bind(on_release=self.dropdown.open)
-            self.dropdown.bind(
-                on_select=lambda instance, project: self.transfer_images(projects_folder, project)
-            )
-            self.projects = projects
-
-        else:
-            logger.debug("use bind")
+        self.project_picker.open()
+        self.dropdown = self.project_picker.dropdown
+        self.projects = self.project_picker.projects
 
     def schedule_counter_update(self):
         if not self.lock_schedule:  # to trigger schedule only once at a time

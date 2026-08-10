@@ -10,7 +10,8 @@ logger = get_logger(__name__)
 
 
 class TBServer:
-    def __init__(self):
+    def __init__(self, db: DB | None = None):
+        self.db = db or DB()
         self.tb = None
         self.url = None
 
@@ -30,7 +31,7 @@ class TBServer:
             logger.debug(f"{self.url=}")
 
         system_platform = platform.system()
-        chrome_path = DB().get_config_typed("chrome_path")
+        chrome_path = self.db.get_config_typed("chrome_path")
 
         if system_platform == "Windows":
             webbrowser.get(chrome_path).open(self.url)

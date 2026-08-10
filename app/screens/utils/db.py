@@ -2,7 +2,7 @@ import ast
 from typing import Any
 
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.utils import call_db
+from app.screens.utils.utils import call_db, call_db_many
 
 logger = get_logger(__name__)
 
@@ -33,7 +33,6 @@ DEFAULT_CONFIGS = {
 
 class DB:
     def __init__(self):
-        super().__init__()
         self.create_db_and_check()
 
     def create_db_and_check(self) -> None:
@@ -128,12 +127,10 @@ class DB:
     @staticmethod
     def init_default_configs(force: bool = False) -> None:
         mode = "REPLACE" if force else "IGNORE"
-
-        for key, value in DEFAULT_CONFIGS.items():
-            call_db(
-                f"INSERT OR {mode} INTO configs (name, value) VALUES (?, ?)",
-                [key, value],
-            )
+        call_db_many(
+            f"INSERT OR {mode} INTO configs (name, value) VALUES (?, ?)",
+            list(DEFAULT_CONFIGS.items()),
+        )
 
     @staticmethod
     def set_config(conf_name: str, value: str) -> None:

@@ -58,7 +58,7 @@ selection, dataset preparation, training runs, and evaluation/detection.
 - Image workflows: browsing, selection, pagination/lazy loading, and dataset-related operations.
 - ML tooling: classification training pipelines and YOLO-based detection workflows.
 - Projects: project-oriented folder structure under `app/training/` to keep datasets/configs/models grouped.
-- Testing: Kivy-aware pytest fixtures + integration tests that cover navigation/auth/CRUD/images/DB/ML flows.
+- Testing: Kivy-aware pytest fixtures with focused unit coverage and integration tests for navigation/auth/CRUD/images/DB/ML flows.
 
 ## Getting started
 
@@ -83,24 +83,27 @@ Integration tests live under `app/tests/` and include a short guide at `app/test
 
 Quick run:
 ```powershell
-uv run pytest --timeout 20 -v -s
-uv run pytest --timeout 20 -v -s .\app\tests\integration\
+uv run pytest --timeout 30 -m "not slow" -q
+uv run pytest --timeout 30 -m slow -q
 ```
 
 ## Project layout (current)
 ```text
 app/
   screens/
-    services/     # Domain services (AuthService, CustomerService, ImageLibraryService, MLWorkspaceManager, YoloInferencePipeline)
+    services/     # Auth, classification, camera, detection/ML workspace, export, and YOLO services
     view/         # View controllers for screens (db_screen, ml_screen, detection_screen, etc.)
-    utils/        # DB, BaseScreen, custom logging, ML & detection utilities
+    utils/        # DB, navigation, widgets, project/image loading, logging, and compatibility helpers
   ui/             # .kv files (Kivy declarative layouts)
   resources/      # Assets (icons/images)
   training/       # ML projects/datasets/models
-  tests/          # pytest fixture suite + integration tests
+  tests/          # pytest fixtures, unit tests, and integration tests
 ```
 
 ## Roadmap
+- Step 1 refactoring: service extraction and fast/slow CI split complete.
+- Step 2: validate the Python/Kivy dependency upgrade separately.
+- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3.
 - Improve multi-project UX and config portability (import/export).
 - Packaging/deployment helpers (build scripts, Docker).
 - Expand ML evaluation utilities and make more parameters configurable.
