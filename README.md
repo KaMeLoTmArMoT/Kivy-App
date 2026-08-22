@@ -1,24 +1,12 @@
-<div align="center">
-  <h3 align="center">Python Kivy ML App</h3>
+# Python Kivy ML App
 
-  <p align="center">
-    A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
-    (classification + detection) in one UI.
-    <br /><br />
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Request Feature</a>
-  </p>
+A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
+(classification + detection) in one UI.
 
-  <p align="center">
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml">
-      <img alt="tests-minimal" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml/badge.svg">
-    </a>
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml">
-      <img alt="pre-commit" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml/badge.svg">
-    </a>
-  </p>
-</div>
+[Report Bug](https://github.com/KaMeLoTmArMoT/Kivy-App/issues) · [Request Feature](https://github.com/KaMeLoTmArMoT/Kivy-App/issues)
+
+[![tests-minimal](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml/badge.svg)](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml)
+[![pre-commit](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml)
 
 ## About the project
 This application is designed as a “real app” playground: multiple screens, persistent data, and repeatable workflows
