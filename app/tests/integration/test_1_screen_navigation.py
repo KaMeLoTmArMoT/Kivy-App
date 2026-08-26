@@ -32,7 +32,7 @@ class TestAppInitialization:
 
     def test_theme_configured(self, kivy_app):
         assert kivy_app.theme_cls.theme_style == "Dark"
-        assert kivy_app.theme_cls.primary_palette == "BlueGray"
+        assert kivy_app.theme_cls.primary_palette == "#607D8B"
 
 
 class TestLoadingScreenComponents:

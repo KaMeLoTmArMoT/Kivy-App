@@ -16,7 +16,7 @@ Config.set("input", "mouse", "mouse,multitouch_on_demand")
 class MainApp(MDApp):
     def build(self):
         self.theme_cls.theme_style = "Dark"
-        self.theme_cls.primary_palette = "BlueGray"
+        self.theme_cls.primary_palette = "#607D8B"
 
         Builder.load_file("app/ui/loading.kv")
 
