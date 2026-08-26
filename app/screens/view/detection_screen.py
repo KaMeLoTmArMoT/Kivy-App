@@ -273,10 +273,18 @@ class DetectionScreen(Screen, BaseScreen):
         if was_showing:
             self.display_start()
 
+    def set_confidence(self, value: float) -> None:
+        val = round(float(value), 2)
+        self.confidence = val
+        logger.info(f"Confidence updated: {val}")
+
+    def adjust_confidence(self, delta: float) -> None:
+        slider = self.ids.slider
+        new_val = max(0.05, min(1.0, round(slider.value + delta, 2)))
+        slider.value = new_val
+
     def update_confidence(self):
-        # TODO: check why double call happens
-        self.confidence = self.ids.slider.value
-        logger.info(f"{self.confidence}")
+        self.set_confidence(self.ids.slider.value)
 
     def after_project_selection_hook(self, project_name, path):
         self.db.set_latest_detection_project(project_name)

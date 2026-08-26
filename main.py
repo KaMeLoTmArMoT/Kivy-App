@@ -1,5 +1,16 @@
+import contextlib
 import os
 import sys
+
+if sys.platform == "win32":
+    with contextlib.suppress(Exception):
+        import ctypes
+
+        # Set DPI awareness (PROCESS_SYSTEM_DPI_AWARE = 1) to prevent Windows from blur-stretching the window
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            ctypes.windll.user32.SetProcessDPIAware()
 
 from kivy.config import Config
 

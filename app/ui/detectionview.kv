@@ -133,28 +133,46 @@
 
                     MDBoxLayout:  # slider and confidence box
                         size_hint_y: None
-                        height: 60
+                        height: 68
                         orientation: 'vertical'
                         padding: [4, 2]
+                        spacing: 2
 
                         MDLabel:
+                            id: confidence_label
                             size_hint_y: None
                             height: 20
-                            text: "Confidence: " + str(round(slider.value, 2))
+                            text: f"Confidence: {int(slider.value * 100)}% ({slider.value:.2f})"
                             font_size: 13
                             halign: "center"
 
-                        SafeMDSlider:
-                            id: slider
-                            min: 0.05
-                            value: 0.5
-                            max: 1
-                            step: 0.05
-                            size_hint_y: None
-                            height: 36
-                            hint: False
+                        MDBoxLayout:
                             orientation: 'horizontal'
-                            on_touch_up: if self.collide_point(*args[1].pos): root.update_confidence()
+                            size_hint_y: None
+                            height: 32
+                            spacing: 4
+
+                            AppActionButton:
+                                text: "-"
+                                size_hint_x: 0.22
+                                font_size: 15
+                                on_press: root.adjust_confidence(-0.05)
+
+                            Slider:
+                                id: slider
+                                min: 0.05
+                                max: 1.0
+                                step: 0.05
+                                value: 0.5
+                                size_hint_x: 0.56
+                                cursor_size: (18, 18)
+                                on_value: root.set_confidence(self.value)
+
+                            AppActionButton:
+                                text: "+"
+                                size_hint_x: 0.22
+                                font_size: 15
+                                on_press: root.adjust_confidence(0.05)
 
                     AppActionButton:
                         font_size: 13
