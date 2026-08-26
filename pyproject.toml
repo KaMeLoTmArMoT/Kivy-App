@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "kivy==2.3.1",
-    "kivymd==0.104.2",
+    "kivymd @ git+https://github.com/kivymd/KivyMD.git@master",
     "numpy==1.26.4",
     "pycryptodomex==3.19.1",
     "opencv-python==4.7.0.72",
@@ -37,6 +37,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

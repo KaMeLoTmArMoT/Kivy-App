@@ -21,6 +21,8 @@ from app.screens.utils.project_picker import ProjectPicker
 from app.screens.utils.tensorboard_utils import TBServer
 
 logger = get_logger(__name__)
+
+
 class SafeMDSlider(MDSlider):
     def __init__(self, **kwargs):
         kwargs.setdefault("value_track_width", 1)  # must be > 0

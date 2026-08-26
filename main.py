@@ -15,13 +15,14 @@ Config.set("input", "mouse", "mouse,multitouch_on_demand")
 
 class MainApp(MDApp):
     def build(self):
-        sm = ScreenManager()
-
-        sm.add_widget(LoadingScreen(name="loading"))
-        sm.current = "loading"
-
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "BlueGray"
+
+        Builder.load_file("app/ui/loading.kv")
+
+        sm = ScreenManager()
+        sm.add_widget(LoadingScreen(name="loading"))
+        sm.current = "loading"
 
         return sm
 

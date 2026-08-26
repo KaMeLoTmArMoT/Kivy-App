@@ -1,12 +1,12 @@
 <LoadingScreen>
     MDCard:
+        style: "elevated"
         size_hint: None, None
         size: 400, 300
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
-        elevation: 10
         padding: 25
         spacing: 25
-        radius: 10, 10, 10, 10
+        radius: [10, 10, 10, 10]
         orientation: 'vertical'
 
         MDLabel:
@@ -17,7 +17,7 @@
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             height: self.texture_size[1]
             size_hint_y: .8
-            padding_y: 15
+            padding: [0, 15]
 
         ProgressBar:
             id: pbar
@@ -30,4 +30,4 @@
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             height: self.texture_size[1]
             size_hint_y: .2
-            padding_y: 15
+            padding: [0, 15]

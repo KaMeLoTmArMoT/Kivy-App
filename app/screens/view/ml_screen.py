@@ -638,7 +638,11 @@ class MLViewScreen(Screen, BaseScreen):
 
     def get_classes(self):
         return sorted(
-            [btn.text.replace("\\", "/").split("/")[-1] for btn in self.ids.class_grid.children if btn.text != "all"]
+            [
+                btn.text.replace("\\", "/").split("/")[-1]
+                for btn in self.ids.class_grid.children
+                if btn.text != "all"
+            ]
         )
 
     def create_model(self, name):

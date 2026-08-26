@@ -87,7 +87,7 @@ app/
 ## Roadmap
 - Step 1 refactoring: service extraction and fast/slow CI split complete.
 - Step 2: Python / Kivy 2.3.1 runtime upgrade and compatibility validation complete.
-- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3 (next).
+- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3 complete.
 - Improve multi-project UX and config portability (import/export).
 - Packaging/deployment helpers (build scripts, Docker).
 - Expand ML evaluation utilities and make more parameters configurable.

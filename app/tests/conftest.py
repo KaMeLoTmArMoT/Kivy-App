@@ -13,7 +13,6 @@ os.environ.setdefault("KCFG_KIVY_LOG_LEVEL", "warning")
 from kivy.base import EventLoop  # noqa: E402
 from kivy.clock import Clock  # noqa: E402
 from kivy.config import Config  # noqa: E402
-from kivy.lang import Builder  # noqa: E402
 
 from app.screens.utils.utils import call_db, get_sha  # noqa: E402
 
@@ -38,9 +37,6 @@ def pytest_collection_modifyitems(items):
 @pytest.fixture(scope="session", autouse=True)
 def setup_kivy():
     EventLoop.ensure_window()
-
-    base_path = Path(__file__).parent.parent / "ui"
-    Builder.load_file(str(base_path / "loading.kv"))
 
     yield
 

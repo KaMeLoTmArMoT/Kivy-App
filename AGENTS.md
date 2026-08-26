@@ -20,6 +20,7 @@ All screens must subclass both `kivy.uix.screenmanager.Screen` and `app.screens.
 from kivy.uix.screenmanager import Screen
 from app.screens.utils.additional import BaseScreen
 
+
 class MyNewScreen(Screen, BaseScreen):
     pass
 ```
