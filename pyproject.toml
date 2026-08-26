@@ -3,7 +3,7 @@ name = "kivy-app"
 version = "0.1.0"
 description = "Kivy App for Image Management and Machine Learning"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "kivy==2.3.1",
     "kivymd @ git+https://github.com/kivymd/KivyMD.git@master",
@@ -46,7 +46,7 @@ packages = ["app"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [

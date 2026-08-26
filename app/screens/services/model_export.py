@@ -1,5 +1,6 @@
 import os
 import platform
+from enum import StrEnum
 
 try:
     import torch
@@ -11,6 +12,19 @@ except ImportError:
 from app.screens.utils.custom_logging import get_logger
 
 logger = get_logger(__name__)
+
+
+class HardwareAcceleration(StrEnum):
+    TENSORRT = "TensorRT"
+    OPENVINO = "OpenVINO"
+    NONE = "None"
+
+
+class ModelFormat(StrEnum):
+    ENGINE = "TensorRT"
+    OPENVINO = "OpenVINO"
+    ONNX = "ONNX"
+    PYTORCH = "PyTorch"
 
 
 def _require_runtime() -> None:
@@ -30,14 +44,14 @@ def log_gpu(tag: str, summary: bool = False) -> None:
 def get_hardware_acceleration_type() -> str:
     if torch is not None and torch.cuda.is_available():
         logger.debug("NVIDIA CUDA device found. Best acceleration: TensorRT")
-        return "TensorRT"
+        return str(HardwareAcceleration.TENSORRT)
 
     if "intel" in platform.processor().lower():
         logger.debug("Intel CPU detected. Best acceleration: OpenVINO")
-        return "OpenVINO"
+        return str(HardwareAcceleration.OPENVINO)
 
     logger.warning("No specific hardware acceleration detected.")
-    return "None"
+    return str(HardwareAcceleration.NONE)
 
 
 def export_to_best_available(pt_model_path: str, force_export: list[str] | None = None):
@@ -51,19 +65,31 @@ def export_to_best_available(pt_model_path: str, force_export: list[str] | None 
     model = YOLO(pt_model_path)
     name = os.path.basename(pt_model_path)
 
-    logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
-    model.export(format="onnx", half=True, simplify=True)
-    logger.info("Export to ONNX complete.")
+    try:
+        logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
+        model.export(format="onnx", half=True, simplify=True)
+        logger.info("Export to ONNX complete.")
+    except Exception as e:
+        e.add_note(f"Context: export '{name}' ({pt_model_path}) to ONNX")
+        logger.error(f"ONNX export error: {e}", exc_info=True)
 
-    if accel_type == "TensorRT" or "TensorRT" in force_export:
-        logger.info(f"Exporting '{name}' to TensorRT format...")
-        model.export(format="tensorrt", half=True, simplify=True)
-        logger.info("Export to TensorRT complete.")
+    if accel_type == str(HardwareAcceleration.TENSORRT) or "TensorRT" in force_export:
+        try:
+            logger.info(f"Exporting '{name}' to TensorRT format...")
+            model.export(format="tensorrt", half=True, simplify=True)
+            logger.info("Export to TensorRT complete.")
+        except Exception as e:
+            e.add_note(f"Context: export '{name}' ({pt_model_path}) to TensorRT")
+            logger.error(f"TensorRT export error: {e}", exc_info=True)
 
-    if accel_type == "OpenVINO" or "OpenVINO" in force_export:
-        logger.info(f"Exporting '{name}' to OpenVINO format...")
-        model.export(format="openvino", half=True)
-        logger.info("Export to OpenVINO complete.")
+    if accel_type == str(HardwareAcceleration.OPENVINO) or "OpenVINO" in force_export:
+        try:
+            logger.info(f"Exporting '{name}' to OpenVINO format...")
+            model.export(format="openvino", half=True)
+            logger.info("Export to OpenVINO complete.")
+        except Exception as e:
+            e.add_note(f"Context: export '{name}' ({pt_model_path}) to OpenVINO")
+            logger.error(f"OpenVINO export error: {e}", exc_info=True)
     return True
 
 
