@@ -15,7 +15,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
       - run: uv run ruff check --no-cache app main.py
-      - run: uv run pytest --timeout 30 -m "not slow" -q
+      - run: uv run pytest --timeout 30 -m fast -q
 
   slow-ml:
     runs-on: windows-latest

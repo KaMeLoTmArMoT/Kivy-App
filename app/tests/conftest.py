@@ -29,6 +29,12 @@ DB_PATH = Path(f"app_test_{worker_id}.db" if worker_id else "app_test.db").resol
 TEST_PASSWORD_HASH = get_sha("test_dev_pass_123")
 
 
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "slow" not in item.keywords:
+            item.add_marker(pytest.mark.fast)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_kivy():
     EventLoop.ensure_window()

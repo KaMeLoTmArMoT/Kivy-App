@@ -67,7 +67,7 @@ Integration tests live under `app/tests/` and include a guide at `app/tests/READ
 
 Quick run:
 ```powershell
-uv run pytest --timeout 30 -m "not slow" -q
+uv run pytest --timeout 30 -m fast -q
 uv run pytest --timeout 30 -m slow -q
 ```
 
@@ -86,8 +86,8 @@ app/
 
 ## Roadmap
 - Step 1 refactoring: service extraction and fast/slow CI split complete.
-- Step 2: validate the Python/Kivy dependency upgrade separately.
-- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3.
+- Step 2: Python / Kivy 2.3.1 runtime upgrade and compatibility validation complete.
+- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3 (next).
 - Improve multi-project UX and config portability (import/export).
 - Packaging/deployment helpers (build scripts, Docker).
 - Expand ML evaluation utilities and make more parameters configurable.

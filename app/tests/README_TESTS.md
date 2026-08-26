@@ -4,14 +4,14 @@
 
 The test suite is split into fast and slow gates to provide immediate feedback on core functionality while keeping heavy ML workloads isolated:
 
-- **Fast Gate (`not slow`)**: Unit tests and integration flows (navigation, authentication, CRUD, image browsing, encrypted DB). Runtime: ~15-20s.
+- **Fast Gate (`fast`)**: Unit tests and integration flows (navigation, authentication, CRUD, image browsing, encrypted DB). Runtime: ~15-20s.
 - **Slow Gate (`slow`)**: ML workflows (PyTorch/torchvision model creation, training loops, evaluation, TensorBoard output).
 
 ## Running Tests
 
 ### Fast Gate (Standard CI / Local Dev)
 ```powershell
-uv run pytest --timeout 30 -m "not slow" -q
+uv run pytest --timeout 30 -m fast -q
 ```
 
 ### ML Gate
