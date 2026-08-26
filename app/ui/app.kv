@@ -73,8 +73,7 @@
 
             on_press: root.parent.parent.goto_settings()
 
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: "contain"
             allow_hover: True
 
             canvas.before:
@@ -88,12 +87,10 @@
     ImageMDButton:
         id: img
         source: root.source
-        texture: root.texture
-        allow_stretch: True
-        keep_ratio: True
+        fit_mode: "contain"
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         line_color: (1, 1, 1, 0.6) if root.selected else root.line_color
-        md_bg_color: (1, 1, 1, 0.1) if root.selected else (1, 1, 1, 0)
+        md_bg_color: (1, 1, 1, 0.1) if root.selected else (0, 0, 0, 0)
     MDCheckbox:
         id: checkbox
         active: root.selected

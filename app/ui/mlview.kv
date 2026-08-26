@@ -136,8 +136,7 @@
                         disabled: True
 
                         source: 'app/resources/icons/rotate_left.png'
-                        allow_stretch: True
-                        keep_ratio: True
+                        fit_mode: "contain"
                         allow_hover: False if self.disabled else True
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
@@ -161,8 +160,7 @@
                         disabled: True
 
                         source: 'app/resources/icons/rotate_right.png'
-                        allow_stretch: True
-                        keep_ratio: True
+                        fit_mode: "contain"
                         allow_hover: False if self.disabled else True
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 

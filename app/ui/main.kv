@@ -11,12 +11,15 @@
             size_hint: 1, 0.025
 
         MDCard:
-            style: "elevated"
+            style: "outlined"
+            focus_behavior: False
+            ripple_behavior: False
             size_hint: 0.95, 0.95
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             padding: 20
             spacing: 20
-            radius: [20, 20, 20, 20]
+            radius: [16, 16, 16, 16]
+            line_color: (1, 1, 1, 0.12)
             orientation: 'vertical'
 
             MDLabel:
@@ -111,8 +114,7 @@
 
                             on_press: root.reload_records()
 
-                            allow_stretch: True
-                            keep_ratio: True
+                            fit_mode: "contain"
                             allow_hover: True
 
                             canvas.before:

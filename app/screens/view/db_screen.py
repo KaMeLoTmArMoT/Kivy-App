@@ -102,8 +102,10 @@ class DbViewScreen(Screen, BaseScreen):
                 texture = self._create_error_texture()
                 selectable_img.line_color = (1.0, 0.0, 0.0, 0.5)
 
-            selectable_img.source = str(pk)
+            selectable_img.db_pk = pk
+            selectable_img.ids.img.db_pk = pk
             selectable_img.texture = texture
+            selectable_img.ids.img.texture = texture
             selectable_img.ids.img.bind(on_press=self.image_click)
             selectable_img.ids.checkbox.bind(on_press=self.checkbox_click)
             grid.add_widget(selectable_img)
@@ -176,7 +178,11 @@ class DbViewScreen(Screen, BaseScreen):
             return
 
         for image in self.selected_images:
-            key = int(image.source)
+            key = (
+                getattr(image, "db_pk", None)
+                or getattr(image.parent, "db_pk", None)
+                or int(image.source)
+            )
             self.image_service.delete_db_image(key)
 
         self.unselect_all_images()

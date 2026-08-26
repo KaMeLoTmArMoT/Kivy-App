@@ -72,11 +72,21 @@ class ImageMDButton(
     BackgroundColorBehavior,
     HoverBehavior,
 ):
-    pass
+    def __init__(self, **kwargs):
+        kwargs.setdefault("md_bg_color", (0, 0, 0, 0))
+        super().__init__(**kwargs)
 
 
 class SelectableImage(MDFloatLayout):
     selected = BooleanProperty(False)
     source = StringProperty("")
-    texture = ObjectProperty(None)
+    texture = ObjectProperty(None, allownone=True)
     line_color = ListProperty([1.0, 1.0, 1.0, 0.2])
+
+    def on_source(self, instance, value):
+        if hasattr(self, "ids") and "img" in self.ids and value:
+            self.ids.img.source = value
+
+    def on_texture(self, instance, value):
+        if hasattr(self, "ids") and "img" in self.ids and value is not None:
+            self.ids.img.texture = value
