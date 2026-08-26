@@ -2,15 +2,20 @@ import os
 import sys
 
 from kivy.config import Config
-from kivy.core.window import Window
-from kivy.lang import Builder
-from kivy.resources import resource_add_path
-from kivy.uix.screenmanager import ScreenManager
-from kivymd.app import MDApp
 
-from app.screens.view.loading_screen import LoadingScreen
-
+Config.set("graphics", "width", "960")
+Config.set("graphics", "height", "720")
+Config.set("graphics", "position", "custom")
+Config.set("graphics", "top", "190")
+Config.set("graphics", "left", "450")
 Config.set("input", "mouse", "mouse,multitouch_on_demand")
+
+from kivy.lang import Builder  # noqa: E402
+from kivy.resources import resource_add_path  # noqa: E402
+from kivy.uix.screenmanager import ScreenManager  # noqa: E402
+from kivymd.app import MDApp  # noqa: E402
+
+from app.screens.view.loading_screen import LoadingScreen  # noqa: E402
 
 
 class MainApp(MDApp):
@@ -30,10 +35,6 @@ class MainApp(MDApp):
 if __name__ == "__main__":
     if hasattr(sys, "_MEIPASS"):
         resource_add_path(os.path.join(sys._MEIPASS))
-
-    Window.size = (960, 720)
-    Window.top = 190
-    Window.left = 450
 
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
