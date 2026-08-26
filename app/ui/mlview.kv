@@ -7,14 +7,10 @@
             size_hint: 1, None
             height: 36
 
-        MDBoxLayout:
-            size_hint: 1, 0.01
-
         AppScreenCard:
-            size_hint: 0.99, 0.96
-            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            size_hint: 1, 1
             orientation: 'vertical'
-            padding: 8
+            padding: [10, 6, 10, 6]
             spacing: 6
 
             MDBoxLayout:
@@ -286,9 +282,6 @@
                         text: 'Tensorboard'
                         on_press: root.launch_tensorboard()
                         disabled: True
-
-        MDBoxLayout:
-            size_hint: 1, 0.01
 
     FloatLayout:
         size: root.width, root.height

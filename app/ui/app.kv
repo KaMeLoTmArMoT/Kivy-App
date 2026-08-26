@@ -6,17 +6,10 @@
     halign: "center"
     font_size: 32
 
-<AppScreenCard@MDCard>:
-    style: "outlined"
-    focus_behavior: False
-    ripple_behavior: False
-    state_hover: 0
-    state_press: 0
-    state_drag: 0
-    radius: [16, 16, 16, 16]
-    line_color: (1, 1, 1, 0.15)
-    padding: 16
-    spacing: 16
+<AppScreenCard@MDBoxLayout>:
+    orientation: 'vertical'
+    padding: [12, 8, 12, 8]
+    spacing: 8
 
 <AppHeaderButton@Button>:
     size_hint_y: None

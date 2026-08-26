@@ -7,15 +7,11 @@
             size_hint: 1, None
             height: 36
 
-        MDBoxLayout:
-            size_hint: 1, 0.01
-
         AppScreenCard:
-            size_hint: 0.98, 0.96
-            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+            size_hint: 1, 1
             orientation: 'vertical'
-            padding: 10
-            spacing: 8
+            padding: [12, 6, 12, 6]
+            spacing: 6
 
             MDBoxLayout:
                 orientation: 'vertical'
@@ -107,6 +103,3 @@
                     text: "Selected: 0"
                     font_size: 18
                     halign: 'center'
-
-        MDBoxLayout:
-            size_hint: 1, 0.01

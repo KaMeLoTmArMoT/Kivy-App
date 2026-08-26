@@ -57,7 +57,7 @@ class LoadingScreen(Screen, BaseScreen):
 
     def on_enter(self, *args):
         Builder.load_file("app/ui/app.kv")
-        self.start_next_module()
+        Clock.schedule_once(self.start_next_module, 0.05)
 
     def start_next_module(self, *_):
         if self.current_module_idx >= len(self.modules):

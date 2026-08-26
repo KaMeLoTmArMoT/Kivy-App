@@ -5,24 +5,12 @@
         Header:
             id: header
             size_hint: 1, None
-            height: 30
+            height: 36
 
-        MDBoxLayout:
-            size_hint: 1, 0.025
-
-        MDCard:
-            style: "outlined"
-            focus_behavior: False
-            ripple_behavior: False
-            state_hover: 0
-            state_press: 0
-            state_drag: 0
-            size_hint: 0.95, 0.95
-            pos_hint: {"center_x": 0.5, "center_y": 0.5}
-            padding: 20
-            spacing: 20
-            radius: [16, 16, 16, 16]
-            line_color: (1, 1, 1, 0.12)
+        AppScreenCard:
+            size_hint: 1, 1
+            padding: [16, 12, 16, 12]
+            spacing: 12
             orientation: 'vertical'
 
             MDLabel:
