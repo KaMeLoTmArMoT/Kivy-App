@@ -5,91 +5,111 @@
         Header:
             id: header
             size_hint: 1, None
-            height: 30
+            height: 36
 
         MDBoxLayout:
+            size_hint: 1, 0.01
+
+        AppScreenCard:
+            size_hint: 0.98, 0.96
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
             orientation: 'vertical'
+            padding: 10
+            spacing: 8
 
-            MDLabel:
-                id: load_label
-                halign: 'center'
-                font_size: 36
-                text: "Loading, please wait..."
-                size_hint_y: .2
+            MDBoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.92
 
-            ScrollView:
-                size_hint_y: .9
-                pos_hint: {'x': 0, 'y': 0}
-                do_scroll_x: False
-                do_scroll_y: True
-                scroll_wheel_distance: 60
+                MDLabel:
+                    id: load_label
+                    halign: 'center'
+                    font_size: 28
+                    text: "Loading, please wait..."
+                    size_hint_y: None
+                    height: 32
 
-                GridLayout:
-                    cols: 1
-                    size:(root.width, root.height)
-                    size_hint: None, None
-                    height: self.minimum_height
-                    row_min_height: 250
-
-                    MDDivider:
-                        size_hint_y: None
-                        height: "5dp"
-                    MDLabel:
-                        id: simple
-                        halign: 'center'
-                        font_size: 36
-                        text: "Simple images"
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                    MDDivider:
-                        size_hint_y: None
-                        height: "5dp"
+                ScrollView:
+                    size_hint_y: 1
+                    do_scroll_x: False
+                    do_scroll_y: True
+                    scroll_wheel_distance: 60
 
                     GridLayout:
-                        id: grid_1
-                        cols: 3
-                        size:(root.width, root.height)
+                        cols: 1
+                        size: (root.width, root.height)
                         size_hint: None, None
                         height: self.minimum_height
-                        row_default_height: 250
+                        row_min_height: 200
+                        spacing: 8
 
-                    MDDivider:
-                        size_hint_y: None
-                        height: "5dp"
-                    MDLabel:
-                        id: secure
-                        halign: 'center'
-                        font_size: 36
-                        text: "Secure images"
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                    MDDivider:
-                        size_hint_y: None
-                        height: "5dp"
+                        MDDivider:
+                            size_hint_y: None
+                            height: "2dp"
+                        MDLabel:
+                            id: simple
+                            halign: 'center'
+                            font_size: 24
+                            text: "Simple images"
+                            size_hint_y: None
+                            height: 36
+                        MDDivider:
+                            size_hint_y: None
+                            height: "2dp"
 
-                    GridLayout:
-                        id: grid_2
-                        cols: 3
-                        size:(root.width, root.height)
-                        size_hint: None, None
-                        height: self.minimum_height
-                        row_default_height: 250
+                        GridLayout:
+                            id: grid_1
+                            cols: 3
+                            size: (root.width, root.height)
+                            size_hint: None, None
+                            height: self.minimum_height
+                            row_default_height: 250
+                            spacing: 8
+                            padding: 4
+
+                        MDDivider:
+                            size_hint_y: None
+                            height: "2dp"
+                        MDLabel:
+                            id: secure
+                            halign: 'center'
+                            font_size: 24
+                            text: "Secure images"
+                            size_hint_y: None
+                            height: 36
+                        MDDivider:
+                            size_hint_y: None
+                            height: "2dp"
+
+                        GridLayout:
+                            id: grid_2
+                            cols: 3
+                            size: (root.width, root.height)
+                            size_hint: None, None
+                            height: self.minimum_height
+                            row_default_height: 250
+                            spacing: 8
+                            padding: 4
+
+            MDBoxLayout:
+                orientation:'horizontal'
+                size_hint_y: None
+                height: 38
+                spacing: 12
+
+                AppActionButton:
+                    id: preview
+                    text: 'Preview'
+                    size_hint_x: 0.5
+                    on_press: root.preview_img()
+                    disabled: True
+
+                AppActionButton:
+                    id: delete
+                    text: 'Delete'
+                    size_hint_x: 0.5
+                    on_press: root.delete_from_db()
+                    disabled: True
 
         MDBoxLayout:
-            orientation:'horizontal'
-            size_hint_y: None
-            height: 40
-
-            Button:
-                id: preview
-                text: 'Preview'
-                background_color: (1, 1, 1, .5)
-                on_press: root.preview_img()
-                disabled: True
-
-            Button:
-                id: delete
-                text: 'Delete'
-                background_color: (1, 1, 1, .5)
-                on_press: root.delete_from_db()
-                disabled: True
+            size_hint: 1, 0.01

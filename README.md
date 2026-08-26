@@ -71,19 +71,6 @@ uv run pytest --timeout 30 -m fast -q
 uv run pytest --timeout 30 -m slow -q
 ```
 
-## Project layout (current)
-```text
-app/
-  screens/
-    services/     # Auth, classification, camera, detection/ML workspace, export, and YOLO services
-    view/         # View controllers for screens (db_screen, ml_screen, detection_screen, etc.)
-    utils/        # DB, navigation, widgets, project/image loading, logging, and compatibility helpers
-  ui/             # .kv files (Kivy declarative layouts)
-  resources/      # Assets (icons/images)
-  training/       # ML projects/datasets/models
-  tests/          # pytest fixtures, unit tests, and integration tests
-```
-
 ## Roadmap
 - Step 1 refactoring: service extraction and fast/slow CI split complete.
 - Step 2: Python / Kivy 2.3.1 runtime upgrade and compatibility validation complete.

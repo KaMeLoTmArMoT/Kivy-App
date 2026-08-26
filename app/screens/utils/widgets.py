@@ -90,3 +90,8 @@ class SelectableImage(MDFloatLayout):
     def on_texture(self, instance, value):
         if hasattr(self, "ids") and "img" in self.ids and value is not None:
             self.ids.img.texture = value
+
+    def toggle_select(self) -> bool:
+        """Toggle current selection state and return new value."""
+        self.selected = not self.selected
+        return self.selected

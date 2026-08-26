@@ -54,8 +54,14 @@ class BaseScreen:
     def setup_header(self):
         if "header" in self.ids and self.manager:
             current_screen = self.manager.current
-            if current_screen in self.ids.header.ids:
-                self.ids.header.ids[current_screen].background_color = (1, 1, 1, 1)
+            for screen_id, btn in self.ids.header.ids.items():
+                if hasattr(btn, "background_color"):
+                    if screen_id == current_screen:
+                        btn.background_color = (0.35, 0.45, 0.58, 1.0)
+                        btn.color = (1.0, 1.0, 1.0, 1.0)
+                    else:
+                        btn.background_color = (0.18, 0.22, 0.26, 0.85)
+                        btn.color = (0.85, 0.85, 0.85, 1.0)
 
     def select_direction(self, screen_name: str):
         self.exit_screen = True
@@ -138,5 +144,25 @@ class BaseScreen:
 
 
 class Header(MDBoxLayout, BaseScreen):
-    def __init__(self, **kwargs):  # TODO: check
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def navigate_to(self, screen_name: str) -> None:
+        """Navigate to target screen cleanly by traversing to root ScreenManager or parent BaseScreen."""
+        curr = self.parent
+        while curr is not None:
+            if hasattr(curr, "select_direction"):
+                curr.select_direction(screen_name)
+                return
+            if hasattr(curr, "manager") and curr.manager is not None:
+                if hasattr(curr.manager, "get_screen"):
+                    current_screen = curr.manager.get_screen(curr.manager.current)
+                    if hasattr(current_screen, "select_direction"):
+                        current_screen.select_direction(screen_name)
+                        return
+                curr.manager.current = screen_name
+                return
+            curr = getattr(curr, "parent", None)
+        # Fallback to BaseScreen method if manager is attached
+        if self.manager:
+            self.select_direction(screen_name)
