@@ -37,10 +37,6 @@ selection, dataset preparation, training runs, and evaluation/detection.
   </tr>
 </table>
 
-## Screenshots
-<!-- Put one hero image here (main screen or ML screen). -->
-<!-- Then add a small grid of key screens below (see examples in the next section). -->
-
 ## Key features
 - Security: password hashing/verification and encryption utilities for app data.
 - Image workflows: browsing, selection, pagination/lazy loading, and dataset-related operations.
@@ -67,7 +63,7 @@ uv run ruff format
 ```
 
 ### Tests
-Integration tests live under `app/tests/` and include a short guide at `app/tests/README_TESTS.md`.
+Integration tests live under `app/tests/` and include a guide at `app/tests/README_TESTS.md`.
 
 Quick run:
 ```powershell
