@@ -64,9 +64,7 @@ Every screen must be loaded dynamically by `LoadingScreen` in [loading_screen.py
 
 ## 5. Verification Requirements
 
-After any code change:
-- Run integration tests locally using:
-  ```powershell
-  uv run pytest --timeout 20 -v -s
-  ```
-- Do not mark a task completed until all tests pass successfully.
+- **Do NOT run full test suites on every minor change**: Avoid executing full integration tests (`pytest`) for simple UI tweaks, minor styling fixes, or isolated 1-line changes.
+- **Run tests selectively**:
+  - For quick Python changes: run fast targeted tests or `uv run ruff check`.
+  - Run the full suite (`uv run pytest --timeout 20 -v -s`) only after completing major multi-step refactoring, significant new feature additions, or when explicitly requested by the user.
