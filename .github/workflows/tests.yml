@@ -2,16 +2,22 @@ name: Tests
 
 on:
   push:
+    branches: [ master ]
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   fast:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
       - run: uv run ruff check --no-cache app main.py
@@ -19,12 +25,13 @@ jobs:
 
   slow-ml:
     runs-on: windows-latest
+    timeout-minutes: 30
     needs: fast
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
       - run: uv run pytest --timeout 300 -m slow -q
