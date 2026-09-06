@@ -11,8 +11,8 @@ def export(model_name="yolo11n"):
     export_model_path = os.path.join(base_pth, f"{model_name}.pt")
 
     model = YOLO(export_model_path)
-    model.export(format="tensorrt", half=True, simplify=True)
-    model.export(format="openvino", half=True)
+    model.export(format="tensorrt", quantize=16, simplify=True)
+    model.export(format="openvino", quantize=16)
     print("Model exported successfully to TensorRT/TARGET format!")
 
 

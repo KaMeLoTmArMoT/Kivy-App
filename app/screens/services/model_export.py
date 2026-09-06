@@ -67,7 +67,7 @@ def export_to_best_available(pt_model_path: str, force_export: list[str] | None 
 
     try:
         logger.info(f"Exporting '{name}' to ONNX format for general acceleration...")
-        model.export(format="onnx", half=True, simplify=True)
+        model.export(format="onnx", quantize=16, simplify=True)
         logger.info("Export to ONNX complete.")
     except Exception as e:
         e.add_note(f"Context: export '{name}' ({pt_model_path}) to ONNX")
@@ -76,7 +76,7 @@ def export_to_best_available(pt_model_path: str, force_export: list[str] | None 
     if accel_type == str(HardwareAcceleration.TENSORRT) or "TensorRT" in force_export:
         try:
             logger.info(f"Exporting '{name}' to TensorRT format...")
-            model.export(format="tensorrt", half=True, simplify=True)
+            model.export(format="tensorrt", quantize=16, simplify=True)
             logger.info("Export to TensorRT complete.")
         except Exception as e:
             e.add_note(f"Context: export '{name}' ({pt_model_path}) to TensorRT")
@@ -85,7 +85,7 @@ def export_to_best_available(pt_model_path: str, force_export: list[str] | None 
     if accel_type == str(HardwareAcceleration.OPENVINO) or "OpenVINO" in force_export:
         try:
             logger.info(f"Exporting '{name}' to OpenVINO format...")
-            model.export(format="openvino", half=True)
+            model.export(format="openvino", quantize=16)
             logger.info("Export to OpenVINO complete.")
         except Exception as e:
             e.add_note(f"Context: export '{name}' ({pt_model_path}) to OpenVINO")
