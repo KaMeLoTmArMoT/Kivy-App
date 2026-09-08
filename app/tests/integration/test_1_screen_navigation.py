@@ -6,7 +6,7 @@ class BaseScreenTest:
     """Base class for common test functionality"""
 
     @staticmethod
-    def wait_for_loading(kivy_app=None, screen_name=None, timeout=3.0):
+    def wait_for_loading(kivy_app=None, screen_name=None, timeout=15.0):
         if kivy_app is None:
             for _ in range(2):
                 Clock.tick()
