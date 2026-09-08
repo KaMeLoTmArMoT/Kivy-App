@@ -5,320 +5,283 @@
         Header:
             id: header
             size_hint: 1, None
-            height: 30
+            height: 36
 
-        MDBoxLayout:
-            orientation: 'horizontal'
+        AppScreenCard:
+            size_hint: 1, 1
+            orientation: 'vertical'
+            padding: [10, 6, 10, 6]
+            spacing: 6
 
-            MDBoxLayout:    # left sidebar
-                orientation: 'vertical'
-                size_hint_x: 0.2
+            MDBoxLayout:
+                orientation: 'horizontal'
+                spacing: 8
 
-                MDLabelBtn:
-                    id: project_label
-                    font_size: 14
-                    text: "Select Project"
-                    size_hint_y: 0.1
-                    padding: 0, 0
-                    allow_hover: True
-                    halign: "center"
-                    valign: "center"
-                    on_press: root.select_project_button()
-
-                TextInput:
-                    id: class_input
-                    size_hint_y: 0.1
-                    height: 30
-                    multiline: False
-                    hint_text: "enter class name"
-                    font_size: 16
-                    on_text_validate:
-                        pass
-
-                Button:
-                    id: add_class
-                    text: 'Add class'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.add_class()
-                    disabled: True
-
-                ScrollView:
-                    size_hint_y: 0.6
-                    do_scroll_x: False
-                    do_scroll_y: True
-                    height: 100
-                    scroll_wheel_distance: 60
-
-                    GridLayout:
-                        id: class_grid
-                        cols: 1
-                        size: self.parent.size
-                        pos: self.parent.pos
-                        size_hint: None, None
-                        height: self.minimum_height
-                        row_default_height: 20
-
-                Button:
-                    id: delete_class
-                    text: 'Delete class'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.delete_class()
-                    disabled: True
-
-                Button:
-                    id: unselect_all_images
-                    text: 'Unselect all images'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.unselect_all_images()
-                    disabled: True
-
-                Button:
-                    id: select_all_images
-                    text: 'Select all images'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.select_all_images()
-                    disabled: False
-
-                Button:
-                    id: clear_predictions
-                    text: 'Clear predictions'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.clear_predictions()
-                    disabled: True
-
-                Button:
-                    id: open_class
-                    text: 'Open class'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.show_folder_images(new=True)
-                    disabled: True
-
-                Button:
-                    id: transfer_image
-                    text: 'Transfer'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.transfer_images()
-                    disabled: True
-
-                Button:
-                    id: train_btn
-                    text: 'Train'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.trigger_training()
-                    disabled: True
-
-                MDBoxLayout:
-                    orientation: 'horizontal'
-                    size_hint_y: 0.1
+                MDBoxLayout:    # left sidebar
+                    orientation: 'vertical'
+                    size_hint_x: 0.22
                     spacing: 4
-                    padding: 2
 
-                    ImageMDButton:
-                        id: rotate_left
-                        height: 30
-                        on_press: root.rotate("left")
+                    MDLabelBtn:
+                        id: project_label
+                        font_size: 15
+                        text: "Select Project"
+                        size_hint_y: None
+                        height: 32
+                        padding: 0, 0
+                        allow_hover: True
+                        halign: "center"
+                        valign: "center"
+                        on_press: root.select_project_button()
+
+                    TextInput:
+                        id: class_input
+                        size_hint_y: None
+                        height: 32
+                        multiline: False
+                        hint_text: "enter class name"
+                        font_size: 14
+                        on_text_validate:
+                            pass
+
+                    AppActionButton:
+                        id: add_class
+                        text: 'Add class'
+                        on_press: root.add_class()
                         disabled: True
 
-                        source: 'app/resources/icons/rotate_left.png'
-                        allow_stretch: True
-                        keep_ratio: True
-                        allow_hover: False if self.disabled else True
-                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    ScrollView:
+                        size_hint_y: 0.4
+                        do_scroll_x: False
+                        do_scroll_y: True
+                        scroll_wheel_distance: 60
 
-                        canvas.before:
-                            Color:
-                                rgba: 1, 1, 1, 0 if self.disabled else .18
-                            Rectangle:
-                                pos: self.pos
-                                size: self.size
+                        GridLayout:
+                            id: class_grid
+                            cols: 1
+                            size: self.parent.size
+                            pos: self.parent.pos
+                            size_hint: None, None
+                            height: self.minimum_height
+                            row_default_height: 24
+
+                    AppActionButton:
+                        id: delete_class
+                        text: 'Delete class'
+                        on_press: root.delete_class()
+                        disabled: True
+
+                    AppActionButton:
+                        id: unselect_all_images
+                        text: 'Unselect all'
+                        on_press: root.unselect_all_images()
+                        disabled: True
+
+                    AppActionButton:
+                        id: select_all_images
+                        text: 'Select all'
+                        on_press: root.select_all_images()
+                        disabled: False
+
+                    AppActionButton:
+                        id: clear_predictions
+                        text: 'Clear predictions'
+                        on_press: root.clear_predictions()
+                        disabled: True
+
+                    AppActionButton:
+                        id: open_class
+                        text: 'Open class'
+                        on_press: root.show_folder_images(new=True)
+                        disabled: True
+
+                    AppActionButton:
+                        id: transfer_image
+                        text: 'Transfer'
+                        on_press: root.transfer_images()
+                        disabled: True
+
+                    AppActionButton:
+                        id: train_btn
+                        text: 'Train'
+                        on_press: root.trigger_training()
+                        disabled: True
+
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: None
+                        height: 34
+                        spacing: 4
+                        padding: 2
+
+                        ImageMDButton:
+                            id: rotate_left
+                            height: 30
+                            on_press: root.rotate("left")
+                            disabled: True
+
+                            source: 'app/resources/icons/rotate_left.png'
+                            fit_mode: "contain"
+                            allow_hover: False if self.disabled else True
+                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                            canvas.before:
+                                Color:
+                                    rgba: 1, 1, 1, 0 if self.disabled else .18
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+
+                        MDLabel:
+                            id: num_selected_images
+                            text: "0"
+                            font_size: 20
+                            halign: 'center'
+
+                        ImageMDButton:
+                            id: rotate_right
+                            height: 30
+                            on_press: root.rotate("right")
+                            disabled: True
+
+                            source: 'app/resources/icons/rotate_right.png'
+                            fit_mode: "contain"
+                            allow_hover: False if self.disabled else True
+                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                            canvas.before:
+                                Color:
+                                    rgba: 1, 1, 1, 0 if self.disabled else .18
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+
+                MDBoxLayout:    # image preview window
+                    orientation: 'vertical'
+                    id: preview
+                    size_hint_x: 0.56
 
                     MDLabel:
-                        id: num_selected_images
-                        text: "0"
-                        font_size: 24
+                        id: load_label
                         halign: 'center'
+                        font_size: 26
+                        text: "Loading, please wait..."
+                        size_hint_y: 0
 
-                    ImageMDButton:
-                        id: rotate_right
-                        height: 30
-                        on_press: root.rotate("right")
+                    ProgressBar:
+                        id: progress_bar
+                        value: 0
+                        min: 0
+                        max: 100
+                        pos_hint: {'center_x': 0.5}
+                        size_hint: 0.8, 0
+
+                    ScrollView:
+                        size_hint_y: 0.9
+                        pos_hint: {'x': 0, 'y': 0}
+                        do_scroll_x: False
+                        do_scroll_y: True
+                        scroll_wheel_distance: 60
+
+                        GridLayout:
+                            id: image_grid
+                            cols: 4
+                            size: (preview.width, preview.height)
+                            size_hint: None, None
+                            height: self.minimum_height
+                            row_default_height: 200
+                            spacing: 6
+                            padding: 2
+
+                MDBoxLayout:    # right sidebar
+                    orientation: 'vertical'
+                    size_hint_x: 0.22
+                    spacing: 4
+
+                    MDLabelBtn:
+                        id: model_label
+                        font_size: 15
+                        text: "MobileNetV2"
+                        size_hint_y: None
+                        height: 32
+                        padding: 0, 0
+                        allow_hover: True
+                        halign: "center"
+                        valign: "center"
+                        on_press: root.select_model_type()
+
+                    TextInput:
+                        id: model_input
+                        size_hint_y: None
+                        height: 32
+                        multiline: False
+                        hint_text: "enter model name"
+                        font_size: 14
+                        on_text_validate:
+                            root.create_model(self.text)
+
+                    AppActionButton:
+                        id: create_model
+                        text: 'Create model'
+                        on_press: root.create_model(model_input.text)
                         disabled: True
 
-                        source: 'app/resources/icons/rotate_right.png'
-                        allow_stretch: True
-                        keep_ratio: True
-                        allow_hover: False if self.disabled else True
-                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    ScrollView:
+                        size_hint_y: 0.35
+                        do_scroll_x: False
+                        do_scroll_y: True
+                        scroll_wheel_distance: 60
 
-                        canvas.before:
-                            Color:
-                                rgba: 1, 1, 1, 0 if self.disabled else .18
-                            Rectangle:
-                                pos: self.pos
-                                size: self.size
+                        GridLayout:
+                            id: model_grid
+                            cols: 1
+                            size: self.parent.size
+                            pos: self.parent.pos
+                            size_hint: None, None
+                            height: self.minimum_height
+                            row_default_height: 24
 
-            MDBoxLayout:    # image preview window
-                orientation: 'vertical'
-                id: preview
+                    AppActionButton:
+                        id: model_delete
+                        text: 'Delete'
+                        on_press: root.delete_model()
+                        disabled: True
 
-                MDLabel:
-                    id: load_label
-                    halign: 'center'
-                    font_size: 36
-                    text: "Loading, please wait..."
-                    size_hint_y: 0
+                    AppActionButton:
+                        id: model_load
+                        text: 'Load'
+                        on_press: root.load_model()
+                        disabled: True
 
-                ProgressBar:
-                    id: progress_bar
-                    value: 0
-                    min: 0
-                    max: 100
-                    pos_hint: {'x': .1}
-                    size_hint: .8, 0
+                    AppActionButton:
+                        id: model_unload
+                        text: 'Unload'
+                        on_press: root.unload_model()
+                        disabled: True
 
-                ScrollView:
-                    size_hint_y: .9
-                    pos_hint: {'x': 0, 'y': 0}
-                    do_scroll_x: False
-                    do_scroll_y: True
-                    scroll_wheel_distance: 60
+                    AppActionButton:
+                        id: evaluate_btn
+                        text: 'Evaluate'
+                        on_press: root.evaluate_model()
+                        disabled: True
 
-                    GridLayout:
-                        id: image_grid
-                        cols: 4
-                        size:(preview.width, preview.height)
-                        size_hint: None, None
-                        height: self.minimum_height
-                        row_default_height: 200
+                    AppActionButton:
+                        id: save_btn
+                        text: 'Save'
+                        on_press: root.save_model()
+                        disabled: True
 
-            MDBoxLayout:    # right sidebar
-                orientation: 'vertical'
-                size_hint_x: 0.2
+                    AppActionButton:
+                        id: predict_btn
+                        text: 'Predict'
+                        on_press: root.model_predict()
+                        disabled: True
 
-                MDLabelBtn:
-                    id: model_label
-                    font_size: 14
-                    text: "MobileNetV2"
-                    size_hint_y: 0.1
-                    padding: 0, 0
-                    allow_hover: True
-                    halign: "center"
-                    valign: "center"
-                    on_press: root.select_model_type()
-
-                TextInput:
-                    id: model_input
-                    size_hint_y: 0.1
-                    height: 30
-                    multiline: False
-                    hint_text: "enter model name"
-                    font_size: 16
-                    on_text_validate:
-                        root.create_model(self.text)
-
-                Button:
-                    id: create_model
-                    text: 'Create model'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.create_model(model_input.text)
-                    disabled: True
-
-                ScrollView:
-                    size_hint_y: 0.6
-                    do_scroll_x: False
-                    do_scroll_y: True
-                    height: 100
-                    scroll_wheel_distance: 60
-
-                    GridLayout:
-                        id: model_grid
-                        cols: 1
-                        size: self.parent.size
-                        pos: self.parent.pos
-                        size_hint: None, None
-                        height: self.minimum_height
-                        row_default_height: 20
-
-                Button:
-                    id: model_delete
-                    text: 'Delete'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.delete_model()
-                    disabled: True
-
-                Button:
-                    id: model_load
-                    text: 'Load'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.load_model()
-                    disabled: True
-
-                Button:
-                    id: model_unload
-                    text: 'Unload'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.unload_model()
-                    disabled: True
-
-                Button:
-                    id: evaluate_btn
-                    text: 'Evaluate'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.evaluate_model()
-                    disabled: True
-
-                Button:
-                    id: save_btn
-                    text: 'Save'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.save_model()
-                    disabled: True
-
-                Button:
-                    id: predict_btn
-                    text: 'Predict'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.model_predict()
-                    disabled: True
-
-                Button:
-                    id: tensorboard_btn
-                    text: 'Tensorboard'
-                    size_hint_y: 0.1
-                    height: 30
-                    background_color: (1, 1, 1, .5)
-                    on_press: root.launch_tensorboard()
-                    disabled: True
+                    AppActionButton:
+                        id: tensorboard_btn
+                        text: 'Tensorboard'
+                        on_press: root.launch_tensorboard()
+                        disabled: True
 
     FloatLayout:
         size: root.width, root.height
@@ -327,31 +290,29 @@
             id: page_selector
             orientation: 'horizontal'
             size_hint: 0.3, 0.05
-            pos: (root.width - self.width) / 2, 0
+            pos: (root.width - self.width) / 2, 4
+            spacing: 6
 
-            Button:
+            AppActionButton:
                 id: prev_page
                 disabled: True
                 text: '<<<'
                 size_hint_x: .3
-                background_color: (1, 1, 1, .5)
                 on_press: root.prev_page()
 
             MDLabel:
                 id: page_label
                 disabled: True
                 text: "1"
-                font_size: 36
+                font_size: 26
                 size_hint_x: .4
-                pos_hint_x: .3
                 halign: 'center'
 
-            Button:
+            AppActionButton:
                 id: next_page
                 disabled: True
                 text: '>>>'
                 size_hint_x: .3
-                background_color: (1, 1, 1, .5)
                 on_press: root.next_page()
 
     FloatLayout:    # error message popup
@@ -360,7 +321,7 @@
         MDBoxLayout:
             id: error_popup
             orientation: 'horizontal'
-            size_hint: 0.7, 0.1
+            size_hint: 0.6, 0.08
             pos: (root.width - self.width) / 2, preview.height - self.height - 10
 
             canvas.before:
@@ -369,12 +330,12 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: 10, 10, 10, 10
+                    radius: [10, 10, 10, 10]
 
             MDLabel:
                 id: error_popup_text
                 text: ""
-                font_size: 34
+                font_size: 22
 
                 halign: 'center'
                 theme_text_color: "Custom"

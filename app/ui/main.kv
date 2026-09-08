@@ -5,18 +5,12 @@
         Header:
             id: header
             size_hint: 1, None
-            height: 30
+            height: 36
 
-        MDBoxLayout:
-            size_hint: 1, 0.025
-
-        MDCard:
-            size_hint: 0.95, 0.95
-            pos_hint: {"center_x": 0.5, "center_y": 0.5}
-            elevation: 10
-            padding: 20
-            spacing: 20
-            radius: 20, 20, 20, 20
+        AppScreenCard:
+            size_hint: 1, 1
+            padding: [16, 12, 16, 12]
+            spacing: 12
             orientation: 'vertical'
 
             MDLabel:
@@ -37,19 +31,21 @@
                     Color:
                         rgba: 1, 1, 1, 0.1
                     RoundedRectangle:
-                        radius: 20, 20, 20, 20
+                        radius: [20, 20, 20, 20]
                         pos: self.pos
                         size: self.size
 
-            MDTextFieldRound:
+            MDTextField:
                 id: word_input
                 multiline: False
-                hint_text: "Enter text:"
+                mode: "filled"
                 font_size: 28
                 size_hint_x: 0.8
                 pos_hint: {"center_x": 0.5}
-                normal_color: 0.6, 0.8, 1, 0.4
                 on_text_validate: root.submit()
+
+                MDTextFieldHintText:
+                    text: "Enter text:"
 
             MDBoxLayout:
                 orientation: 'horizontal'
@@ -66,32 +62,40 @@
                         width: self.minimum_width
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
-                        MDRoundFlatButton:
+                        MDButton:
                             id: text_submit
-                            font_size: 22
-                            text: "Submit"
+                            style: "outlined"
                             on_press: root.submit()
                             disabled: True
+                            MDButtonText:
+                                text: "Submit"
+                                font_size: 22
 
-                        MDRoundFlatButton:
+                        MDButton:
                             id: text_delete
-                            font_size: 22
-                            text: "Delete Record"
+                            style: "outlined"
                             on_press: root.delete_record()
                             disabled: True
+                            MDButtonText:
+                                text: "Delete Record"
+                                font_size: 22
 
-                        MDRoundFlatButton:
+                        MDButton:
                             id: text_update
-                            font_size: 22
-                            text: "Update Record"
+                            style: "outlined"
                             on_press: root.update_record()
                             disabled: True
+                            MDButtonText:
+                                text: "Update Record"
+                                font_size: 22
 
-                        MDRoundFlatButton:
+                        MDButton:
                             id: url_open
-                            font_size: 22
-                            text: "Open Url"
+                            style: "outlined"
                             on_press: root.open_url()
+                            MDButtonText:
+                                text: "Open Url"
+                                font_size: 22
 
                         ImageMDButton:
                             source: 'app/resources/icons/reload.png'
@@ -101,8 +105,7 @@
 
                             on_press: root.reload_records()
 
-                            allow_stretch: True
-                            keep_ratio: True
+                            fit_mode: "contain"
                             allow_hover: True
 
                             canvas.before:

@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    env:
+      KIVY_NO_ARGS: "1"
+      KIVY_NO_CONSOLELOG: "1"
+      KIVY_AUDIO: "dummy"
+      APP_ENV: "test"
+      APP_AUTOLOGIN: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - uses: pyvista/setup-headless-display-action@v3
+        with:
+          install-mesa3d-offscreen: true
+      - run: uv sync --dev
+      - run: uv run ruff check --no-cache app main.py
+      - run: uv run pytest --timeout 30 -m fast -v
+
+  slow-ml:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: fast
+    env:
+      KIVY_NO_ARGS: "1"
+      KIVY_NO_CONSOLELOG: "1"
+      KIVY_AUDIO: "dummy"
+      APP_ENV: "test"
+      APP_AUTOLOGIN: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+      - uses: pyvista/setup-headless-display-action@v3
+        with:
+          install-mesa3d-offscreen: true
+      - run: uv sync --dev
+      - run: uv run pytest --timeout 300 -m slow -v
