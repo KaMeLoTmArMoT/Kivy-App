@@ -31,6 +31,8 @@ class SafeMDSlider(MDSlider):
 
 Factory.register("SafeMDSlider", cls=SafeMDSlider)
 
+SUPPORTED_YOLO_GENERATIONS = (8, 9, 10, 11, 12, 26)
+
 
 class DetectionScreen(Screen, BaseScreen):
     def __init__(self, **kwargs):
@@ -311,7 +313,7 @@ class DetectionScreen(Screen, BaseScreen):
                 models = ["t", "s", "m", "c", "e"]
             elif self.yolo_generation == 10:
                 models = ["n", "s", "m", "b", "l", "x"]
-            else:  # 11 gen default
+            else:  # 11, 12, 26 gen default
                 models = ["n", "s", "m", "l", "x"]
                 name = "yolo"
 
@@ -325,11 +327,29 @@ class DetectionScreen(Screen, BaseScreen):
                 # btn.allow_hover = True
                 self.ids.model_grid.add_widget(btn)
 
-    def update_value(self, increment):
-        current_value = int(self.ids.label_spinner.text)
-        new_value = current_value + increment
+    def update_value(self, increment: int):
+        try:
+            current_value = int(self.ids.label_spinner.text)
+        except (ValueError, TypeError, AttributeError):
+            current_value = self.yolo_generation
 
-        if 8 <= new_value <= 11:
+        if current_value in SUPPORTED_YOLO_GENERATIONS:
+            idx = SUPPORTED_YOLO_GENERATIONS.index(current_value)
+            step = 1 if increment > 0 else -1
+            new_idx = idx + step
+            if 0 <= new_idx < len(SUPPORTED_YOLO_GENERATIONS):
+                new_value = SUPPORTED_YOLO_GENERATIONS[new_idx]
+            else:
+                new_value = current_value
+        else:
+            if increment > 0:
+                candidates = [g for g in SUPPORTED_YOLO_GENERATIONS if g > current_value]
+                new_value = candidates[0] if candidates else SUPPORTED_YOLO_GENERATIONS[-1]
+            else:
+                candidates = [g for g in SUPPORTED_YOLO_GENERATIONS if g < current_value]
+                new_value = candidates[-1] if candidates else SUPPORTED_YOLO_GENERATIONS[0]
+
+        if new_value != current_value:
             self.ids.label_spinner.text = str(new_value)
             self.yolo_generation = new_value
             self.load_model_names()
