@@ -7,6 +7,8 @@ import pytest
 from kivy.clock import Clock
 from kivymd.uix.label import MDLabel
 
+pytestmark = pytest.mark.slow
+
 pytest.importorskip("torch")
 pytest.importorskip("torchvision")
 

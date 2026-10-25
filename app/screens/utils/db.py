@@ -2,7 +2,7 @@ import ast
 from typing import Any
 
 from app.screens.utils.custom_logging import get_logger
-from app.screens.utils.utils import call_db
+from app.screens.utils.utils import call_db, call_db_many
 
 logger = get_logger(__name__)
 
@@ -33,7 +33,6 @@ DEFAULT_CONFIGS = {
 
 class DB:
     def __init__(self):
-        super().__init__()
         self.create_db_and_check()
 
     def create_db_and_check(self) -> None:
@@ -55,7 +54,7 @@ class DB:
 
     @staticmethod
     def insert_customer(b_encoded_text: str) -> None:
-        call_db(f"INSERT INTO customers VALUES ('{b_encoded_text}')")
+        call_db("INSERT INTO customers VALUES (?)", [b_encoded_text])
 
     @staticmethod
     def get_customers() -> list:
@@ -63,11 +62,11 @@ class DB:
 
     @staticmethod
     def delete_customer(b_encoded_text: str) -> None:
-        call_db(f"DELETE FROM customers WHERE name='{b_encoded_text}'")
+        call_db("DELETE FROM customers WHERE name=?", [b_encoded_text])
 
     @staticmethod
     def update_customer(new_encrypted: str, old_encrypted: str) -> None:
-        call_db(f"UPDATE customers SET name='{new_encrypted}' WHERE name='{old_encrypted}'")
+        call_db("UPDATE customers SET name=? WHERE name=?", [new_encrypted, old_encrypted])
 
     @staticmethod
     def create_images_table() -> None:
@@ -89,7 +88,7 @@ class DB:
 
     @staticmethod
     def delete_image(key: int) -> None:
-        call_db(f"DELETE FROM images WHERE id={key}")
+        call_db("DELETE FROM images WHERE id=?", [key])
 
     @staticmethod
     def create_configs_table() -> None:
@@ -106,7 +105,7 @@ class DB:
         if conf_name == "*":
             return call_db("SELECT * FROM configs")
 
-        return call_db(f"SELECT value FROM configs WHERE name='{conf_name}'")
+        return call_db("SELECT value FROM configs WHERE name=?", [conf_name])
 
     @staticmethod
     def get_config_typed(conf_name: str) -> Any:
@@ -128,16 +127,14 @@ class DB:
     @staticmethod
     def init_default_configs(force: bool = False) -> None:
         mode = "REPLACE" if force else "IGNORE"
-
-        for key, value in DEFAULT_CONFIGS.items():
-            call_db(
-                f"INSERT OR {mode} INTO configs (name, value) VALUES (?, ?)",
-                [key, value],
-            )
+        call_db_many(
+            f"INSERT OR {mode} INTO configs (name, value) VALUES (?, ?)",
+            list(DEFAULT_CONFIGS.items()),
+        )
 
     @staticmethod
     def set_config(conf_name: str, value: str) -> None:
-        call_db(f"INSERT OR REPLACE INTO configs VALUES ('{conf_name}', '{value}')")
+        call_db("INSERT OR REPLACE INTO configs (name, value) VALUES (?, ?)", [conf_name, value])
 
     @staticmethod
     def get_latest_detection_project() -> list:
@@ -146,8 +143,8 @@ class DB:
     @staticmethod
     def set_latest_detection_project(active_project: str) -> None:
         call_db(
-            f"INSERT OR REPLACE INTO configs VALUES "
-            f"('latest_detection_project', '{active_project}')"
+            "INSERT OR REPLACE INTO configs (name, value) VALUES ('latest_detection_project', ?)",
+            [active_project],
         )
 
     @staticmethod
@@ -162,11 +159,11 @@ class DB:
 
     @staticmethod
     def get_login_password(destination="login") -> str:
-        return call_db(f"SELECT * FROM passwords WHERE destination='{destination}'")
+        return call_db("SELECT * FROM passwords WHERE destination=?", [destination])
 
     @staticmethod
     def set_login_password(enc_pass: str, origin="login") -> None:
-        call_db(f"INSERT INTO passwords VALUES ('{origin}', '{enc_pass}')")
+        call_db("INSERT INTO passwords (destination, password) VALUES (?, ?)", [origin, enc_pass])
 
     @staticmethod
     def delete_all_images():

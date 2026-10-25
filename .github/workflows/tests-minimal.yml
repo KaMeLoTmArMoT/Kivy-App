@@ -13,6 +13,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     env:
       KIVY_NO_ARGS: "1"
@@ -35,12 +36,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Install system deps (Xvfb + mtdev)
+      - name: Install system deps (Xvfb + mtdev + cairo)
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libmtdev1
+          sudo apt-get install -y xvfb libmtdev1 libcairo2-dev pkg-config
 
       - name: Install Python deps via uv
         run: |
