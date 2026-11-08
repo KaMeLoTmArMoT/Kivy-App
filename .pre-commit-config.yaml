@@ -26,3 +26,12 @@ repos:
     hooks:
       - id: jscpd
         args: ['--threshold', '1', '--min-tokens', '50', '--min-lines', '5', 'app']
+
+  - repo: local
+    hooks:
+      - id: script-lint
+        name: Script Linter (bat, ps1, sh)
+        entry: script-lint
+        language: system
+        types_or: [batch, powershell, shell]
+        pass_filenames: true
