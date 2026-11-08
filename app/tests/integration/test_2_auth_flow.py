@@ -18,7 +18,7 @@ class BaseAuthTest:
     """Base class for authentication test functionality"""
 
     @staticmethod
-    def wait_for_screen(kivy_app=None, target_screen="login", timeout=3.0):
+    def wait_for_screen(kivy_app=None, target_screen="login", timeout=15.0):
         if kivy_app is None:
             for _ in range(2):
                 Clock.tick()

@@ -21,25 +21,15 @@ def get_db_path() -> str:
 
 
 def call_db(call, data=None):
-    conn = connect(get_db_path())
+    with connect(get_db_path()) as conn:
+        cursor = conn.cursor()
+        cursor.execute(call, data or ())
+        return cursor.fetchall()
 
-    # Create cursor
-    c = conn.cursor()
 
-    # Execute SQL command
-    if data is None:
-        c.execute(call)
-    else:
-        c.execute(call, data)
-    records = c.fetchall()
-
-    # Commit changes
-    conn.commit()
-
-    # Close connection
-    conn.close()
-
-    return records
+def call_db_many(call, rows):
+    with connect(get_db_path()) as conn:
+        conn.executemany(call, rows)
 
 
 def get_sha(text):

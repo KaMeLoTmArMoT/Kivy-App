@@ -1,77 +1,39 @@
-# Integration tests (modules 1–5)
+# Test Suite & Performance
 
-## Prereqs
+## Overview
 
-- Run from repo root (where `pytest.ini` is located).
+The test suite is split into fast and slow gates to provide immediate feedback on core functionality while keeping heavy ML workloads isolated:
 
-Recommended flags:
+- **Fast Gate (`fast`)**: Unit tests and integration flows (navigation, authentication, CRUD, image browsing, encrypted DB). Runtime: ~15-20s.
+- **Slow Gate (`slow`)**: ML workflows (PyTorch/torchvision model creation, training loops, evaluation, TensorBoard output).
 
-- `-v` = verbose output
-- `-s` = show `print()` / console logs
-- `--timeout 20` = hard stop if test freezes
+## Running Tests
 
-Example:
-
+### Fast Gate (Standard CI / Local Dev)
 ```powershell
-pytest --timeout 20 -v -s
+uv run pytest --timeout 30 -m fast -q
 ```
 
----
-
-## Run ALL integration tests
-
-Run everything under integration folder:
-
+### ML Gate
 ```powershell
-pytest --timeout 20 -v -s .\app\tests\integration\
+uv run pytest --timeout 30 -m slow -q
 ```
 
----
-
-## Run module 1–5
-
+### Individual Modules / Tests
 ```powershell
-pytest --timeout 20 -v -s .\app\tests\integration\test_1_screen_navigation.py
+# Run a specific module
+uv run pytest --timeout 20 -v -s .\app\tests\integration\test_1_screen_navigation.py
 
-pytest --timeout 20 -v -s .\app\tests\integration\test_2_auth_flow.py
+# Run a specific test function
+uv run pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py::test_correct_key_zero_left
 
-pytest --timeout 20 -v -s .\app\tests\integration\test_3_test_main_crud_flow.py
-
-pytest --timeout 20 -v -s .\app\tests\integration\test_4_images_flow.py
-
-pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py
+# Re-run only failed tests
+uv run pytest --timeout 20 -v -s --lf
 ```
 
----
+## Performance & Execution Rules
 
-## Run a specific test (node id)
-
-Pytest lets you run a single test by node id using `::` syntax.
-
-### Specific test function
-
-```powershell
-pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py::test_correct_key_zero_left
-```
-
-### Specific test in a class
-
-```powershell
-pytest --timeout 20 -v -s .\app\tests\integration\test_5_db_images_split.py::TestDbImagesSplit::test_wrong_key_only_secure_left
-```
-
----
-
-## Debug tips
-
-### Re-run last failed only
-
-```powershell
-pytest --timeout 20 -v -s --lf
-```
-
----
-
-## Test Optimization & Speedup Strategies
-
-See [TEST_OPTIMIZATION.md](../../TEST_OPTIMIZATION.md) for techniques to reduce full test suite runtime from ~3 minutes to <30 seconds (mocking PyTorch CPU training, accelerating Kivy Clock intervals, and running `pytest -n auto`).
+- **`APP_ENV=test`**: Skips full PyTorch training loops in `classification.py` while verifying TensorBoard logging and model pipeline health.
+- **Clock & Image Bounds**: Image loading is incremental and bound to Kivy `Clock` events to prevent UI blocking.
+- **Batched DB Setup**: Database schema initialization uses batched default inserts.
+- **Serial Execution**: Test database (`app.db`) and ML workspaces are shared during test runs. Run tests serially; enable parallel execution (`-n auto`) only if workers are isolated with independent workspaces/databases.

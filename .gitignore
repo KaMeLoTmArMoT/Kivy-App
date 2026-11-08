@@ -34,3 +34,4 @@ htmlcov/*
 __pycache__/
 .agents/
 .env
+.notes/

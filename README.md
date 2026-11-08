@@ -1,24 +1,12 @@
-<div align="center">
-  <h3 align="center">Python Kivy ML App</h3>
+# Python Kivy ML App
 
-  <p align="center">
-    A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
-    (classification + detection) in one UI.
-    <br /><br />
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/issues">Request Feature</a>
-  </p>
+A modular Kivy/KivyMD desktop app that combines secure local storage, image workflows, and ML tooling
+(classification + detection) in one UI.
 
-  <p align="center">
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml">
-      <img alt="tests-minimal" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml/badge.svg">
-    </a>
-    <a href="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml">
-      <img alt="pre-commit" src="https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml/badge.svg">
-    </a>
-  </p>
-</div>
+[Report Bug](https://github.com/KaMeLoTmArMoT/Kivy-App/issues) · [Request Feature](https://github.com/KaMeLoTmArMoT/Kivy-App/issues)
+
+[![tests-minimal](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml/badge.svg)](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/tests-minimal.yml)
+[![pre-commit](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/KaMeLoTmArMoT/Kivy-App/actions/workflows/pre-commit.yml)
 
 ## About the project
 This application is designed as a “real app” playground: multiple screens, persistent data, and repeatable workflows
@@ -49,16 +37,12 @@ selection, dataset preparation, training runs, and evaluation/detection.
   </tr>
 </table>
 
-## Screenshots
-<!-- Put one hero image here (main screen or ML screen). -->
-<!-- Then add a small grid of key screens below (see examples in the next section). -->
-
 ## Key features
 - Security: password hashing/verification and encryption utilities for app data.
 - Image workflows: browsing, selection, pagination/lazy loading, and dataset-related operations.
 - ML tooling: classification training pipelines and YOLO-based detection workflows.
 - Projects: project-oriented folder structure under `app/training/` to keep datasets/configs/models grouped.
-- Testing: Kivy-aware pytest fixtures + integration tests that cover navigation/auth/CRUD/images/DB/ML flows.
+- Testing: Kivy-aware pytest fixtures with focused unit coverage and integration tests for navigation/auth/CRUD/images/DB/ML flows.
 
 ## Getting started
 
@@ -79,25 +63,18 @@ uv run ruff format
 ```
 
 ### Tests
-Integration tests live under `app/tests/` and include a short guide at `app/tests/README_TESTS.md`.
+Integration tests live under `app/tests/` and include a guide at `app/tests/README_TESTS.md`.
 
 Quick run:
 ```powershell
-uv run pytest --timeout 20 -v -s
-uv run pytest --timeout 20 -v -s .\app\tests\integration\
-```
-
-## Project layout (current)
-```text
-app/
-  screens/        # UI screens + helpers
-  ui/             # .kv files
-  resources/      # assets (icons/images)
-  training/       # ML projects/datasets/models
-  tests/          # pytest + integration tests
+uv run pytest --timeout 30 -m fast -q
+uv run pytest --timeout 30 -m slow -q
 ```
 
 ## Roadmap
+- Step 1 refactoring: service extraction and fast/slow CI split complete.
+- Step 2: Python / Kivy 2.3.1 runtime upgrade and compatibility validation complete.
+- Step 3: migrate the UI layer to KivyMD 2.0.0 / MD3 complete.
 - Improve multi-project UX and config portability (import/export).
 - Packaging/deployment helpers (build scripts, Docker).
 - Expand ML evaluation utilities and make more parameters configurable.
