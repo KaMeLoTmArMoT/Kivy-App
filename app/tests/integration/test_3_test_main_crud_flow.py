@@ -1,8 +1,6 @@
-import base64
 import time
 
 import pytest
-from Cryptodome.Cipher import AES
 from kivy.clock import Clock
 
 
@@ -27,9 +25,7 @@ def wait_until(
 
 
 def decrypt_main_record(main_screen, row) -> str:
-    cipher = AES.new(main_screen.key, AES.MODE_EAX, nonce=b"TODO")
-    raw = base64.b64decode(row[0].encode("utf-8"))
-    return cipher.decrypt(raw).decode("utf-8")
+    return main_screen.customer_service.decrypt_text(row[0], main_screen.key)
 
 
 def ui_texts(main_screen) -> list[str]:

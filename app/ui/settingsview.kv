@@ -5,16 +5,19 @@
         Header:
             id: header
             size_hint: 1, None
-            height: 30
+            height: 36
 
-        MDBoxLayout:
+        AppScreenCard:
+            size_hint: 1, 1
             orientation: 'vertical'
+            padding: [16, 8, 16, 8]
 
             MDLabel:
                 halign: 'center'
-                font_size: 32
+                font_size: 24
                 text: "Application Settings"
-                size_hint_y: .05
+                size_hint_y: None
+                height: 36
 
             ScrollView:
                 size_hint_y: 1
@@ -24,31 +27,30 @@
 
                 GridLayout:
                     id: grid
-                    cols: 2
+                    cols: 1
                     size_hint_y: None
                     height: self.minimum_height
-                    width: self.parent.width
-                    row_default_height: 40
+                    spacing: 8
+                    padding: [8, 8]
+                    row_default_height: 44
 
             MDBoxLayout:
                 orientation:'horizontal'
                 size_hint_y: None
                 height: 40
+                spacing: 12
 
-                Button:
+                AppActionButton:
                     text: "Apply"
-                    size_hint_x: 0.3
-                    background_color: (1, 1, 1, .5)
+                    size_hint_x: 0.33
                     on_press: root.apply_changes()
 
-                Button:
+                AppActionButton:
                     text: "Reload"
-                    size_hint_x: 0.3
-                    background_color: (1, 1, 1, .5)
+                    size_hint_x: 0.33
                     on_press: root.reload_records()
 
-                Button:
-                    text: "Reset"
-                    size_hint_x: 0.3
-                    background_color: (1, 1, 1, .5)
+                AppActionButton:
+                    text: "Reset Defaults"
+                    size_hint_x: 0.33
                     on_press: root.reset_settings()

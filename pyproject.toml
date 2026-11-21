@@ -3,23 +3,23 @@ name = "kivy-app"
 version = "0.1.0"
 description = "Kivy App for Image Management and Machine Learning"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 dependencies = [
-    "kivy==2.1.0",
-    "kivymd==0.104.2",
+    "kivy==2.3.1",
+    "kivymd @ git+https://github.com/kivymd/KivyMD.git@master",
     "numpy==1.26.4",
-    "pycryptodomex==3.19.1",
-    "opencv-python==4.7.0.72",
+    "pycryptodomex==3.23.0",
+    "opencv-python==4.9.0.80",
     "checksumdir==1.2.0",
     "setuptools<71",
     "scikit-learn==1.5.2",
-    "tensorboard==2.19.0",
-    "tqdm==4.66.1",
+    "tensorboard==2.21.0",
+    "tqdm==4.70.0",
     "onnx==1.17.0",
     "onnxruntime-gpu==1.22.0",
-    "onnxslim==0.1.59",
+    "onnxslim==0.1.96",
     "tensorrt==10.12.0.36",
-    "ultralytics==8.3.172",
+    "ultralytics==8.4.135",
 ]
 
 [dependency-groups]
@@ -38,12 +38,15 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [

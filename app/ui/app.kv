@@ -6,94 +6,89 @@
     halign: "center"
     font_size: 32
 
+<AppScreenCard@MDBoxLayout>:
+    orientation: 'vertical'
+    padding: [12, 8, 12, 8]
+    spacing: 8
+
+<AppHeaderButton@Button>:
+    size_hint_y: None
+    height: 32
+    font_size: 16
+    background_normal: ''
+    background_color: (0.18, 0.22, 0.26, 0.85)
+    color: (0.9, 0.9, 0.9, 1)
+
+<AppActionButton@Button>:
+    size_hint_y: None
+    height: 36
+    font_size: 15
+    background_normal: ''
+    background_color: (0.22, 0.28, 0.35, 0.9)
+    color: (0.95, 0.95, 0.95, 1)
+
 <Header>:
     MDBoxLayout:
         orientation: 'horizontal'
-        spacing: 5
+        spacing: 6
+        padding: [6, 2, 6, 2]
         size_hint_y: None
-        height: 30
+        height: 36
 
-        Button:
+        AppHeaderButton:
             id: main
-            size_hint_y: None
-            pos_hint: {"center_x": 0.5}
-            height: 30
-            font_size: 22
             text: "Main Screen"
-            background_color: 1.8, 1.8, 1.8, 1
-            on_press: root.parent.parent.goto_main()  # parent.parent - wierd call to screen class...
+            on_press: root.navigate_to("main")
 
-        Button:
+        AppHeaderButton:
             id: imageview
-            size_hint_y: None
-            pos_hint: {"center_x": 0.5}
-            height: 30
-            font_size: 22
             text: "Image Screen"
-            background_color: 1.8, 1.8, 1.8, 1
-            on_press: root.parent.parent.goto_images()
+            on_press: root.navigate_to("imageview")
 
-        Button:
+        AppHeaderButton:
             id: dbview
-            size_hint_y: None
-            pos_hint: {"center_x": 0.5}
-            height: 30
-            font_size: 22
             text: "DB Screen"
-            background_color: 1.8, 1.8, 1.8, 1
-            on_press: root.parent.parent.goto_db()
+            on_press: root.navigate_to("dbview")
 
-        Button:
+        AppHeaderButton:
             id: mlview
-            size_hint_y: None
-            pos_hint: {"center_x": 0.5}
-            height: 30
-            font_size: 22
             text: "ML Screen"
-            background_color: 1.8, 1.8, 1.8, 1
-            on_press: root.parent.parent.goto_ml()
+            on_press: root.navigate_to("mlview")
 
-        Button:
+        AppHeaderButton:
             id: detectionview
-            size_hint_y: None
-            pos_hint: {"center_x": 0.5}
-            height: 30
-            font_size: 22
             text: "Detection"
-            background_color: 1.8, 1.8, 1.8, 1
-            on_press: root.parent.parent.goto_detection()
+            on_press: root.navigate_to("detectionview")
 
         ImageMDButton:
             id: settingsview
             source: 'app/resources/icons/settings.png'
             size_hint_x: None
-            width: dp(30)
-            height: dp(30)
+            width: dp(32)
+            height: dp(32)
             pos_hint: {"center_y": 0.5}
 
-            on_press: root.parent.parent.goto_settings()
+            on_press: root.navigate_to("settingsview")
 
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: "contain"
             allow_hover: True
 
             canvas.before:
                 Color:
-                    rgba: 1, 1, 1, .18
+                    rgba: 1, 1, 1, .15
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
+                    radius: [8, 8, 8, 8]
 
 <SelectableImage>:
     ImageMDButton:
         id: img
         source: root.source
-        texture: root.texture
-        allow_stretch: True
-        keep_ratio: True
+        fit_mode: "contain"
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         line_color: (1, 1, 1, 0.6) if root.selected else root.line_color
-        md_bg_color: (1, 1, 1, 0.1) if root.selected else (1, 1, 1, 0)
+        md_bg_color: (1, 1, 1, 0.1) if root.selected else (0, 0, 0, 0)
     MDCheckbox:
         id: checkbox
         active: root.selected
